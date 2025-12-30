@@ -1050,6 +1050,40 @@
       width: 16px;
       height: 16px;
     }
+    .frontend-devtools-collapse-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 24px;
+      border: none;
+      background: transparent;
+      border-left: 1px solid rgba(255,255,255,0.12);
+      border-radius: 0;
+      cursor: pointer;
+      color: #555;
+      padding: 0;
+      margin-left: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .frontend-devtools-collapse-btn:hover {
+      color: #aaa;
+      background: rgba(255,255,255,0.05);
+    }
+    .frontend-devtools-collapse-btn:focus {
+      outline: none;
+    }
+    .frontend-devtools-collapse-btn svg {
+      width: 10px;
+      height: 10px;
+    }
+    /* Rotate collapse icon based on corner position */
+    .frontend-devtools-toolbar:not(.corner-left) .frontend-devtools-collapse-btn svg {
+      transform: rotate(0deg);
+    }
+    .frontend-devtools-toolbar.corner-left .frontend-devtools-collapse-btn svg {
+      transform: rotate(180deg);
+    }
     /* Tooltip styles - fixed rectangle panel relative to toolbar */
     .frontend-devtools-toolbar::before {
       content: attr(data-active-tooltip);
@@ -1147,7 +1181,7 @@
     }
   `;
 
-  // Chevron arrow SVG for collapsed state
+  // Chevron arrow SVG for collapsed/expand state
   const CHEVRON_RIGHT_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M9 18l6-6-6-6"/>
   </svg>`;
@@ -1159,6 +1193,7 @@
     toolbarElement: null,
     toolbarContent: null,  // Container for toolbar content (hidden when collapsed)
     expandButton: null,    // Button shown when collapsed
+    collapseButton: null,  // Button to collapse the toolbar
     fpsValueElement: null,
     fpsIntervalId: null,
     inspectButton: null,
@@ -1274,9 +1309,11 @@
       const toolbar = this.toolbarElement;
       const toolbarStyle = toolbar.style;
 
-      // Update corner class for tooltip positioning
+      // Update corner classes for tooltip and collapse button positioning
       const isTop = toolbarCorner.startsWith("top");
+      const isLeft = toolbarCorner.endsWith("left");
       toolbar.classList.toggle("corner-top", isTop);
+      toolbar.classList.toggle("corner-left", isLeft);
 
       toolbarStyle.left = "0";
       toolbarStyle.top = "0";
@@ -1506,6 +1543,21 @@
       this.inspectButton.setAttribute("data-tooltip", isActive ? "Exit inspect mode — or press Esc" : "Inspect component — click to jump to source code in your IDE");
     },
 
+    createCollapseButton() {
+      const btn = document.createElement("button");
+      btn.className = "frontend-devtools-collapse-btn";
+      btn.setAttribute("data-tooltip", "Collapse toolbar");
+      btn.innerHTML = CHEVRON_RIGHT_SVG;
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        // Collapse to the current corner with horizontal orientation (to the side edge)
+        const orientation = "horizontal";
+        this.collapseToolbar(toolbarCorner, orientation);
+      });
+      this.collapseButton = btn;
+      return btn;
+    },
+
     startFPSUpdates() {
       // Initialize FPS tracking
       getFPS();
@@ -1678,6 +1730,10 @@
       // Add FPS meter
       const fpsMeter = this.createFPSMeter();
       content.appendChild(fpsMeter);
+
+      // Add collapse button at the end
+      const collapseBtn = this.createCollapseButton();
+      content.appendChild(collapseBtn);
 
       toolbar.appendChild(content);
 
