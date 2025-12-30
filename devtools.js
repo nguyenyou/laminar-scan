@@ -4,10 +4,10 @@
   // Configuration
   const PRIMARY_COLOR = { r: 115, g: 97, b: 230 };
   const TOTAL_FRAMES = 45;
-  const INTERPOLATION_SPEED = 0.51; // Same as react-scan "fast" speed
+  const INTERPOLATION_SPEED = 0.51; // "fast" speed
   const MONO_FONT = "11px Menlo,Consolas,Monaco,Liberation Mono,Lucida Console,monospace";
   const DATA_SCALA_ATTR = "data-scala";
-  const DEVTOOLS_ATTR = "data-scala-devtools";
+  const DEVTOOLS_ATTR = "data-frontend-devtools";
 
   // Scala element properties for source info
   const SCALA_SOURCE_PATH_PROP = "__scalasourcepath";
@@ -16,7 +16,7 @@
   const SCALA_NAME_PROP = "__scalaname";
   const MARK_AS_COMPONENT_PROP = "__markascomponent";
 
-  // Inspect icon SVG (cursor style, same as react-scan)
+  // Inspect icon SVG (cursor style)
   const INSPECT_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M12.034 12.681a.498.498 0 0 1 .647-.647l9 3.5a.5.5 0 0 1-.033.943l-3.444 1.068a1 1 0 0 0-.66.66l-1.067 3.443a.5.5 0 0 1-.943.033z"/>
     <path d="M5 3a2 2 0 0 0-2 2"/>
@@ -657,7 +657,7 @@
 
   // Drag and snap constants
   const SAFE_AREA = 16;
-  const LOCALSTORAGE_KEY = "scala-devtools-position";
+  const LOCALSTORAGE_KEY = "frontend-devtools-position";
   const DRAG_THRESHOLD = 5;
   const SNAP_THRESHOLD = 60;
 
@@ -751,8 +751,10 @@
   }
 
   // Toolbar styles
+  const TOOLBAR_WIDTH = 173; // Width in pixels for toolbar and tooltip
+
   const TOOLBAR_STYLES = `
-    .scala-devtools-toolbar {
+    .frontend-devtools-toolbar {
       position: fixed;
       display: flex;
       align-items: center;
@@ -768,26 +770,28 @@
       user-select: none;
       cursor: grab;
       touch-action: none;
+      width: ${TOOLBAR_WIDTH}px;
+      box-sizing: border-box;
     }
-    .scala-devtools-toolbar.dragging {
+    .frontend-devtools-toolbar.dragging {
       cursor: grabbing;
       transition: none !important;
     }
-    .scala-devtools-toolbar.snapping {
+    .frontend-devtools-toolbar.snapping {
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .scala-devtools-label {
+    .frontend-devtools-label {
       font-weight: 500;
       color: #e5e5e5;
     }
-    .scala-devtools-toggle {
+    .frontend-devtools-toggle {
       position: relative;
       width: 40px;
       height: 24px;
       cursor: pointer;
       display: inline-flex;
     }
-    .scala-devtools-toggle input {
+    .frontend-devtools-toggle input {
       position: absolute;
       inset: 0;
       opacity: 0;
@@ -797,17 +801,17 @@
       z-index: 1;
       margin: 0;
     }
-    .scala-devtools-toggle-track {
+    .frontend-devtools-toggle-track {
       position: absolute;
       inset: 4px;
       background: #525252;
       border-radius: 9999px;
       transition: background-color 0.3s;
     }
-    .scala-devtools-toggle input:checked + .scala-devtools-toggle-track {
+    .frontend-devtools-toggle input:checked + .frontend-devtools-toggle-track {
       background: #7361e6;
     }
-    .scala-devtools-toggle-thumb {
+    .frontend-devtools-toggle-thumb {
       position: absolute;
       top: 50%;
       left: 0;
@@ -819,12 +823,12 @@
       border-radius: 9999px;
       transition: all 0.3s;
     }
-    .scala-devtools-toggle input:checked + .scala-devtools-toggle-track .scala-devtools-toggle-thumb {
+    .frontend-devtools-toggle input:checked + .frontend-devtools-toggle-track .frontend-devtools-toggle-thumb {
       left: 100%;
       transform: translate(-100%, -50%);
       border-color: #7361e6;
     }
-    .scala-devtools-fps {
+    .frontend-devtools-fps {
       display: flex;
       align-items: center;
       gap: 4px;
@@ -835,7 +839,7 @@
       background: #141414;
       box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
     }
-    .scala-devtools-fps-value {
+    .frontend-devtools-fps-value {
       font-size: 14px;
       font-weight: 600;
       letter-spacing: 0.025em;
@@ -843,13 +847,13 @@
       min-width: 24px;
       text-align: center;
     }
-    .scala-devtools-fps-label {
+    .frontend-devtools-fps-label {
       color: rgba(255,255,255,0.3);
       font-size: 11px;
       font-weight: 500;
       letter-spacing: 0.025em;
     }
-    .scala-devtools-inspect-btn {
+    .frontend-devtools-inspect-btn {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -862,15 +866,51 @@
       color: #999;
       transition: color 0.15s, background 0.15s;
     }
-    .scala-devtools-inspect-btn:hover {
+    .frontend-devtools-inspect-btn:hover {
       background: rgba(255,255,255,0.1);
     }
-    .scala-devtools-inspect-btn.active {
+    .frontend-devtools-inspect-btn.active {
       color: #8e61e3;
     }
-    .scala-devtools-inspect-btn svg {
+    .frontend-devtools-inspect-btn svg {
       width: 16px;
       height: 16px;
+    }
+    /* Tooltip styles - fixed rectangle panel relative to toolbar */
+    .frontend-devtools-toolbar::before {
+      content: attr(data-active-tooltip);
+      position: absolute;
+      left: 0;
+      bottom: calc(100% + 8px);
+      width: ${TOOLBAR_WIDTH}px;
+      min-height: 100px;
+      padding: 12px;
+      background: rgba(35, 35, 38, 0.98);
+      color: #f0f0f0;
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1.4;
+      text-align: left;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08);
+      box-sizing: border-box;
+      display: block;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.2s ease-out, visibility 0.2s ease-out;
+      z-index: 10;
+      white-space: normal;
+      overflow: hidden;
+    }
+    .frontend-devtools-toolbar.tooltip-visible::before {
+      opacity: 1;
+      visibility: visible;
+    }
+    /* Tooltip below (for top corners) */
+    .frontend-devtools-toolbar.corner-top::before {
+      bottom: auto;
+      top: calc(100% + 8px);
     }
   `;
 
@@ -916,6 +956,10 @@
       } else {
         this.toolbarElement.classList.remove("snapping", "dragging");
       }
+
+      // Update corner class for tooltip positioning
+      const isTop = toolbarCorner.startsWith("top");
+      this.toolbarElement.classList.toggle("corner-top", isTop);
 
       this.toolbarElement.style.transform = `translate3d(${toolbarPosition.x}px, ${toolbarPosition.y}px, 0)`;
       this.toolbarElement.style.left = "0";
@@ -1044,15 +1088,16 @@
 
     createFPSMeter() {
       const container = document.createElement("div");
-      container.className = "scala-devtools-fps";
+      container.className = "frontend-devtools-fps";
+      container.setAttribute("data-tooltip", "Frames per second — detect long-running scripts blocking the main thread");
 
       const value = document.createElement("span");
-      value.className = "scala-devtools-fps-value";
+      value.className = "frontend-devtools-fps-value";
       value.textContent = "60";
       this.fpsValueElement = value;
 
       const label = document.createElement("span");
-      label.className = "scala-devtools-fps-label";
+      label.className = "frontend-devtools-fps-label";
       label.textContent = "FPS";
 
       container.appendChild(value);
@@ -1063,8 +1108,8 @@
 
     createInspectButton() {
       const btn = document.createElement("button");
-      btn.className = "scala-devtools-inspect-btn";
-      btn.title = "Inspect element";
+      btn.className = "frontend-devtools-inspect-btn";
+      btn.setAttribute("data-tooltip", "Inspect component — click to jump to source code in your IDE");
       btn.innerHTML = INSPECT_ICON_SVG;
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -1078,7 +1123,7 @@
       if (!this.inspectButton) return;
       const isActive = inspectState.kind === "inspecting";
       this.inspectButton.classList.toggle("active", isActive);
-      this.inspectButton.title = isActive ? "Click element to open in IDE (Esc to cancel)" : "Inspect element";
+      this.inspectButton.setAttribute("data-tooltip", isActive ? "Click any component to open in IDE — press Esc to cancel" : "Inspect component — click to jump to source code in your IDE");
     },
 
     startFPSUpdates() {
@@ -1102,9 +1147,24 @@
       }
     },
 
+    // Setup tooltip event handlers for elements with data-tooltip
+    setupTooltipEvents(toolbar) {
+      const tooltipElements = toolbar.querySelectorAll("[data-tooltip]");
+      tooltipElements.forEach((el) => {
+        el.addEventListener("mouseenter", () => {
+          const tooltipText = el.getAttribute("data-tooltip");
+          toolbar.setAttribute("data-active-tooltip", tooltipText);
+          toolbar.classList.add("tooltip-visible");
+        });
+        el.addEventListener("mouseleave", () => {
+          toolbar.classList.remove("tooltip-visible");
+        });
+      });
+    },
+
     createToolbar() {
       const toolbar = document.createElement("div");
-      toolbar.className = "scala-devtools-toolbar";
+      toolbar.className = "frontend-devtools-toolbar";
 
       // Add drag handler
       toolbar.addEventListener("pointerdown", (e) => this.handleDragStart(e));
@@ -1114,7 +1174,8 @@
       toolbar.appendChild(inspectBtn);
 
       const toggle = document.createElement("label");
-      toggle.className = "scala-devtools-toggle";
+      toggle.className = "frontend-devtools-toggle";
+      toggle.setAttribute("data-tooltip", "Highlight DOM mutations — detect unexpected re-renders");
 
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
@@ -1126,9 +1187,9 @@
       toggle.appendChild(checkbox);
 
       const track = document.createElement("div");
-      track.className = "scala-devtools-toggle-track";
+      track.className = "frontend-devtools-toggle-track";
       const thumb = document.createElement("div");
-      thumb.className = "scala-devtools-toggle-thumb";
+      thumb.className = "frontend-devtools-toggle-thumb";
       track.appendChild(thumb);
       toggle.appendChild(track);
 
@@ -1138,6 +1199,9 @@
       const fpsMeter = this.createFPSMeter();
       toolbar.appendChild(fpsMeter);
 
+      // Setup tooltip events
+      this.setupTooltipEvents(toolbar);
+
       this.toolbarElement = toolbar;
       return toolbar;
     },
@@ -1146,7 +1210,7 @@
       if (this.rootContainer) return;
 
       this.rootContainer = document.createElement("div");
-      this.rootContainer.id = "scala-devtools-root";
+      this.rootContainer.id = "frontend-devtools-root";
       this.rootContainer.setAttribute(DEVTOOLS_ATTR, "toolbar");
 
       this.shadowRoot = this.rootContainer.attachShadow({ mode: "open" });
