@@ -8,6 +8,13 @@
   const MONO_FONT = "11px Menlo,Consolas,Monaco,Liberation Mono,Lucida Console,monospace";
   const DATA_SCALA_ATTR = "data-scala";
 
+  // Scala element properties for source info
+  const SCALA_SOURCE_PATH_PROP = "__scalasourcepath";
+  const SCALA_SOURCE_LINE_PROP = "__scalasourceline";
+  const SCALA_FILENAME_PROP = "__scalafilename";
+  const SCALA_NAME_PROP = "__scalaname";
+  const MARK_AS_COMPONENT_PROP = "__markascomponent";
+
   // Inspect icon SVG (cursor style, same as react-scan)
   const INSPECT_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M12.034 12.681a.498.498 0 0 1 .647-.647l9 3.5a.5.5 0 0 1-.033.943l-3.444 1.068a1 1 0 0 0-.66.66l-1.067 3.443a.5.5 0 0 1-.943.033z"/>
@@ -20,11 +27,6 @@
     <path d="M3 9v1"/>
     <path d="M21 9v2"/>
     <path d="M3 14v1"/>
-  </svg>`;
-
-  const FOCUS_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="10"/>
-    <circle cx="12" cy="12" r="3"/>
   </svg>`;
 
   // State
@@ -69,7 +71,7 @@
     return "rgb(214,132,245)"; // Purple
   }
 
-  // Inspect state: 'off' | 'inspecting' | 'focused'
+  // Inspect state: 'off' | 'inspecting'
   let inspectState = { kind: "off" };
   let inspectCanvas = null;
   let inspectEventCatcher = null;
@@ -121,7 +123,7 @@
     return div;
   }
 
-  function drawInspectOverlay(rect, componentName, isLocked) {
+  function drawInspectOverlay(rect, componentName, componentInfo) {
     if (!inspectCanvas) return;
     const ctx = inspectCanvas.getContext("2d");
     const dpr = Math.max(window.devicePixelRatio, 1);
@@ -129,11 +131,16 @@
 
     if (!rect) return;
 
+    // Use different colors for marked components
+    const isMarked = componentInfo?.isMarked || false;
+    const strokeColor = isMarked ? "rgba(79, 192, 255, 0.6)" : "rgba(142, 97, 227, 0.5)";
+    const fillColor = isMarked ? "rgba(79, 192, 255, 0.10)" : "rgba(173, 97, 230, 0.10)";
+
     // Draw rectangle
-    ctx.strokeStyle = "rgba(142, 97, 227, 0.5)";
-    ctx.fillStyle = "rgba(173, 97, 230, 0.10)";
+    ctx.strokeStyle = strokeColor;
+    ctx.fillStyle = fillColor;
     ctx.lineWidth = 1;
-    ctx.setLineDash(isLocked ? [] : [4]);
+    ctx.setLineDash([4]);
     ctx.fillRect(rect.left, rect.top, rect.width, rect.height);
     ctx.strokeRect(rect.left, rect.top, rect.width, rect.height);
 
@@ -141,53 +148,30 @@
     if (componentName) {
       const pillHeight = 24;
       const pillPadding = 8;
-      const lockIconSize = isLocked ? 14 : 0;
-      const lockIconPadding = isLocked ? 6 : 0;
 
       ctx.font = "12px system-ui, -apple-system, sans-serif";
       const textWidth = ctx.measureText(componentName).width;
-      const pillWidth = textWidth + pillPadding * 2 + lockIconSize + lockIconPadding;
+      const pillWidth = textWidth + pillPadding * 2;
       const pillX = rect.left;
       const pillY = rect.top - pillHeight - 4;
 
-      // Pill background
-      ctx.fillStyle = "rgba(37, 37, 38, 0.75)";
+      // Pill background - different color for marked components
+      ctx.fillStyle = isMarked ? "rgba(20, 60, 80, 0.85)" : "rgba(37, 37, 38, 0.75)";
       ctx.beginPath();
       ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 3);
       ctx.fill();
 
-      // Lock icon if focused
-      if (isLocked) {
-        const lockX = pillX + pillPadding;
-        const lockY = pillY + (pillHeight - lockIconSize) / 2 + 2;
-        ctx.save();
-        ctx.strokeStyle = "white";
-        ctx.fillStyle = "white";
-        ctx.lineWidth = 1.5;
-        // Shackle
-        const shackleWidth = lockIconSize * 0.6;
-        const shackleHeight = lockIconSize * 0.5;
-        ctx.beginPath();
-        ctx.arc(lockX + shackleWidth / 2 + (lockIconSize - shackleWidth) / 2, lockY + shackleHeight / 2, shackleWidth / 2, Math.PI, 0, false);
-        ctx.stroke();
-        // Body
-        const bodyWidth = lockIconSize * 0.8;
-        const bodyHeight = lockIconSize * 0.5;
-        ctx.fillRect(lockX + (lockIconSize - bodyWidth) / 2, lockY + shackleHeight / 2, bodyWidth, bodyHeight);
-        ctx.restore();
-      }
-
-      // Text
-      ctx.fillStyle = "white";
+      // Text - cyan tint for marked components
+      ctx.fillStyle = isMarked ? "#79c0ff" : "white";
       ctx.textBaseline = "middle";
-      ctx.fillText(componentName, pillX + pillPadding + lockIconSize + lockIconPadding, pillY + pillHeight / 2);
+      ctx.fillText(componentName, pillX + pillPadding, pillY + pillHeight / 2);
     }
   }
 
-  function animateInspectRect(targetRect, componentName, isLocked) {
+  function animateInspectRect(targetRect, componentName, componentInfo) {
     if (!inspectCurrentRect) {
       inspectCurrentRect = { ...targetRect };
-      drawInspectOverlay(inspectCurrentRect, componentName, isLocked);
+      drawInspectOverlay(inspectCurrentRect, componentName, componentInfo);
       return;
     }
 
@@ -197,7 +181,7 @@
       inspectCurrentRect.width = lerp(inspectCurrentRect.width, targetRect.width);
       inspectCurrentRect.height = lerp(inspectCurrentRect.height, targetRect.height);
 
-      drawInspectOverlay(inspectCurrentRect, componentName, isLocked);
+      drawInspectOverlay(inspectCurrentRect, componentName, componentInfo);
 
       const stillMoving =
         Math.abs(inspectCurrentRect.left - targetRect.left) > 0.5 ||
@@ -209,7 +193,7 @@
         inspectRafId = requestAnimationFrame(animate);
       } else {
         inspectCurrentRect = { ...targetRect };
-        drawInspectOverlay(inspectCurrentRect, componentName, isLocked);
+        drawInspectOverlay(inspectCurrentRect, componentName, componentInfo);
       }
     };
 
@@ -231,7 +215,7 @@
       if (inspectLastHovered) {
         inspectLastHovered = null;
         inspectCurrentRect = null;
-        drawInspectOverlay(null, null, false);
+        drawInspectOverlay(null, null, null);
       }
       return;
     }
@@ -240,60 +224,37 @@
     inspectLastHovered = component.element;
 
     const rect = component.element.getBoundingClientRect();
+    const info = getComponentInfo(component.element);
     animateInspectRect(
       { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
       component.name,
-      false
+      info
     );
   }
 
   function handleInspectClick(e) {
-    if (inspectState.kind !== "inspecting") return;
-    if (!inspectLastHovered) return;
-
     e.preventDefault();
     e.stopPropagation();
+
+    if (inspectState.kind !== "inspecting") return;
+    if (!inspectLastHovered) return;
 
     const component = getScalaComponent(inspectLastHovered);
     if (!component) return;
 
-    inspectState = {
-      kind: "focused",
-      element: component.element,
-      name: component.name,
-    };
-
-    const rect = component.element.getBoundingClientRect();
-    animateInspectRect(
-      { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
-      component.name,
-      true
-    );
-
-    // Update toolbar button state
-    if (Toolbar.updateInspectButton) Toolbar.updateInspectButton();
+    // Open file in IDE directly
+    const sourcePath = getSourcePath(component.element);
+    const sourceLine = getSourceLine(component.element);
+    if (sourcePath) {
+      openFileInIDE(sourcePath, sourceLine);
+    } else {
+      console.warn("ScalaDevtools: No source path found for element");
+    }
   }
 
   function handleInspectKeydown(e) {
-    if (e.key === "Escape") {
-      if (inspectState.kind === "focused") {
-        // Go back to inspecting
-        inspectState = { kind: "inspecting", hoveredElement: inspectLastHovered };
-        if (inspectLastHovered) {
-          const component = getScalaComponent(inspectLastHovered);
-          if (component) {
-            const rect = component.element.getBoundingClientRect();
-            animateInspectRect(
-              { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
-              component.name,
-              false
-            );
-          }
-        }
-        if (Toolbar.updateInspectButton) Toolbar.updateInspectButton();
-      } else if (inspectState.kind === "inspecting") {
-        stopInspecting();
-      }
+    if (e.key === "Escape" && inspectState.kind === "inspecting") {
+      stopInspecting();
     }
   }
 
@@ -358,28 +319,10 @@
   }
 
   function toggleInspect() {
-    switch (inspectState.kind) {
-      case "off":
-        startInspecting();
-        break;
-      case "inspecting":
-        stopInspecting();
-        break;
-      case "focused":
-        // Go back to inspecting mode
-        inspectState = { kind: "inspecting", hoveredElement: inspectState.element };
-        inspectLastHovered = inspectState.element;
-        const component = getScalaComponent(inspectState.element);
-        if (component) {
-          const rect = component.element.getBoundingClientRect();
-          animateInspectRect(
-            { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
-            component.name,
-            false
-          );
-        }
-        if (Toolbar.updateInspectButton) Toolbar.updateInspectButton();
-        break;
+    if (inspectState.kind === "off") {
+      startInspecting();
+    } else {
+      stopInspecting();
     }
   }
 
@@ -391,12 +334,73 @@
   function getScalaSource(node) {
     const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
     if (!element) return null;
-    
+
     const attr = element.getAttribute(DATA_SCALA_ATTR);
     if (attr) return attr;
-    
+
     const closest = element.closest(`[${DATA_SCALA_ATTR}]`);
     return closest ? closest.getAttribute(DATA_SCALA_ATTR) : null;
+  }
+
+  // Get source path from element (uses __scalasourcepath property)
+  function getSourcePath(element) {
+    if (!element) return null;
+    return element[SCALA_SOURCE_PATH_PROP] || null;
+  }
+
+  // Get source line from element (uses __scalasourceline property)
+  function getSourceLine(element) {
+    if (!element) return null;
+    const line = element[SCALA_SOURCE_LINE_PROP];
+    return line !== undefined ? String(line) : null;
+  }
+
+  // Get filename from element (uses __scalafilename property)
+  function getFilename(element) {
+    if (!element) return null;
+    return element[SCALA_FILENAME_PROP] || null;
+  }
+
+  // Get scala name (method/function name) from element
+  function getScalaName(element) {
+    if (!element) return null;
+    return element[SCALA_NAME_PROP] || null;
+  }
+
+  // Check if element is marked as component
+  function isMarkedAsComponent(element) {
+    if (!element) return false;
+    return element[MARK_AS_COMPONENT_PROP] === "true";
+  }
+
+  // Get component info object with all available source information
+  function getComponentInfo(element) {
+    if (!element) return null;
+    return {
+      sourcePath: getSourcePath(element),
+      sourceLine: getSourceLine(element),
+      filename: getFilename(element),
+      scalaName: getScalaName(element),
+      isMarked: isMarkedAsComponent(element),
+      displayName: element.getAttribute(DATA_SCALA_ATTR)
+    };
+  }
+
+  // Open file at source path using IDEA protocol
+  function openFileInIDE(sourcePath, sourceLine) {
+    if (!sourcePath) {
+      console.warn("ScalaDevtools: No source path provided");
+      return;
+    }
+
+    // Build IDEA URI: idea://open?file=<path>&line=<line>
+    let uri = `idea://open?file=${sourcePath}`;
+    if (sourceLine) {
+      uri += `&line=${sourceLine}`;
+    }
+
+    console.log("ScalaDevtools: Opening file in IDE:", uri);
+    window.open(uri, "_blank");
   }
 
   function createCanvas() {
@@ -627,14 +631,6 @@
       return inspectState.kind === "inspecting";
     },
 
-    isFocused() {
-      return inspectState.kind === "focused";
-    },
-
-    getInspectState() {
-      return inspectState;
-    },
-
     startInspect() {
       startInspecting();
     },
@@ -807,16 +803,9 @@
 
     updateInspectButton() {
       if (!this.inspectButton) return;
-      const isActive = inspectState.kind === "inspecting" || inspectState.kind === "focused";
+      const isActive = inspectState.kind === "inspecting";
       this.inspectButton.classList.toggle("active", isActive);
-      // Change icon based on state
-      if (inspectState.kind === "focused") {
-        this.inspectButton.innerHTML = FOCUS_ICON_SVG;
-        this.inspectButton.title = "Focused on component (click to inspect, Esc to exit)";
-      } else {
-        this.inspectButton.innerHTML = INSPECT_ICON_SVG;
-        this.inspectButton.title = inspectState.kind === "inspecting" ? "Click element to focus (Esc to cancel)" : "Inspect element";
-      }
+      this.inspectButton.title = isActive ? "Click element to open in IDE (Esc to cancel)" : "Inspect element";
     },
 
     startFPSUpdates() {
@@ -847,11 +836,6 @@
       // Add inspect button first
       const inspectBtn = this.createInspectButton();
       toolbar.appendChild(inspectBtn);
-
-      const label = document.createElement("span");
-      label.className = "scala-devtools-label";
-      label.textContent = "Scala Devtools";
-      toolbar.appendChild(label);
 
       const toggle = document.createElement("label");
       toggle.className = "scala-devtools-toggle";
