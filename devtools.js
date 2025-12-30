@@ -499,19 +499,27 @@
         ctx.fillStyle = `rgba(${r},${g},${b},${alpha * 0.1})`;
         ctx.fill();
 
-        // Prepare label
+        // Prepare label - aggregate counts for highlights at the same position
         const labelKey = `${highlight.x},${highlight.y}`;
         const existing = labelMap.get(labelKey);
-        if (!existing || existing.alpha < alpha) {
+        if (!existing) {
           labelMap.set(labelKey, { ...highlight, alpha });
+        } else {
+          // Aggregate counts and keep highest alpha
+          existing.count += highlight.count;
+          if (alpha > existing.alpha) {
+            existing.alpha = alpha;
+          }
         }
       }
     });
 
     // Draw labels
     ctx.font = MONO_FONT;
-    labelMap.forEach(({ x, y, name, alpha }) => {
-      const textWidth = ctx.measureText(name).width;
+    labelMap.forEach(({ x, y, name, count, alpha }) => {
+      // Show count in label like react-scan: "ComponentName ×N"
+      const labelText = count > 1 ? `${name} ×${count}` : name;
+      const textWidth = ctx.measureText(labelText).width;
       const textHeight = 11;
       const padding = 2;
 
@@ -524,7 +532,7 @@
       ctx.fillRect(x, labelY, textWidth + padding * 2, textHeight + padding * 2);
 
       ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-      ctx.fillText(name, x + padding, labelY + textHeight + padding - 2);
+      ctx.fillText(labelText, x + padding, labelY + textHeight + padding - 2);
     });
 
     toRemove.forEach((el) => activeHighlights.delete(el));
@@ -552,6 +560,7 @@
       existing.targetWidth = rect.width;
       existing.targetHeight = rect.height;
       existing.frame = 0;
+      existing.count++; // Increment count on re-render
     } else {
       activeHighlights.set(element, {
         element,
@@ -565,6 +574,7 @@
         targetWidth: rect.width,
         targetHeight: rect.height,
         frame: 0,
+        count: 1, // Initialize count
       });
     }
 
