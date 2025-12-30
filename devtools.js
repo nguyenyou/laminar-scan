@@ -4,9 +4,28 @@
   // Configuration
   const PRIMARY_COLOR = { r: 115, g: 97, b: 230 };
   const TOTAL_FRAMES = 45;
-  const INTERPOLATION_SPEED = 0.1;
+  const INTERPOLATION_SPEED = 0.51; // Same as react-scan "fast" speed
   const MONO_FONT = "11px Menlo,Consolas,Monaco,Liberation Mono,Lucida Console,monospace";
   const DATA_SCALA_ATTR = "data-scala";
+
+  // Inspect icon SVG (cursor style, same as react-scan)
+  const INSPECT_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12.034 12.681a.498.498 0 0 1 .647-.647l9 3.5a.5.5 0 0 1-.033.943l-3.444 1.068a1 1 0 0 0-.66.66l-1.067 3.443a.5.5 0 0 1-.943.033z"/>
+    <path d="M5 3a2 2 0 0 0-2 2"/>
+    <path d="M19 3a2 2 0 0 1 2 2"/>
+    <path d="M5 21a2 2 0 0 1-2-2"/>
+    <path d="M9 3h1"/>
+    <path d="M9 21h2"/>
+    <path d="M14 3h1"/>
+    <path d="M3 9v1"/>
+    <path d="M21 9v2"/>
+    <path d="M3 14v1"/>
+  </svg>`;
+
+  const FOCUS_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <circle cx="12" cy="12" r="3"/>
+  </svg>`;
 
   // State
   let isEnabled = false;
@@ -48,6 +67,320 @@
     if (fps < 30) return "#EF4444"; // Red
     if (fps < 50) return "#F59E0B"; // Yellow
     return "rgb(214,132,245)"; // Purple
+  }
+
+  // Inspect state: 'off' | 'inspecting' | 'focused'
+  let inspectState = { kind: "off" };
+  let inspectCanvas = null;
+  let inspectEventCatcher = null;
+  let inspectCurrentRect = null;
+  let inspectLastHovered = null;
+  let inspectRafId = null;
+
+  function getScalaComponent(element) {
+    if (!element) return null;
+    const closest = element.closest(`[${DATA_SCALA_ATTR}]`);
+    if (!closest) return null;
+    return {
+      element: closest,
+      name: closest.getAttribute(DATA_SCALA_ATTR),
+    };
+  }
+
+  function createInspectCanvas() {
+    const c = document.createElement("canvas");
+    const dpr = Math.max(window.devicePixelRatio, 1);
+    Object.assign(c.style, {
+      position: "fixed",
+      top: "0",
+      left: "0",
+      width: `${window.innerWidth}px`,
+      height: `${window.innerHeight}px`,
+      pointerEvents: "none",
+      zIndex: "2147483646",
+      opacity: "0",
+      transition: "opacity 0.15s ease-in-out",
+    });
+    c.width = window.innerWidth * dpr;
+    c.height = window.innerHeight * dpr;
+    c.getContext("2d").scale(dpr, dpr);
+    return c;
+  }
+
+  function createEventCatcher() {
+    const div = document.createElement("div");
+    Object.assign(div.style, {
+      position: "fixed",
+      top: "0",
+      left: "0",
+      width: "100vw",
+      height: "100vh",
+      pointerEvents: "none",
+      zIndex: "2147483645",
+    });
+    return div;
+  }
+
+  function drawInspectOverlay(rect, componentName, isLocked) {
+    if (!inspectCanvas) return;
+    const ctx = inspectCanvas.getContext("2d");
+    const dpr = Math.max(window.devicePixelRatio, 1);
+    ctx.clearRect(0, 0, inspectCanvas.width / dpr, inspectCanvas.height / dpr);
+
+    if (!rect) return;
+
+    // Draw rectangle
+    ctx.strokeStyle = "rgba(142, 97, 227, 0.5)";
+    ctx.fillStyle = "rgba(173, 97, 230, 0.10)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash(isLocked ? [] : [4]);
+    ctx.fillRect(rect.left, rect.top, rect.width, rect.height);
+    ctx.strokeRect(rect.left, rect.top, rect.width, rect.height);
+
+    // Draw label pill
+    if (componentName) {
+      const pillHeight = 24;
+      const pillPadding = 8;
+      const lockIconSize = isLocked ? 14 : 0;
+      const lockIconPadding = isLocked ? 6 : 0;
+
+      ctx.font = "12px system-ui, -apple-system, sans-serif";
+      const textWidth = ctx.measureText(componentName).width;
+      const pillWidth = textWidth + pillPadding * 2 + lockIconSize + lockIconPadding;
+      const pillX = rect.left;
+      const pillY = rect.top - pillHeight - 4;
+
+      // Pill background
+      ctx.fillStyle = "rgba(37, 37, 38, 0.75)";
+      ctx.beginPath();
+      ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 3);
+      ctx.fill();
+
+      // Lock icon if focused
+      if (isLocked) {
+        const lockX = pillX + pillPadding;
+        const lockY = pillY + (pillHeight - lockIconSize) / 2 + 2;
+        ctx.save();
+        ctx.strokeStyle = "white";
+        ctx.fillStyle = "white";
+        ctx.lineWidth = 1.5;
+        // Shackle
+        const shackleWidth = lockIconSize * 0.6;
+        const shackleHeight = lockIconSize * 0.5;
+        ctx.beginPath();
+        ctx.arc(lockX + shackleWidth / 2 + (lockIconSize - shackleWidth) / 2, lockY + shackleHeight / 2, shackleWidth / 2, Math.PI, 0, false);
+        ctx.stroke();
+        // Body
+        const bodyWidth = lockIconSize * 0.8;
+        const bodyHeight = lockIconSize * 0.5;
+        ctx.fillRect(lockX + (lockIconSize - bodyWidth) / 2, lockY + shackleHeight / 2, bodyWidth, bodyHeight);
+        ctx.restore();
+      }
+
+      // Text
+      ctx.fillStyle = "white";
+      ctx.textBaseline = "middle";
+      ctx.fillText(componentName, pillX + pillPadding + lockIconSize + lockIconPadding, pillY + pillHeight / 2);
+    }
+  }
+
+  function animateInspectRect(targetRect, componentName, isLocked) {
+    if (!inspectCurrentRect) {
+      inspectCurrentRect = { ...targetRect };
+      drawInspectOverlay(inspectCurrentRect, componentName, isLocked);
+      return;
+    }
+
+    const animate = () => {
+      inspectCurrentRect.left = lerp(inspectCurrentRect.left, targetRect.left);
+      inspectCurrentRect.top = lerp(inspectCurrentRect.top, targetRect.top);
+      inspectCurrentRect.width = lerp(inspectCurrentRect.width, targetRect.width);
+      inspectCurrentRect.height = lerp(inspectCurrentRect.height, targetRect.height);
+
+      drawInspectOverlay(inspectCurrentRect, componentName, isLocked);
+
+      const stillMoving =
+        Math.abs(inspectCurrentRect.left - targetRect.left) > 0.5 ||
+        Math.abs(inspectCurrentRect.top - targetRect.top) > 0.5 ||
+        Math.abs(inspectCurrentRect.width - targetRect.width) > 0.5 ||
+        Math.abs(inspectCurrentRect.height - targetRect.height) > 0.5;
+
+      if (stillMoving) {
+        inspectRafId = requestAnimationFrame(animate);
+      } else {
+        inspectCurrentRect = { ...targetRect };
+        drawInspectOverlay(inspectCurrentRect, componentName, isLocked);
+      }
+    };
+
+    cancelAnimationFrame(inspectRafId);
+    inspectRafId = requestAnimationFrame(animate);
+  }
+
+  function handleInspectPointerMove(e) {
+    if (inspectState.kind !== "inspecting") return;
+
+    inspectEventCatcher.style.pointerEvents = "none";
+    const element = document.elementFromPoint(e.clientX, e.clientY);
+    inspectEventCatcher.style.pointerEvents = "auto";
+
+    if (!element) return;
+
+    const component = getScalaComponent(element);
+    if (!component) {
+      if (inspectLastHovered) {
+        inspectLastHovered = null;
+        inspectCurrentRect = null;
+        drawInspectOverlay(null, null, false);
+      }
+      return;
+    }
+
+    if (component.element === inspectLastHovered) return;
+    inspectLastHovered = component.element;
+
+    const rect = component.element.getBoundingClientRect();
+    animateInspectRect(
+      { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+      component.name,
+      false
+    );
+  }
+
+  function handleInspectClick(e) {
+    if (inspectState.kind !== "inspecting") return;
+    if (!inspectLastHovered) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const component = getScalaComponent(inspectLastHovered);
+    if (!component) return;
+
+    inspectState = {
+      kind: "focused",
+      element: component.element,
+      name: component.name,
+    };
+
+    const rect = component.element.getBoundingClientRect();
+    animateInspectRect(
+      { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+      component.name,
+      true
+    );
+
+    // Update toolbar button state
+    if (Toolbar.updateInspectButton) Toolbar.updateInspectButton();
+  }
+
+  function handleInspectKeydown(e) {
+    if (e.key === "Escape") {
+      if (inspectState.kind === "focused") {
+        // Go back to inspecting
+        inspectState = { kind: "inspecting", hoveredElement: inspectLastHovered };
+        if (inspectLastHovered) {
+          const component = getScalaComponent(inspectLastHovered);
+          if (component) {
+            const rect = component.element.getBoundingClientRect();
+            animateInspectRect(
+              { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+              component.name,
+              false
+            );
+          }
+        }
+        if (Toolbar.updateInspectButton) Toolbar.updateInspectButton();
+      } else if (inspectState.kind === "inspecting") {
+        stopInspecting();
+      }
+    }
+  }
+
+  function startInspecting() {
+    if (inspectState.kind !== "off") return;
+
+    inspectState = { kind: "inspecting", hoveredElement: null };
+
+    // Create canvas and event catcher
+    inspectCanvas = createInspectCanvas();
+    inspectEventCatcher = createEventCatcher();
+
+    document.body.appendChild(inspectCanvas);
+    document.body.appendChild(inspectEventCatcher);
+
+    // Fade in
+    requestAnimationFrame(() => {
+      inspectCanvas.style.opacity = "1";
+      inspectEventCatcher.style.pointerEvents = "auto";
+    });
+
+    // Add event listeners
+    document.addEventListener("pointermove", handleInspectPointerMove, { passive: true, capture: true });
+    document.addEventListener("click", handleInspectClick, { capture: true });
+    document.addEventListener("keydown", handleInspectKeydown);
+
+    if (Toolbar.updateInspectButton) Toolbar.updateInspectButton();
+  }
+
+  function stopInspecting() {
+    if (inspectState.kind === "off") return;
+
+    inspectState = { kind: "off" };
+
+    // Remove event listeners
+    document.removeEventListener("pointermove", handleInspectPointerMove, { capture: true });
+    document.removeEventListener("click", handleInspectClick, { capture: true });
+    document.removeEventListener("keydown", handleInspectKeydown);
+
+    // Cleanup
+    cancelAnimationFrame(inspectRafId);
+    inspectRafId = null;
+    inspectCurrentRect = null;
+    inspectLastHovered = null;
+
+    if (inspectCanvas) {
+      inspectCanvas.style.opacity = "0";
+      setTimeout(() => {
+        if (inspectCanvas && inspectCanvas.parentNode) {
+          inspectCanvas.parentNode.removeChild(inspectCanvas);
+        }
+        inspectCanvas = null;
+      }, 150);
+    }
+
+    if (inspectEventCatcher && inspectEventCatcher.parentNode) {
+      inspectEventCatcher.parentNode.removeChild(inspectEventCatcher);
+    }
+    inspectEventCatcher = null;
+
+    if (Toolbar.updateInspectButton) Toolbar.updateInspectButton();
+  }
+
+  function toggleInspect() {
+    switch (inspectState.kind) {
+      case "off":
+        startInspecting();
+        break;
+      case "inspecting":
+        stopInspecting();
+        break;
+      case "focused":
+        // Go back to inspecting mode
+        inspectState = { kind: "inspecting", hoveredElement: inspectState.element };
+        inspectLastHovered = inspectState.element;
+        const component = getScalaComponent(inspectState.element);
+        if (component) {
+          const rect = component.element.getBoundingClientRect();
+          animateInspectRect(
+            { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+            component.name,
+            false
+          );
+        }
+        if (Toolbar.updateInspectButton) Toolbar.updateInspectButton();
+        break;
+    }
   }
 
   // Utility functions
@@ -288,6 +621,31 @@
       if (this.isRunning()) this.stop();
       else this.start();
     },
+
+    // Inspect API
+    isInspecting() {
+      return inspectState.kind === "inspecting";
+    },
+
+    isFocused() {
+      return inspectState.kind === "focused";
+    },
+
+    getInspectState() {
+      return inspectState;
+    },
+
+    startInspect() {
+      startInspecting();
+    },
+
+    stopInspect() {
+      stopInspecting();
+    },
+
+    toggleInspect() {
+      toggleInspect();
+    },
   };
 
   // Toolbar styles
@@ -382,6 +740,29 @@
       font-weight: 500;
       letter-spacing: 0.025em;
     }
+    .scala-devtools-inspect-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: transparent;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #999;
+      transition: color 0.15s, background 0.15s;
+    }
+    .scala-devtools-inspect-btn:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    .scala-devtools-inspect-btn.active {
+      color: #8e61e3;
+    }
+    .scala-devtools-inspect-btn svg {
+      width: 16px;
+      height: 16px;
+    }
   `;
 
   // Toolbar
@@ -390,6 +771,7 @@
     shadowRoot: null,
     fpsValueElement: null,
     fpsIntervalId: null,
+    inspectButton: null,
 
     createFPSMeter() {
       const container = document.createElement("div");
@@ -408,6 +790,33 @@
       container.appendChild(label);
 
       return container;
+    },
+
+    createInspectButton() {
+      const btn = document.createElement("button");
+      btn.className = "scala-devtools-inspect-btn";
+      btn.title = "Inspect element";
+      btn.innerHTML = INSPECT_ICON_SVG;
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleInspect();
+      });
+      this.inspectButton = btn;
+      return btn;
+    },
+
+    updateInspectButton() {
+      if (!this.inspectButton) return;
+      const isActive = inspectState.kind === "inspecting" || inspectState.kind === "focused";
+      this.inspectButton.classList.toggle("active", isActive);
+      // Change icon based on state
+      if (inspectState.kind === "focused") {
+        this.inspectButton.innerHTML = FOCUS_ICON_SVG;
+        this.inspectButton.title = "Focused on component (click to inspect, Esc to exit)";
+      } else {
+        this.inspectButton.innerHTML = INSPECT_ICON_SVG;
+        this.inspectButton.title = inspectState.kind === "inspecting" ? "Click element to focus (Esc to cancel)" : "Inspect element";
+      }
     },
 
     startFPSUpdates() {
@@ -434,6 +843,10 @@
     createToolbar() {
       const toolbar = document.createElement("div");
       toolbar.className = "scala-devtools-toolbar";
+
+      // Add inspect button first
+      const inspectBtn = this.createInspectButton();
+      toolbar.appendChild(inspectBtn);
 
       const label = document.createElement("span");
       label.className = "scala-devtools-label";
