@@ -40,8 +40,10 @@
   let isEnabled = false;
   let observer = null;
   let canvas = null;
+  let canvasCtx = null; // Cached canvas context
   let animationFrameId = null;
   let resizeHandler = null;
+  let resizeDebounceId = null; // For debouncing resize events
   const activeHighlights = new Map();
 
   // Drag state - when true, all scanning/highlighting work is paused
@@ -107,6 +109,15 @@
     return fps;
   }
 
+  function resetFPSState() {
+    pauseFPSLoop();
+    fps = 0;
+    fpsLastTime = performance.now();
+    fpsFrameCount = 0;
+    fpsInitialized = false;
+    fpsPaused = false;
+  }
+
   function getFPSColor(fps) {
     if (fps < 30) return "#EF4444"; // Red
     if (fps < 50) return "#F59E0B"; // Yellow
@@ -116,10 +127,12 @@
   // Inspect state: 'off' | 'inspecting'
   let inspectState = { kind: "off" };
   let inspectCanvas = null;
+  let inspectCanvasCtx = null; // Cached inspect canvas context
   let inspectEventCatcher = null;
   let inspectCurrentRect = null;
   let inspectLastHovered = null;
   let inspectRafId = null;
+  let inspectCanvasRemoveTimeoutId = null; // Track timeout for cleanup
 
   function getScalaComponent(element) {
     if (!element) return null;
@@ -148,7 +161,9 @@
     });
     c.width = window.innerWidth * dpr;
     c.height = window.innerHeight * dpr;
-    c.getContext("2d").scale(dpr, dpr);
+    // Cache context for performance
+    inspectCanvasCtx = c.getContext("2d");
+    inspectCanvasCtx.scale(dpr, dpr);
     return c;
   }
 
@@ -168,8 +183,8 @@
   }
 
   function drawInspectOverlay(rect, componentName, componentInfo) {
-    if (!inspectCanvas) return;
-    const ctx = inspectCanvas.getContext("2d");
+    if (!inspectCanvas || !inspectCanvasCtx) return;
+    const ctx = inspectCanvasCtx;
     const dpr = Math.max(window.devicePixelRatio, 1);
     ctx.clearRect(0, 0, inspectCanvas.width / dpr, inspectCanvas.height / dpr);
 
@@ -337,7 +352,7 @@
 
     inspectState = { kind: "off" };
 
-    // Remove event listeners
+    // Remove event listeners (passive option doesn't affect removeEventListener matching)
     document.removeEventListener("pointermove", handleInspectPointerMove, { capture: true });
     document.removeEventListener("click", handleInspectClick, { capture: true });
     document.removeEventListener("keydown", handleInspectKeydown);
@@ -348,13 +363,22 @@
     inspectCurrentRect = null;
     inspectLastHovered = null;
 
+    // Cancel any pending canvas removal timeout to prevent race conditions
+    if (inspectCanvasRemoveTimeoutId) {
+      clearTimeout(inspectCanvasRemoveTimeoutId);
+      inspectCanvasRemoveTimeoutId = null;
+    }
+
     if (inspectCanvas) {
-      inspectCanvas.style.opacity = "0";
-      setTimeout(() => {
-        if (inspectCanvas && inspectCanvas.parentNode) {
-          inspectCanvas.parentNode.removeChild(inspectCanvas);
+      const canvasToRemove = inspectCanvas;
+      inspectCanvas = null;
+      inspectCanvasCtx = null;
+      canvasToRemove.style.opacity = "0";
+      inspectCanvasRemoveTimeoutId = setTimeout(() => {
+        if (canvasToRemove.parentNode) {
+          canvasToRemove.parentNode.removeChild(canvasToRemove);
         }
-        inspectCanvas = null;
+        inspectCanvasRemoveTimeoutId = null;
       }, 150);
     }
 
@@ -471,17 +495,18 @@
 
     document.body.appendChild(c);
 
-    const ctx = c.getContext("2d");
-    ctx.scale(dpr, dpr);
+    // Cache context for performance
+    canvasCtx = c.getContext("2d");
+    canvasCtx.scale(dpr, dpr);
 
     return c;
   }
 
   function drawHighlights() {
     // Skip rendering while dragging toolbar for performance
-    if (!isEnabled || !canvas || isDraggingToolbar) return;
+    if (!isEnabled || !canvas || !canvasCtx || isDraggingToolbar) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvasCtx;
     const dpr = Math.max(window.devicePixelRatio, 1);
 
     ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
@@ -490,6 +515,12 @@
     const labelMap = new Map();
 
     activeHighlights.forEach((highlight, element) => {
+      // Check if element is still in the DOM to prevent stale references
+      if (!element.isConnected) {
+        toRemove.push(element);
+        return;
+      }
+
       // Interpolate position
       highlight.x = lerp(highlight.x, highlight.targetX);
       highlight.y = lerp(highlight.y, highlight.targetY);
@@ -625,15 +656,26 @@
     });
   }
 
-  function handleResize() {
-    if (!canvas) return;
+  function handleResizeImmediate() {
+    if (!canvas || !canvasCtx) return;
     const dpr = Math.max(window.devicePixelRatio, 1);
     canvas.style.width = `${window.innerWidth}px`;
     canvas.style.height = `${window.innerHeight}px`;
     canvas.width = window.innerWidth * dpr;
     canvas.height = window.innerHeight * dpr;
-    const ctx = canvas.getContext("2d");
-    ctx.scale(dpr, dpr);
+    // Re-apply scale after canvas resize (resets the context)
+    canvasCtx.scale(dpr, dpr);
+  }
+
+  // Debounced resize handler to avoid excessive redraws during resize
+  function handleResize() {
+    if (resizeDebounceId) {
+      clearTimeout(resizeDebounceId);
+    }
+    resizeDebounceId = setTimeout(() => {
+      handleResizeImmediate();
+      resizeDebounceId = null;
+    }, 100);
   }
 
   // Devtools API
@@ -676,6 +718,12 @@
         resizeHandler = null;
       }
 
+      // Cancel any pending resize debounce
+      if (resizeDebounceId) {
+        clearTimeout(resizeDebounceId);
+        resizeDebounceId = null;
+      }
+
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
@@ -684,6 +732,7 @@
       if (canvas && canvas.parentNode) {
         canvas.parentNode.removeChild(canvas);
         canvas = null;
+        canvasCtx = null;
       }
 
       activeHighlights.clear();
@@ -919,7 +968,7 @@
   }
 
   // Toolbar styles
-  const TOOLBAR_WIDTH = 173; // Width in pixels for toolbar and tooltip
+  const TOOLBAR_WIDTH = 200; // Width in pixels for toolbar and tooltip
 
   const TOOLBAR_STYLES = `
     .frontend-devtools-toolbar {
@@ -1202,6 +1251,7 @@
     inspectButton: null,
     isDragging: false,
     resizeHandler: null,
+    transitionFallbackTimeoutId: null, // Fallback for transitionend
 
     // Initialize toolbar position
     initPosition() {
@@ -1262,9 +1312,18 @@
       this.toolbarElement.style.top = "0";
     },
 
+    // Track expand timeout for cleanup
+    expandTimeoutId: null,
+
     // Expand from collapsed state
     expandToolbar() {
       if (!toolbarCollapsed) return;
+
+      // Cancel any pending expand timeout
+      if (this.expandTimeoutId) {
+        clearTimeout(this.expandTimeoutId);
+        this.expandTimeoutId = null;
+      }
 
       // Disable tooltips during expansion to prevent accidental tooltip shows
       isExpandingToolbar = true;
@@ -1290,8 +1349,9 @@
         saveToolbarPosition();
 
         // Re-enable tooltips after the expand animation completes (300ms transition + buffer)
-        setTimeout(() => {
+        this.expandTimeoutId = setTimeout(() => {
           isExpandingToolbar = false;
+          this.expandTimeoutId = null;
         }, 400);
       });
     },
@@ -1325,6 +1385,12 @@
         // Disable tooltips during snap animation to prevent accidental triggers
         isSnappingToolbar = true;
 
+        // Cancel any existing transition fallback timeout
+        if (this.transitionFallbackTimeoutId) {
+          clearTimeout(this.transitionFallbackTimeoutId);
+          this.transitionFallbackTimeoutId = null;
+        }
+
         // Use inline transition for better performance (avoids class-based reflow)
         toolbarStyle.transition = "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
 
@@ -1334,12 +1400,27 @@
         });
 
         // Use transitionend event instead of setTimeout for accuracy
+        let transitionCompleted = false;
         const onTransitionEnd = () => {
+          if (transitionCompleted) return;
+          transitionCompleted = true;
           toolbarStyle.transition = "none";
           isSnappingToolbar = false; // Re-enable tooltips after snap animation
           toolbar.removeEventListener("transitionend", onTransitionEnd);
+          if (this.transitionFallbackTimeoutId) {
+            clearTimeout(this.transitionFallbackTimeoutId);
+            this.transitionFallbackTimeoutId = null;
+          }
         };
         toolbar.addEventListener("transitionend", onTransitionEnd, { once: true });
+
+        // Fallback timeout in case transitionend never fires (e.g., element removed, transition cancelled)
+        this.transitionFallbackTimeoutId = setTimeout(() => {
+          if (!transitionCompleted) {
+            onTransitionEnd();
+          }
+          this.transitionFallbackTimeoutId = null;
+        }, 350); // Slightly longer than 300ms transition
       } else {
         toolbarStyle.transition = "none";
         toolbarStyle.transform = `translate3d(${toolbarPosition.x}px, ${toolbarPosition.y}px, 0)`;
@@ -1586,30 +1667,56 @@
       }
     },
 
+    // Track tooltip cleanup functions
+    tooltipCleanupFns: [],
+    tooltipHideTimeout: null,
+
+    // Cleanup tooltip event handlers
+    cleanupTooltipEvents() {
+      // Clear any pending hide timeout
+      if (this.tooltipHideTimeout) {
+        clearTimeout(this.tooltipHideTimeout);
+        this.tooltipHideTimeout = null;
+      }
+      // Remove all event listeners
+      this.tooltipCleanupFns.forEach(fn => fn());
+      this.tooltipCleanupFns = [];
+    },
+
     // Setup tooltip event handlers for elements with data-tooltip
     setupTooltipEvents(toolbar) {
       const tooltipElements = toolbar.querySelectorAll("[data-tooltip]");
-      let hideTimeout = null;
+      const self = this;
 
       tooltipElements.forEach((el) => {
-        el.addEventListener("mouseenter", () => {
+        const handleMouseEnter = () => {
           // Don't show tooltips while dragging, expanding, or snapping
           if (isDraggingToolbar || isExpandingToolbar || isSnappingToolbar) return;
           // Cancel any pending hide
-          if (hideTimeout) {
-            clearTimeout(hideTimeout);
-            hideTimeout = null;
+          if (self.tooltipHideTimeout) {
+            clearTimeout(self.tooltipHideTimeout);
+            self.tooltipHideTimeout = null;
           }
           const tooltipText = el.getAttribute("data-tooltip");
           toolbar.setAttribute("data-active-tooltip", tooltipText);
           toolbar.classList.add("tooltip-visible");
-        });
-        el.addEventListener("mouseleave", () => {
+        };
+
+        const handleMouseLeave = () => {
           // Delay hiding to allow moving between buttons without flickering
-          hideTimeout = setTimeout(() => {
+          self.tooltipHideTimeout = setTimeout(() => {
             toolbar.classList.remove("tooltip-visible");
-            hideTimeout = null;
+            self.tooltipHideTimeout = null;
           }, 200);
+        };
+
+        el.addEventListener("mouseenter", handleMouseEnter);
+        el.addEventListener("mouseleave", handleMouseLeave);
+
+        // Store cleanup function
+        self.tooltipCleanupFns.push(() => {
+          el.removeEventListener("mouseenter", handleMouseEnter);
+          el.removeEventListener("mouseleave", handleMouseLeave);
         });
       });
     },
@@ -1783,8 +1890,24 @@
     },
 
     remove() {
-      // Stop FPS updates
+      // Stop FPS updates and reset state
       this.stopFPSUpdates();
+      resetFPSState();
+
+      // Cleanup tooltip event handlers
+      this.cleanupTooltipEvents();
+
+      // Cancel any pending expand timeout
+      if (this.expandTimeoutId) {
+        clearTimeout(this.expandTimeoutId);
+        this.expandTimeoutId = null;
+      }
+
+      // Cancel any pending transition fallback timeout
+      if (this.transitionFallbackTimeoutId) {
+        clearTimeout(this.transitionFallbackTimeoutId);
+        this.transitionFallbackTimeoutId = null;
+      }
 
       // Remove resize handler
       if (this.resizeHandler) {
@@ -1792,9 +1915,10 @@
         this.resizeHandler = null;
       }
 
-      if (fpsAnimationId) {
-        cancelAnimationFrame(fpsAnimationId);
-        fpsAnimationId = null;
+      // Cancel resize debounce
+      if (resizeDebounceId) {
+        clearTimeout(resizeDebounceId);
+        resizeDebounceId = null;
       }
 
       if (this.rootContainer && this.rootContainer.parentNode) {
@@ -1803,7 +1927,12 @@
       this.rootContainer = null;
       this.shadowRoot = null;
       this.toolbarElement = null;
+      this.toolbarContent = null;
+      this.expandButton = null;
+      this.collapseButton = null;
       this.fpsValueElement = null;
+      this.inspectButton = null;
+      this.tooltipCleanupFns = [];
     },
   };
 
