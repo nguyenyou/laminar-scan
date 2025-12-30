@@ -295,14 +295,21 @@
     if (inspectState.kind !== "inspecting") return;
 
     // Allow clicks on devtools toolbar elements to pass through (e.g., clicking inspect button to exit)
-    if (isDevtoolsElement(e.target)) return;
+    // But NOT the event catcher - that's specifically there to catch clicks for inspection
+    if (isDevtoolsElement(e.target) && e.target !== inspectEventCatcher) return;
 
     e.preventDefault();
     e.stopPropagation();
 
-    if (!inspectLastHovered) return;
+    // Use the same technique as handleInspectPointerMove to find the actual element under the click
+    // This is necessary because the event catcher intercepts click events
+    inspectEventCatcher.style.pointerEvents = "none";
+    const element = document.elementFromPoint(e.clientX, e.clientY);
+    inspectEventCatcher.style.pointerEvents = "auto";
 
-    const component = getScalaComponent(inspectLastHovered);
+    if (!element) return;
+
+    const component = getScalaComponent(element);
     if (!component) return;
 
     // Open file in IDE directly
