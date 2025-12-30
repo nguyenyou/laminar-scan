@@ -124,6 +124,33 @@
     return "rgb(214,132,245)"; // Purple
   }
 
+  // Memory tracking (Chrome/Chromium only via performance.memory)
+  // Returns { usedMB, totalMB, limitMB, percent } or null if not supported
+  function getMemoryInfo() {
+    // performance.memory is a non-standard Chrome-only API
+    const memory = performance.memory;
+    if (!memory || typeof memory.usedJSHeapSize !== "number") {
+      return null;
+    }
+
+    const usedMB = Math.round(memory.usedJSHeapSize / (1024 * 1024));
+    const totalMB = Math.round(memory.totalJSHeapSize / (1024 * 1024));
+    const limitMB = Math.round(memory.jsHeapSizeLimit / (1024 * 1024));
+    const percent = Math.round((memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100);
+
+    return { usedMB, totalMB, limitMB, percent };
+  }
+
+  function getMemoryColor(percent) {
+    if (percent > 80) return "#EF4444"; // Red - critical
+    if (percent > 60) return "#F59E0B"; // Yellow - warning
+    return "#6EE7B7"; // Green - healthy
+  }
+
+  function isMemorySupported() {
+    return !!(performance.memory && typeof performance.memory.usedJSHeapSize === "number");
+  }
+
   // Inspect state: 'off' | 'inspecting'
   let inspectState = { kind: "off" };
   let inspectCanvas = null;
@@ -997,7 +1024,7 @@
   }
 
   // Toolbar styles
-  const TOOLBAR_WIDTH = 200; // Width in pixels for toolbar and tooltip
+  const TOOLBAR_WIDTH = 270; // Width in pixels for toolbar and tooltip
   const TOOLTIP_HEIGHT = 80; // Min height in pixels for tooltip panel
 
   const TOOLBAR_STYLES = `
@@ -1099,6 +1126,31 @@
       text-align: center;
     }
     .frontend-devtools-fps-label {
+      color: rgba(255,255,255,0.3);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.025em;
+    }
+    .frontend-devtools-memory {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 8px;
+      height: 24px;
+      border-radius: 6px;
+      font-family: ui-monospace, monospace;
+      background: #141414;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+    }
+    .frontend-devtools-memory-value {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.025em;
+      transition: color 0.15s ease-in-out;
+      min-width: 28px;
+      text-align: center;
+    }
+    .frontend-devtools-memory-label {
       color: rgba(255,255,255,0.3);
       font-size: 11px;
       font-weight: 500;
@@ -1276,6 +1328,7 @@
     expandButton: null,    // Button shown when collapsed
     collapseButton: null,  // Button to collapse the toolbar
     fpsValueElement: null,
+    memoryValueElement: null,
     fpsIntervalId: null,
     inspectButton: null,
     isDragging: false,
@@ -1638,6 +1691,31 @@
       return container;
     },
 
+    createMemoryMeter() {
+      // Only create if memory API is supported
+      if (!isMemorySupported()) {
+        return null;
+      }
+
+      const container = document.createElement("div");
+      container.className = "frontend-devtools-memory";
+      container.setAttribute("data-tooltip", "JS heap memory usage — detect memory leaks and excessive allocations");
+
+      const value = document.createElement("span");
+      value.className = "frontend-devtools-memory-value";
+      value.textContent = "--";
+      this.memoryValueElement = value;
+
+      const label = document.createElement("span");
+      label.className = "frontend-devtools-memory-label";
+      label.textContent = "MB";
+
+      container.appendChild(value);
+      container.appendChild(label);
+
+      return container;
+    },
+
     createInspectButton() {
       const btn = document.createElement("button");
       btn.className = "frontend-devtools-inspect-btn";
@@ -1679,12 +1757,21 @@
       // Initialize FPS tracking
       getFPS();
 
-      // Update FPS display every 200ms
+      // Update FPS and memory display every 200ms
       this.fpsIntervalId = setInterval(() => {
+        // Update FPS
         if (this.fpsValueElement) {
           const currentFPS = getFPS();
           this.fpsValueElement.textContent = currentFPS;
           this.fpsValueElement.style.color = getFPSColor(currentFPS);
+        }
+        // Update memory
+        if (this.memoryValueElement) {
+          const memInfo = getMemoryInfo();
+          if (memInfo) {
+            this.memoryValueElement.textContent = memInfo.usedMB;
+            this.memoryValueElement.style.color = getMemoryColor(memInfo.percent);
+          }
         }
       }, 200);
     },
@@ -1959,6 +2046,12 @@
       const fpsMeter = this.createFPSMeter();
       content.appendChild(fpsMeter);
 
+      // Add memory meter (only if supported by browser)
+      const memoryMeter = this.createMemoryMeter();
+      if (memoryMeter) {
+        content.appendChild(memoryMeter);
+      }
+
       // Add collapse button at the end
       const collapseBtn = this.createCollapseButton();
       content.appendChild(collapseBtn);
@@ -2049,6 +2142,7 @@
       this.expandButton = null;
       this.collapseButton = null;
       this.fpsValueElement = null;
+      this.memoryValueElement = null;
       this.inspectButton = null;
       this.tooltipCleanupFns = [];
       this.tooltipElement = null;
