@@ -1809,6 +1809,8 @@ class ComponentInspector {
     const info = getComponentSourceInfo(component.element);
     if (info?.sourcePath) {
       openInIDE(info.sourcePath, info.sourceLine);
+      // Exit inspect mode after jumping to source
+      this.stop();
     } else {
       console.warn("FrontendDevtools: No source path found for element");
     }
