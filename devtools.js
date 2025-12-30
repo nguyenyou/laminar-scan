@@ -1126,8 +1126,8 @@
       outline: none;
     }
     .frontend-devtools-collapse-btn svg {
-      width: 10px;
-      height: 10px;
+      width: 16px;
+      height: 16px;
     }
     /* Rotate collapse icon based on corner position */
     .frontend-devtools-toolbar:not(.corner-left) .frontend-devtools-collapse-btn svg {
