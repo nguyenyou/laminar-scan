@@ -887,14 +887,19 @@
       touch-action: none;
       width: ${TOOLBAR_WIDTH}px;
       box-sizing: border-box;
+      /* GPU acceleration - always on for smooth dragging */
+      will-change: transform;
+      transform: translate3d(0, 0, 0);
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      perspective: 1000px;
+      transform-style: preserve-3d;
+      -webkit-transform-style: preserve-3d;
     }
     .frontend-devtools-toolbar.dragging {
       cursor: grabbing;
+      /* Remove transition during drag for immediate response */
       transition: none !important;
-      will-change: transform;
-    }
-    .frontend-devtools-toolbar.snapping {
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .frontend-devtools-label {
       font-weight: 500;
@@ -1205,28 +1210,34 @@
     applyPosition(animate = true) {
       if (!this.toolbarElement) return;
 
-      if (animate) {
-        this.toolbarElement.classList.add("snapping");
-        this.toolbarElement.classList.remove("dragging");
-      } else {
-        this.toolbarElement.classList.remove("snapping", "dragging");
-      }
+      const toolbar = this.toolbarElement;
+      const toolbarStyle = toolbar.style;
 
       // Update corner class for tooltip positioning
       const isTop = toolbarCorner.startsWith("top");
-      this.toolbarElement.classList.toggle("corner-top", isTop);
+      toolbar.classList.toggle("corner-top", isTop);
 
-      this.toolbarElement.style.transform = `translate3d(${toolbarPosition.x}px, ${toolbarPosition.y}px, 0)`;
-      this.toolbarElement.style.left = "0";
-      this.toolbarElement.style.top = "0";
+      toolbarStyle.left = "0";
+      toolbarStyle.top = "0";
 
       if (animate) {
-        // Remove snapping class after animation
-        setTimeout(() => {
-          if (this.toolbarElement) {
-            this.toolbarElement.classList.remove("snapping");
-          }
-        }, 300);
+        // Use inline transition for better performance (avoids class-based reflow)
+        toolbarStyle.transition = "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
+
+        // Schedule transform update in next frame for proper transition
+        requestAnimationFrame(() => {
+          toolbarStyle.transform = `translate3d(${toolbarPosition.x}px, ${toolbarPosition.y}px, 0)`;
+        });
+
+        // Use transitionend event instead of setTimeout for accuracy
+        const onTransitionEnd = () => {
+          toolbarStyle.transition = "none";
+          toolbar.removeEventListener("transitionend", onTransitionEnd);
+        };
+        toolbar.addEventListener("transitionend", onTransitionEnd, { once: true });
+      } else {
+        toolbarStyle.transition = "none";
+        toolbarStyle.transform = `translate3d(${toolbarPosition.x}px, ${toolbarPosition.y}px, 0)`;
       }
     },
 
@@ -1255,6 +1266,9 @@
       let hasMoved = false;
       let rafId = null;
 
+      // Cache style reference to avoid repeated lookups
+      const toolbarStyle = toolbar.style;
+
       // Pause FPS updates during drag to avoid layout thrashing
       const wasFpsRunning = this.fpsIntervalId !== null;
       if (wasFpsRunning) {
@@ -1262,10 +1276,13 @@
       }
 
       const handlePointerMove = (e) => {
-        if (rafId) return;
-
+        // ALWAYS update mouse position, even if RAF is pending
+        // This ensures we have the latest position when the frame fires
         lastMouseX = e.clientX;
         lastMouseY = e.clientY;
+
+        // Skip scheduling new RAF if one is already pending
+        if (rafId) return;
 
         rafId = requestAnimationFrame(() => {
           const deltaX = lastMouseX - initialMouseX;
@@ -1276,10 +1293,9 @@
             hasMoved = true;
             this.isDragging = true;
             isDraggingToolbar = true; // Pause all scanning/highlighting work
+            // Batch class changes - transition disabled via CSS class
             toolbar.classList.add("dragging");
-            toolbar.classList.remove("snapping", "tooltip-visible"); // Hide tooltip during drag
-            // Enable GPU acceleration hint during drag
-            toolbar.style.willChange = "transform";
+            toolbar.classList.remove("tooltip-visible"); // Hide tooltip during drag
           }
 
           if (hasMoved) {
@@ -1287,7 +1303,8 @@
             currentY = initialY + deltaY;
 
             // Apply position directly using translate3d for GPU acceleration
-            toolbar.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+            // Use cached style reference for faster access
+            toolbarStyle.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
           }
 
           rafId = null;
@@ -1304,7 +1321,6 @@
         }
 
         toolbar.classList.remove("dragging");
-        toolbar.style.willChange = "";
         this.isDragging = false;
         isDraggingToolbar = false; // Resume all scanning/highlighting work
 
@@ -1322,7 +1338,7 @@
 
         // Only snap if moved enough
         if (totalMovement < SNAP_THRESHOLD) {
-          // Snap back to original position
+          // Snap back to original position with smooth animation
           toolbarPosition = calculatePosition(toolbarCorner, toolbar.offsetWidth, toolbar.offsetHeight);
           this.applyPosition(true);
           return;
