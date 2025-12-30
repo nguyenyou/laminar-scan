@@ -1330,6 +1330,7 @@
     fpsValueElement: null,
     memoryValueElement: null,
     fpsIntervalId: null,
+    memoryIntervalId: null,
     inspectButton: null,
     isDragging: false,
     resizeHandler: null,
@@ -1757,15 +1758,17 @@
       // Initialize FPS tracking
       getFPS();
 
-      // Update FPS and memory display every 200ms
+      // Update FPS display every 200ms (needs fast updates)
       this.fpsIntervalId = setInterval(() => {
-        // Update FPS
         if (this.fpsValueElement) {
           const currentFPS = getFPS();
           this.fpsValueElement.textContent = currentFPS;
           this.fpsValueElement.style.color = getFPSColor(currentFPS);
         }
-        // Update memory
+      }, 200);
+
+      // Update memory display every 1000ms (doesn't change as rapidly)
+      this.memoryIntervalId = setInterval(() => {
         if (this.memoryValueElement) {
           const memInfo = getMemoryInfo();
           if (memInfo) {
@@ -1773,13 +1776,17 @@
             this.memoryValueElement.style.color = getMemoryColor(memInfo.percent);
           }
         }
-      }, 200);
+      }, 1000);
     },
 
     stopFPSUpdates() {
       if (this.fpsIntervalId) {
         clearInterval(this.fpsIntervalId);
         this.fpsIntervalId = null;
+      }
+      if (this.memoryIntervalId) {
+        clearInterval(this.memoryIntervalId);
+        this.memoryIntervalId = null;
       }
     },
 
