@@ -263,6 +263,13 @@
   function handleInspectPointerMove(e) {
     if (inspectState.kind !== "inspecting") return;
 
+    // Clear stale reference if previously hovered element is disconnected (memory leak prevention)
+    if (inspectLastHovered && !inspectLastHovered.isConnected) {
+      inspectLastHovered = null;
+      inspectCurrentRect = null;
+      drawInspectOverlay(null, null, null);
+    }
+
     inspectEventCatcher.style.pointerEvents = "none";
     const element = document.elementFromPoint(e.clientX, e.clientY);
     inspectEventCatcher.style.pointerEvents = "auto";
@@ -601,6 +608,8 @@
   function highlightElement(element) {
     if (!isEnabled) return;
     if (canvas && element === canvas) return;
+    // Prevent memory leaks: don't track elements that are already disconnected
+    if (!element.isConnected) return;
 
     const rect = element.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
@@ -616,8 +625,8 @@
       existing.frame = 0;
       existing.count++; // Increment count on re-render
     } else {
+      // Note: element is used as Map key only, not stored in object to avoid redundant references
       activeHighlights.set(element, {
-        element,
         name,
         x: rect.left,
         y: rect.top,
@@ -633,8 +642,21 @@
     }
 
     if (!animationFrameId) {
+      // Sweep stale entries before restarting animation loop to prevent memory leaks
+      sweepStaleHighlights();
       animationFrameId = requestAnimationFrame(drawHighlights);
     }
+  }
+
+  // Sweep disconnected elements from activeHighlights to prevent memory leaks
+  function sweepStaleHighlights() {
+    const toRemove = [];
+    activeHighlights.forEach((_, element) => {
+      if (!element.isConnected) {
+        toRemove.push(element);
+      }
+    });
+    toRemove.forEach((el) => activeHighlights.delete(el));
   }
 
   // Check if element is part of devtools UI (should be ignored by mutation observer)
