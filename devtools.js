@@ -1,23 +1,113 @@
 (function () {
   "use strict";
 
-  // Configuration
-  const PRIMARY_COLOR = { r: 115, g: 97, b: 230 };
-  const TOTAL_FRAMES = 45;
-  const INTERPOLATION_SPEED = 0.51; // "fast" speed
-  const MONO_FONT = "11px Menlo,Consolas,Monaco,Liberation Mono,Lucida Console,monospace";
-  const DATA_SCALA_ATTR = "data-scala";
-  const DEVTOOLS_ATTR = "data-frontend-devtools";
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+// All magic values, constants, and static assets centralized here.
+// ============================================================================
 
-  // Scala element properties for source info
-  const SCALA_SOURCE_PATH_PROP = "__scalasourcepath";
-  const SCALA_SOURCE_LINE_PROP = "__scalasourceline";
-  const SCALA_FILENAME_PROP = "__scalafilename";
-  const SCALA_NAME_PROP = "__scalaname";
-  const MARK_AS_COMPONENT_PROP = "__markascomponent";
+/**
+ * Central configuration object for all devtools settings.
+ * Modify these values to customize behavior without hunting through code.
+ */
+const CONFIG = {
+  /** Primary brand color used for highlights and UI accents */
+  colors: {
+    primary: { r: 115, g: 97, b: 230 },
+    // FPS meter colors
+    fpsGood: "rgb(214,132,245)",
+    fpsWarning: "#F59E0B",
+    fpsCritical: "#EF4444",
+    // Memory meter colors
+    memoryHealthy: "#6EE7B7",
+    memoryWarning: "#F59E0B",
+    memoryCritical: "#EF4444",
+    // Inspector colors (normal components)
+    inspectStroke: "rgba(142, 97, 227, 0.5)",
+    inspectFill: "rgba(173, 97, 230, 0.10)",
+    inspectPillBg: "rgba(37, 37, 38, 0.75)",
+    inspectPillText: "white",
+    // Inspector colors (marked components)
+    inspectMarkedStroke: "rgba(79, 192, 255, 0.6)",
+    inspectMarkedFill: "rgba(79, 192, 255, 0.10)",
+    inspectMarkedPillBg: "rgba(20, 60, 80, 0.85)",
+    inspectMarkedPillText: "#79c0ff",
+  },
 
-  // Inspect icon SVG (cursor style)
-  const INSPECT_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  /** Animation timing and behavior */
+  animation: {
+    totalFrames: 45,
+    interpolationSpeed: 0.51,
+    snapTransitionMs: 300,
+    tooltipFadeMs: 200,
+    tooltipSlideMs: 120,
+  },
+
+  /** UI dimensions in pixels */
+  dimensions: {
+    toolbarWidth: 285,
+    tooltipMinHeight: 80,
+    safeArea: 16,
+    collapsedHorizontal: { width: 20, height: 48 },
+    collapsedVertical: { width: 48, height: 20 },
+  },
+
+  /** Threshold values for various interactions */
+  thresholds: {
+    dragStart: 5,
+    snapDistance: 60,
+    collapseRatio: 0.5,
+    expandDragDistance: 50,
+    fpsWarning: 50,
+    fpsCritical: 30,
+    memoryWarning: 60,
+    memoryCritical: 80,
+  },
+
+  /** Update intervals in milliseconds */
+  intervals: {
+    fpsDisplay: 200,
+    memoryDisplay: 1000,
+    resizeDebounce: 100,
+  },
+
+  /** Data attribute names for DOM elements */
+  attributes: {
+    scalaComponent: "data-scala",
+    devtools: "data-frontend-devtools",
+  },
+
+  /** Element property names for Scala source info */
+  properties: {
+    sourcePath: "__scalasourcepath",
+    sourceLine: "__scalasourceline",
+    filename: "__scalafilename",
+    name: "__scalaname",
+    markAsComponent: "__markascomponent",
+  },
+
+  /** localStorage keys for persistence */
+  storageKeys: {
+    position: "FRONTEND_DEVTOOLS_POSITION",
+    collapsed: "FRONTEND_DEVTOOLS_COLLAPSED",
+    enabled: "FRONTEND_DEVTOOLS_ENABLED",
+    scanning: "FRONTEND_DEVTOOLS_SCANNING",
+  },
+
+  /** Font settings */
+  fonts: {
+    mono: "11px Menlo,Consolas,Monaco,Liberation Mono,Lucida Console,monospace",
+    ui: "system-ui, -apple-system, sans-serif",
+  },
+};
+
+/**
+ * SVG icon definitions used throughout the UI.
+ */
+const ICONS = {
+  /** Inspect mode cursor icon */
+  inspect: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M12.034 12.681a.498.498 0 0 1 .647-.647l9 3.5a.5.5 0 0 1-.033.943l-3.444 1.068a1 1 0 0 0-.66.66l-1.067 3.443a.5.5 0 0 1-.943.033z"/>
     <path d="M5 3a2 2 0 0 0-2 2"/>
     <path d="M19 3a2 2 0 0 1 2 2"/>
@@ -28,154 +118,1154 @@
     <path d="M3 9v1"/>
     <path d="M21 9v2"/>
     <path d="M3 14v1"/>
-  </svg>`;
+  </svg>`,
 
-  // Close/cross icon SVG for exiting inspect mode
-  const CLOSE_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  /** Close/exit icon */
+  close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M18 6L6 18"/>
     <path d="M6 6l12 12"/>
-  </svg>`;
+  </svg>`,
 
-  // State
-  let isEnabled = false;
-  let observer = null;
-  let canvas = null;
-  let canvasCtx = null; // Cached canvas context
-  let animationFrameId = null;
-  let resizeHandler = null;
-  let resizeDebounceId = null; // For debouncing resize events
-  const activeHighlights = new Map();
+  /** Chevron for expand/collapse */
+  chevronRight: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 18l6-6-6-6"/>
+  </svg>`,
+};
 
-  // Drag state - when true, all scanning/highlighting work is paused
-  let isDraggingToolbar = false;
+/**
+ * CSS styles for the toolbar and its components.
+ * Injected into Shadow DOM for style isolation.
+ */
+const STYLES = `
+  /* ===== Toolbar Container ===== */
+  .devtools-toolbar {
+    position: fixed;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #000;
+    border-radius: 8px;
+    font-family: ${CONFIG.fonts.ui};
+    font-size: 13px;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 2147483646;
+    user-select: none;
+    cursor: grab;
+    touch-action: none;
+    width: ${CONFIG.dimensions.toolbarWidth}px;
+    box-sizing: border-box;
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+  }
 
-  // Expanding state - when true, tooltips are disabled to prevent accidental shows
-  let isExpandingToolbar = false;
+  .devtools-toolbar.dragging {
+    cursor: grabbing;
+    transition: none !important;
+  }
 
-  // Snapping state - when true, tooltips are disabled during snap-back animation
-  let isSnappingToolbar = false;
+  /* ===== Toggle Switch ===== */
+  .devtools-toggle {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    cursor: pointer;
+    display: inline-flex;
+  }
 
-  // FPS tracking state
-  let fps = 0;
-  let fpsLastTime = performance.now();
-  let fpsFrameCount = 0;
-  let fpsInitialized = false;
-  let fpsAnimationId = null;
+  .devtools-toggle input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    margin: 0;
+  }
 
-  // FPS functions
-  // IMPORTANT: FPS loop can be paused during drag to free up RAF for smooth dragging
-  let fpsPaused = false;
+  .devtools-toggle-track {
+    position: absolute;
+    inset: 0;
+    background: #525252;
+    border-radius: 9999px;
+    transition: background-color 0.2s;
+  }
 
-  function updateFPS() {
-    // Stop the RAF loop if paused
-    if (fpsPaused) {
-      fpsAnimationId = null;
+  .devtools-toggle input:checked + .devtools-toggle-track {
+    background: #7361e6;
+  }
+
+  .devtools-toggle-thumb {
+    position: absolute;
+    top: 50%;
+    left: 2px;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 9999px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: left 0.2s ease;
+  }
+
+  .devtools-toggle input:checked + .devtools-toggle-track .devtools-toggle-thumb {
+    left: calc(100% - 18px);
+  }
+
+  /* ===== Meter Displays (FPS/Memory) ===== */
+  .devtools-meter {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px;
+    height: 24px;
+    border-radius: 6px;
+    font-family: ui-monospace, monospace;
+    background: #141414;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+  }
+
+  .devtools-meter-value {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    transition: color 0.15s ease-in-out;
+    min-width: 24px;
+    text-align: center;
+  }
+
+  .devtools-meter-value.memory {
+    min-width: 38px;
+    text-align: right;
+  }
+
+  .devtools-meter-label {
+    color: rgba(255,255,255,0.3);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.025em;
+  }
+
+  /* ===== Icon Buttons ===== */
+  .devtools-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #999;
+    transition: color 0.15s, background 0.15s;
+  }
+
+  .devtools-icon-btn:hover {
+    background: rgba(255,255,255,0.1);
+  }
+
+  .devtools-icon-btn:focus {
+    outline: none;
+  }
+
+  .devtools-icon-btn.active {
+    color: #8e61e3;
+  }
+
+  .devtools-icon-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* ===== Collapse Button ===== */
+  .devtools-collapse-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    border-left: 1px solid rgba(255,255,255,0.12);
+    border-radius: 0;
+    cursor: pointer;
+    color: #555;
+    padding: 0;
+    margin-left: 4px;
+    transition: color 0.15s, background 0.15s;
+  }
+
+  .devtools-collapse-btn:hover {
+    color: #aaa;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .devtools-collapse-btn:focus {
+    outline: none;
+  }
+
+  .devtools-collapse-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .devtools-toolbar:not(.corner-left) .devtools-collapse-btn svg {
+    transform: rotate(0deg);
+  }
+
+  .devtools-toolbar.corner-left .devtools-collapse-btn svg {
+    transform: rotate(180deg);
+  }
+
+  /* ===== Tooltip ===== */
+  .devtools-tooltip {
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + 8px);
+    width: ${CONFIG.dimensions.toolbarWidth}px;
+    min-height: ${CONFIG.dimensions.tooltipMinHeight}px;
+    padding: 12px;
+    background: rgba(35, 35, 38, 0.98);
+    color: #f0f0f0;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.4;
+    text-align: left;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08);
+    box-sizing: border-box;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease-out, visibility 0.2s ease-out;
+    z-index: 10;
+    overflow: hidden;
+  }
+
+  .devtools-tooltip.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .devtools-tooltip-content {
+    white-space: normal;
+    will-change: transform, opacity;
+  }
+
+  .devtools-toolbar.corner-top .devtools-tooltip {
+    bottom: auto;
+    top: calc(100% + 8px);
+  }
+
+  /* ===== Collapsed State ===== */
+  .devtools-toolbar.collapsed {
+    width: auto;
+    height: auto;
+    padding: 0;
+    cursor: pointer;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .devtools-toolbar.collapsed.collapsed-horizontal {
+    width: ${CONFIG.dimensions.collapsedHorizontal.width}px;
+    height: ${CONFIG.dimensions.collapsedHorizontal.height}px;
+  }
+
+  .devtools-toolbar.collapsed.collapsed-vertical {
+    width: ${CONFIG.dimensions.collapsedVertical.width}px;
+    height: ${CONFIG.dimensions.collapsedVertical.height}px;
+  }
+
+  .devtools-toolbar.collapsed.edge-left {
+    border-radius: 0 8px 8px 0;
+  }
+
+  .devtools-toolbar.collapsed.edge-right {
+    border-radius: 8px 0 0 8px;
+  }
+
+  .devtools-toolbar.collapsed.edge-top {
+    border-radius: 0 0 8px 8px;
+  }
+
+  .devtools-toolbar.collapsed.edge-bottom {
+    border-radius: 8px 8px 0 0;
+  }
+
+  .devtools-expand-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: #fff;
+    padding: 0;
+  }
+
+  .devtools-expand-btn svg {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.15s ease;
+  }
+
+  .devtools-toolbar.collapsed.edge-right .devtools-expand-btn svg {
+    transform: rotate(180deg);
+  }
+
+  .devtools-toolbar.collapsed.edge-top .devtools-expand-btn svg {
+    transform: rotate(90deg);
+  }
+
+  .devtools-toolbar.collapsed.edge-bottom .devtools-expand-btn svg {
+    transform: rotate(-90deg);
+  }
+
+  .devtools-toolbar.collapsed .devtools-tooltip {
+    display: none;
+  }
+`;
+
+
+// ============================================================================
+// UTILITIES
+// ============================================================================
+// Pure helper functions with no side effects or dependencies.
+// ============================================================================
+
+/**
+ * Linear interpolation between two values.
+ * @param {number} start - Starting value
+ * @param {number} end - Target value
+ * @param {number} [speed] - Interpolation factor (0-1), defaults to CONFIG.animation.interpolationSpeed
+ * @returns {number} Interpolated value
+ */
+function lerp(start, end, speed = CONFIG.animation.interpolationSpeed) {
+  return start + (end - start) * speed;
+}
+
+/**
+ * Clamp a value between min and max bounds.
+ * @param {number} value - Value to clamp
+ * @param {number} min - Minimum bound
+ * @param {number} max - Maximum bound
+ * @returns {number} Clamped value
+ */
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+/**
+ * Create a debounced version of a function.
+ * @param {Function} fn - Function to debounce
+ * @param {number} delay - Delay in milliseconds
+ * @returns {Function} Debounced function with cancel() method
+ */
+function debounce(fn, delay) {
+  let timeoutId = null;
+
+  const debounced = (...args) => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      fn(...args);
+      timeoutId = null;
+    }, delay);
+  };
+
+  debounced.cancel = () => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+  };
+
+  return debounced;
+}
+
+/**
+ * Get device pixel ratio, minimum 1.
+ * @returns {number} Device pixel ratio
+ */
+function getDevicePixelRatio() {
+  return Math.max(window.devicePixelRatio, 1);
+}
+
+/**
+ * Check if an element is part of the devtools UI.
+ * @param {Element} element - Element to check
+ * @returns {boolean} True if element is a devtools element
+ */
+function isDevtoolsElement(element) {
+  if (!element) return false;
+  const attr = CONFIG.attributes.devtools;
+  return element.hasAttribute(attr) || element.closest(`[${attr}]`) !== null;
+}
+
+/**
+ * Get Scala component info from an element or its ancestors.
+ * @param {Element} element - Starting element
+ * @returns {{ element: Element, name: string } | null} Component info or null
+ */
+function getScalaComponent(element) {
+  if (!element) return null;
+  const attr = CONFIG.attributes.scalaComponent;
+  const closest = element.closest(`[${attr}]`);
+  if (!closest) return null;
+  return {
+    element: closest,
+    name: closest.getAttribute(attr),
+  };
+}
+
+/**
+ * Get the Scala source attribute value from an element or its ancestors.
+ * @param {Node} node - Starting node
+ * @returns {string | null} Scala source identifier or null
+ */
+function getScalaSource(node) {
+  const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+  if (!element) return null;
+
+  const attr = CONFIG.attributes.scalaComponent;
+  const value = element.getAttribute(attr);
+  if (value) return value;
+
+  const closest = element.closest(`[${attr}]`);
+  return closest ? closest.getAttribute(attr) : null;
+}
+
+/**
+ * Extract all source information from a Scala component element.
+ * @param {Element} element - Component element
+ * @returns {Object} Source information object
+ */
+function getComponentSourceInfo(element) {
+  if (!element) return null;
+
+  const props = CONFIG.properties;
+  return {
+    sourcePath: element[props.sourcePath] || null,
+    sourceLine: element[props.sourceLine] !== undefined
+      ? String(element[props.sourceLine])
+      : null,
+    filename: element[props.filename] || null,
+    scalaName: element[props.name] || null,
+    isMarked: element[props.markAsComponent] === "true",
+    displayName: element.getAttribute(CONFIG.attributes.scalaComponent),
+  };
+}
+
+/**
+ * Open a file in the IDE using the IDEA protocol.
+ * @param {string} sourcePath - File path to open
+ * @param {string | null} [sourceLine] - Optional line number
+ */
+function openInIDE(sourcePath, sourceLine = null) {
+  if (!sourcePath) {
+    console.warn("ScalaDevtools: No source path provided");
+    return;
+  }
+
+  let uri = `idea://open?file=${sourcePath}`;
+  if (sourceLine) {
+    uri += `&line=${sourceLine}`;
+  }
+
+  console.log("ScalaDevtools: Opening file in IDE:", uri);
+  window.open(uri, "_blank");
+}
+
+
+// ============================================================================
+// STORAGE MANAGER
+// ============================================================================
+// Centralized localStorage operations with error handling.
+// ============================================================================
+
+/**
+ * Manages persistent storage operations with graceful error handling.
+ * All localStorage access goes through this class.
+ */
+class StorageManager {
+  /**
+   * Get a value from localStorage.
+   * @param {string} key - Storage key
+   * @param {*} [defaultValue=null] - Default value if key doesn't exist or on error
+   * @returns {*} Parsed value or default
+   */
+  static get(key, defaultValue = null) {
+    try {
+      const value = localStorage.getItem(key);
+      if (value === null) return defaultValue;
+      return JSON.parse(value);
+    } catch {
+      return defaultValue;
+    }
+  }
+
+  /**
+   * Get a raw string value from localStorage.
+   * @param {string} key - Storage key
+   * @param {string} [defaultValue=''] - Default value if key doesn't exist
+   * @returns {string} Raw string value
+   */
+  static getString(key, defaultValue = "") {
+    try {
+      return localStorage.getItem(key) ?? defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  }
+
+  /**
+   * Set a value in localStorage.
+   * @param {string} key - Storage key
+   * @param {*} value - Value to store (will be JSON serialized)
+   * @returns {boolean} True if successful
+   */
+  static set(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Set a raw string value in localStorage.
+   * @param {string} key - Storage key
+   * @param {string} value - String value to store
+   * @returns {boolean} True if successful
+   */
+  static setString(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Remove a key from localStorage.
+   * @param {string} key - Storage key to remove
+   * @returns {boolean} True if successful
+   */
+  static remove(key) {
+    try {
+      localStorage.removeItem(key);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Check if devtools is enabled.
+   * @returns {boolean} True if enabled
+   */
+  static isDevtoolsEnabled() {
+    return this.getString(CONFIG.storageKeys.enabled) === "true";
+  }
+
+  /**
+   * Check if mutation scanning is enabled.
+   * @returns {boolean} True if scanning is enabled
+   */
+  static isScanningEnabled() {
+    return this.getString(CONFIG.storageKeys.scanning) === "true";
+  }
+
+  /**
+   * Save scanning enabled state.
+   * @param {boolean} enabled - Whether scanning is enabled
+   */
+  static setScanningEnabled(enabled) {
+    this.setString(CONFIG.storageKeys.scanning, enabled ? "true" : "false");
+  }
+
+  /**
+   * Get saved toolbar position.
+   * @returns {{ corner: string, position: { x: number, y: number } } | null}
+   */
+  static getToolbarPosition() {
+    return this.get(CONFIG.storageKeys.position, null);
+  }
+
+  /**
+   * Save toolbar position.
+   * @param {string} corner - Corner identifier
+   * @param {{ x: number, y: number }} position - Position coordinates
+   */
+  static setToolbarPosition(corner, position) {
+    this.set(CONFIG.storageKeys.position, { corner, position });
+  }
+
+  /**
+   * Get saved collapsed state.
+   * @returns {{ corner: string, orientation: string } | null}
+   */
+  static getCollapsedState() {
+    return this.get(CONFIG.storageKeys.collapsed, null);
+  }
+
+  /**
+   * Save collapsed state.
+   * @param {{ corner: string, orientation: string } | null} state - Collapsed state or null
+   */
+  static setCollapsedState(state) {
+    this.set(CONFIG.storageKeys.collapsed, state);
+  }
+}
+
+
+// ============================================================================
+// PERFORMANCE MONITORS
+// ============================================================================
+// FPS and Memory monitoring with encapsulated state.
+// ============================================================================
+
+/**
+ * Monitors frame rate using requestAnimationFrame.
+ * Provides real-time FPS tracking with pause/resume capability.
+ */
+class FPSMonitor {
+  /** @type {number} Current FPS value */
+  #fps = 0;
+
+  /** @type {number} Frame count since last measurement */
+  #frameCount = 0;
+
+  /** @type {number} Timestamp of last FPS calculation */
+  #lastTime = 0;
+
+  /** @type {number | null} RAF ID for the monitoring loop */
+  #animationId = null;
+
+  /** @type {boolean} Whether monitoring is paused */
+  #paused = false;
+
+  /** @type {boolean} Whether monitor has been initialized */
+  #initialized = false;
+
+  /**
+   * Start or resume FPS monitoring.
+   * Automatically starts the RAF loop if not paused.
+   */
+  start() {
+    if (this.#initialized && !this.#paused) return;
+
+    this.#initialized = true;
+    this.#paused = false;
+    this.#lastTime = performance.now();
+    this.#frameCount = 0;
+
+    if (!this.#animationId) {
+      this.#animationId = requestAnimationFrame(() => this.#tick());
+    }
+  }
+
+  /**
+   * Stop FPS monitoring completely.
+   * Resets all state.
+   */
+  stop() {
+    this.#cancelAnimation();
+    this.#fps = 0;
+    this.#frameCount = 0;
+    this.#lastTime = 0;
+    this.#initialized = false;
+    this.#paused = false;
+  }
+
+  /**
+   * Pause FPS monitoring temporarily.
+   * Use resume() to continue. Useful during drag operations.
+   */
+  pause() {
+    this.#paused = true;
+    this.#cancelAnimation();
+  }
+
+  /**
+   * Resume FPS monitoring after a pause.
+   */
+  resume() {
+    if (!this.#paused || !this.#initialized) return;
+
+    this.#paused = false;
+    this.#lastTime = performance.now();
+    this.#frameCount = 0;
+
+    if (!this.#animationId) {
+      this.#animationId = requestAnimationFrame(() => this.#tick());
+    }
+  }
+
+  /**
+   * Get the current FPS value.
+   * Automatically starts monitoring if not already running.
+   * @returns {number} Current frames per second
+   */
+  getFPS() {
+    if (!this.#initialized) {
+      this.start();
+      return 60; // Default until first measurement
+    }
+    return this.#fps;
+  }
+
+  /**
+   * Get the appropriate color for the current FPS value.
+   * @returns {string} CSS color string
+   */
+  getColor() {
+    return this.#getColorForFPS(this.#fps);
+  }
+
+  /**
+   * Get color for a specific FPS value.
+   * @param {number} fps - FPS value to get color for
+   * @returns {string} CSS color string
+   */
+  #getColorForFPS(fps) {
+    const { fpsCritical, fpsWarning } = CONFIG.thresholds;
+    const { fpsCritical: criticalColor, fpsWarning: warningColor, fpsGood: goodColor } = CONFIG.colors;
+
+    if (fps < fpsCritical) return criticalColor;
+    if (fps < fpsWarning) return warningColor;
+    return goodColor;
+  }
+
+  /**
+   * Internal RAF tick function.
+   * @private
+   */
+  #tick() {
+    if (this.#paused) {
+      this.#animationId = null;
       return;
     }
-    fpsFrameCount++;
+
+    this.#frameCount++;
     const now = performance.now();
-    if (now - fpsLastTime >= 1000) {
-      fps = fpsFrameCount;
-      fpsFrameCount = 0;
-      fpsLastTime = now;
+
+    if (now - this.#lastTime >= 1000) {
+      this.#fps = this.#frameCount;
+      this.#frameCount = 0;
+      this.#lastTime = now;
     }
-    fpsAnimationId = requestAnimationFrame(updateFPS);
+
+    this.#animationId = requestAnimationFrame(() => this.#tick());
   }
 
-  function pauseFPSLoop() {
-    fpsPaused = true;
-    if (fpsAnimationId) {
-      cancelAnimationFrame(fpsAnimationId);
-      fpsAnimationId = null;
-    }
-  }
-
-  function resumeFPSLoop() {
-    if (!fpsPaused) return;
-    fpsPaused = false;
-    if (fpsInitialized && !fpsAnimationId) {
-      fpsLastTime = performance.now(); // Reset timing to avoid FPS spike
-      fpsFrameCount = 0;
-      fpsAnimationId = requestAnimationFrame(updateFPS);
+  /**
+   * Cancel the animation frame.
+   * @private
+   */
+  #cancelAnimation() {
+    if (this.#animationId) {
+      cancelAnimationFrame(this.#animationId);
+      this.#animationId = null;
     }
   }
+}
 
-  function getFPS() {
-    if (!fpsInitialized) {
-      fpsInitialized = true;
-      updateFPS();
-      fps = 60; // Default until first measurement
-    }
-    return fps;
+/**
+ * Monitors JavaScript heap memory usage.
+ * Only available in Chromium-based browsers via performance.memory API.
+ */
+class MemoryMonitor {
+  /**
+   * Check if memory monitoring is supported in this browser.
+   * @returns {boolean} True if performance.memory API is available
+   */
+  static isSupported() {
+    return !!(
+      performance.memory &&
+      typeof performance.memory.usedJSHeapSize === "number"
+    );
   }
 
-  function resetFPSState() {
-    pauseFPSLoop();
-    fps = 0;
-    fpsLastTime = performance.now();
-    fpsFrameCount = 0;
-    fpsInitialized = false;
-    fpsPaused = false;
-  }
-
-  function getFPSColor(fps) {
-    if (fps < 30) return "#EF4444"; // Red
-    if (fps < 50) return "#F59E0B"; // Yellow
-    return "rgb(214,132,245)"; // Purple
-  }
-
-  // Memory tracking (Chrome/Chromium only via performance.memory)
-  // Returns { usedMB, totalMB, limitMB, percent } or null if not supported
-  function getMemoryInfo() {
-    // performance.memory is a non-standard Chrome-only API
+  /**
+   * Get current memory usage information.
+   * @returns {{ usedMB: number, totalMB: number, limitMB: number, percent: number } | null}
+   */
+  getInfo() {
     const memory = performance.memory;
     if (!memory || typeof memory.usedJSHeapSize !== "number") {
       return null;
     }
 
-    const usedMB = Math.round(memory.usedJSHeapSize / (1024 * 1024));
-    const totalMB = Math.round(memory.totalJSHeapSize / (1024 * 1024));
-    const limitMB = Math.round(memory.jsHeapSizeLimit / (1024 * 1024));
-    const percent = Math.round((memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100);
+    const bytesToMB = (bytes) => Math.round(bytes / (1024 * 1024));
+
+    const usedMB = bytesToMB(memory.usedJSHeapSize);
+    const totalMB = bytesToMB(memory.totalJSHeapSize);
+    const limitMB = bytesToMB(memory.jsHeapSizeLimit);
+    const percent = Math.round(
+      (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100
+    );
 
     return { usedMB, totalMB, limitMB, percent };
   }
 
-  function getMemoryColor(percent) {
-    if (percent > 80) return "#EF4444"; // Red - critical
-    if (percent > 60) return "#F59E0B"; // Yellow - warning
-    return "#6EE7B7"; // Green - healthy
+  /**
+   * Get the appropriate color for a memory usage percentage.
+   * @param {number} percent - Memory usage percentage
+   * @returns {string} CSS color string
+   */
+  getColor(percent) {
+    const { memoryCritical, memoryWarning } = CONFIG.thresholds;
+    const {
+      memoryCritical: criticalColor,
+      memoryWarning: warningColor,
+      memoryHealthy: healthyColor,
+    } = CONFIG.colors;
+
+    if (percent > memoryCritical) return criticalColor;
+    if (percent > memoryWarning) return warningColor;
+    return healthyColor;
+  }
+}
+
+
+// ============================================================================
+// CANVAS RENDERING
+// ============================================================================
+// Canvas management for mutation highlights and component inspection overlays.
+// ============================================================================
+
+/**
+ * Manages the canvas used for rendering mutation highlights.
+ * Handles creation, resizing, and drawing of highlight rectangles.
+ */
+class HighlightCanvas {
+  /** @type {HTMLCanvasElement | null} */
+  #canvas = null;
+
+  /** @type {CanvasRenderingContext2D | null} */
+  #ctx = null;
+
+  /** @type {number | null} RAF ID for animation loop */
+  #animationId = null;
+
+  /** @type {Map<Element, HighlightData>} Active highlight animations */
+  #highlights = new Map();
+
+  /** @type {Function | null} Debounced resize handler */
+  #resizeHandler = null;
+
+  /**
+   * Create and mount the highlight canvas.
+   * @returns {HTMLCanvasElement} The created canvas element
+   */
+  create() {
+    if (this.#canvas) return this.#canvas;
+
+    const canvas = document.createElement("canvas");
+    canvas.setAttribute(CONFIG.attributes.devtools, "highlight-canvas");
+
+    const dpr = getDevicePixelRatio();
+    Object.assign(canvas.style, {
+      position: "fixed",
+      top: "0",
+      left: "0",
+      width: `${window.innerWidth}px`,
+      height: `${window.innerHeight}px`,
+      pointerEvents: "none",
+      zIndex: "2147483647",
+    });
+
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+
+    document.body.appendChild(canvas);
+
+    this.#canvas = canvas;
+    this.#ctx = canvas.getContext("2d");
+    this.#ctx.scale(dpr, dpr);
+
+    // Setup resize handler
+    this.#resizeHandler = debounce(() => this.#handleResize(), CONFIG.intervals.resizeDebounce);
+    window.addEventListener("resize", this.#resizeHandler);
+
+    return canvas;
   }
 
-  function isMemorySupported() {
-    return !!(performance.memory && typeof performance.memory.usedJSHeapSize === "number");
+  /**
+   * Destroy the canvas and cleanup resources.
+   */
+  destroy() {
+    this.#stopAnimation();
+    this.#highlights.clear();
+
+    if (this.#resizeHandler) {
+      this.#resizeHandler.cancel();
+      window.removeEventListener("resize", this.#resizeHandler);
+      this.#resizeHandler = null;
+    }
+
+    if (this.#canvas?.parentNode) {
+      this.#canvas.parentNode.removeChild(this.#canvas);
+    }
+
+    this.#canvas = null;
+    this.#ctx = null;
   }
 
-  // Inspect state: 'off' | 'inspecting'
-  let inspectState = { kind: "off" };
-  let inspectCanvas = null;
-  let inspectCanvasCtx = null; // Cached inspect canvas context
-  let inspectEventCatcher = null;
-  let inspectCurrentRect = null;
-  let inspectLastHovered = null;
-  let inspectRafId = null;
-  let inspectCanvasRemoveTimeoutId = null; // Track timeout for cleanup
+  /**
+   * Add or update a highlight for an element.
+   * @param {Element} element - Element to highlight
+   * @param {string} name - Display name for the highlight
+   */
+  highlight(element, name) {
+    if (!this.#canvas || !element.isConnected) return;
 
-  function getScalaComponent(element) {
-    if (!element) return null;
-    const closest = element.closest(`[${DATA_SCALA_ATTR}]`);
-    if (!closest) return null;
-    return {
-      element: closest,
-      name: closest.getAttribute(DATA_SCALA_ATTR),
-    };
+    const rect = element.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+
+    const existing = this.#highlights.get(element);
+    if (existing) {
+      // Update existing highlight
+      existing.targetX = rect.left;
+      existing.targetY = rect.top;
+      existing.targetWidth = rect.width;
+      existing.targetHeight = rect.height;
+      existing.frame = 0;
+      existing.count++;
+    } else {
+      // Create new highlight
+      this.#highlights.set(element, {
+        name,
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height,
+        targetX: rect.left,
+        targetY: rect.top,
+        targetWidth: rect.width,
+        targetHeight: rect.height,
+        frame: 0,
+        count: 1,
+      });
+    }
+
+    this.#startAnimation();
   }
 
-  function createInspectCanvas() {
-    const c = document.createElement("canvas");
-    c.setAttribute(DEVTOOLS_ATTR, "inspect-canvas");
-    const dpr = Math.max(window.devicePixelRatio, 1);
-    Object.assign(c.style, {
+  /**
+   * Clear all highlights.
+   */
+  clear() {
+    this.#highlights.clear();
+    this.#clearCanvas();
+  }
+
+  /**
+   * Pause the animation loop (useful during drag).
+   */
+  pause() {
+    this.#stopAnimation();
+  }
+
+  /**
+   * Resume the animation loop.
+   */
+  resume() {
+    if (this.#highlights.size > 0) {
+      this.#startAnimation();
+    }
+  }
+
+  /**
+   * Start the animation loop if not already running.
+   * @private
+   */
+  #startAnimation() {
+    if (this.#animationId) return;
+
+    // Sweep stale entries before starting
+    this.#sweepStale();
+    this.#animationId = requestAnimationFrame(() => this.#draw());
+  }
+
+  /**
+   * Stop the animation loop.
+   * @private
+   */
+  #stopAnimation() {
+    if (this.#animationId) {
+      cancelAnimationFrame(this.#animationId);
+      this.#animationId = null;
+    }
+  }
+
+  /**
+   * Remove highlights for disconnected elements.
+   * @private
+   */
+  #sweepStale() {
+    for (const [element] of this.#highlights) {
+      if (!element.isConnected) {
+        this.#highlights.delete(element);
+      }
+    }
+  }
+
+  /**
+   * Clear the canvas.
+   * @private
+   */
+  #clearCanvas() {
+    if (!this.#ctx || !this.#canvas) return;
+    const dpr = getDevicePixelRatio();
+    this.#ctx.clearRect(0, 0, this.#canvas.width / dpr, this.#canvas.height / dpr);
+  }
+
+  /**
+   * Main draw loop.
+   * @private
+   */
+  #draw() {
+    if (!this.#ctx || !this.#canvas) return;
+
+    this.#clearCanvas();
+
+    const toRemove = [];
+    const labelMap = new Map();
+    const { r, g, b } = CONFIG.colors.primary;
+    const totalFrames = CONFIG.animation.totalFrames;
+
+    // Draw all highlights
+    for (const [element, highlight] of this.#highlights) {
+      // Remove disconnected elements
+      if (!element.isConnected) {
+        toRemove.push(element);
+        continue;
+      }
+
+      // Interpolate position
+      highlight.x = lerp(highlight.x, highlight.targetX);
+      highlight.y = lerp(highlight.y, highlight.targetY);
+      highlight.width = lerp(highlight.width, highlight.targetWidth);
+      highlight.height = lerp(highlight.height, highlight.targetHeight);
+
+      const alpha = 1.0 - highlight.frame / totalFrames;
+      highlight.frame++;
+
+      if (highlight.frame > totalFrames) {
+        toRemove.push(element);
+        continue;
+      }
+
+      // Draw outline
+      this.#ctx.strokeStyle = `rgba(${r},${g},${b},${alpha})`;
+      this.#ctx.lineWidth = 1;
+      this.#ctx.beginPath();
+      this.#ctx.rect(highlight.x, highlight.y, highlight.width, highlight.height);
+      this.#ctx.stroke();
+
+      // Draw fill
+      this.#ctx.fillStyle = `rgba(${r},${g},${b},${alpha * 0.1})`;
+      this.#ctx.fill();
+
+      // Aggregate labels at same position
+      const labelKey = `${highlight.x},${highlight.y}`;
+      const existing = labelMap.get(labelKey);
+      if (!existing) {
+        labelMap.set(labelKey, { ...highlight, alpha });
+      } else {
+        existing.count += highlight.count;
+        if (alpha > existing.alpha) existing.alpha = alpha;
+      }
+    }
+
+    // Draw labels
+    this.#ctx.font = CONFIG.fonts.mono;
+    for (const [, { x, y, name, count, alpha }] of labelMap) {
+      const labelText = count > 1 ? `${name} ×${count}` : name;
+      const textWidth = this.#ctx.measureText(labelText).width;
+      const textHeight = 11;
+      const padding = 2;
+
+      let labelY = y - textHeight - padding * 2;
+      if (labelY < 0) labelY = 0;
+
+      this.#ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+      this.#ctx.fillRect(x, labelY, textWidth + padding * 2, textHeight + padding * 2);
+
+      this.#ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+      this.#ctx.fillText(labelText, x + padding, labelY + textHeight + padding - 2);
+    }
+
+    // Remove completed highlights
+    for (const element of toRemove) {
+      this.#highlights.delete(element);
+    }
+
+    // Continue animation if there are active highlights
+    if (this.#highlights.size > 0) {
+      this.#animationId = requestAnimationFrame(() => this.#draw());
+    } else {
+      this.#animationId = null;
+    }
+  }
+
+  /**
+   * Handle window resize.
+   * @private
+   */
+  #handleResize() {
+    if (!this.#canvas || !this.#ctx) return;
+
+    const dpr = getDevicePixelRatio();
+    this.#canvas.style.width = `${window.innerWidth}px`;
+    this.#canvas.style.height = `${window.innerHeight}px`;
+    this.#canvas.width = window.innerWidth * dpr;
+    this.#canvas.height = window.innerHeight * dpr;
+    this.#ctx.scale(dpr, dpr);
+  }
+}
+
+/**
+ * Manages the overlay canvas used during component inspection.
+ * Draws animated highlight rectangles and component name labels.
+ */
+class InspectOverlay {
+  /** @type {HTMLCanvasElement | null} */
+  #canvas = null;
+
+  /** @type {CanvasRenderingContext2D | null} */
+  #ctx = null;
+
+  /** @type {{ left: number, top: number, width: number, height: number } | null} */
+  #currentRect = null;
+
+  /** @type {number | null} RAF ID for animation */
+  #animationId = null;
+
+  /** @type {number | null} Timeout ID for canvas removal */
+  #removeTimeoutId = null;
+
+  /**
+   * Create and mount the inspect overlay canvas.
+   * @returns {HTMLCanvasElement} The created canvas
+   */
+  create() {
+    if (this.#canvas) return this.#canvas;
+
+    const canvas = document.createElement("canvas");
+    canvas.setAttribute(CONFIG.attributes.devtools, "inspect-canvas");
+
+    const dpr = getDevicePixelRatio();
+    Object.assign(canvas.style, {
       position: "fixed",
       top: "0",
       left: "0",
@@ -186,17 +1276,456 @@
       opacity: "0",
       transition: "opacity 0.15s ease-in-out",
     });
-    c.width = window.innerWidth * dpr;
-    c.height = window.innerHeight * dpr;
-    // Cache context for performance
-    inspectCanvasCtx = c.getContext("2d");
-    inspectCanvasCtx.scale(dpr, dpr);
-    return c;
+
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+
+    this.#canvas = canvas;
+    this.#ctx = canvas.getContext("2d");
+    this.#ctx.scale(dpr, dpr);
+
+    return canvas;
   }
 
-  function createEventCatcher() {
+  /**
+   * Show the overlay with a fade-in animation.
+   */
+  show() {
+    if (this.#canvas) {
+      this.#canvas.style.opacity = "1";
+    }
+  }
+
+  /**
+   * Destroy the overlay with a fade-out animation.
+   */
+  destroy() {
+    this.#cancelAnimation();
+    this.#currentRect = null;
+
+    if (this.#removeTimeoutId) {
+      clearTimeout(this.#removeTimeoutId);
+      this.#removeTimeoutId = null;
+    }
+
+    if (this.#canvas) {
+      const canvasToRemove = this.#canvas;
+      this.#canvas = null;
+      this.#ctx = null;
+
+      canvasToRemove.style.opacity = "0";
+      this.#removeTimeoutId = setTimeout(() => {
+        if (canvasToRemove.parentNode) {
+          canvasToRemove.parentNode.removeChild(canvasToRemove);
+        }
+        this.#removeTimeoutId = null;
+      }, 150);
+    }
+  }
+
+  /**
+   * Clear the overlay.
+   */
+  clear() {
+    this.#currentRect = null;
+    this.#clearCanvas();
+  }
+
+  /**
+   * Animate to a new target rectangle.
+   * @param {{ left: number, top: number, width: number, height: number }} targetRect - Target rectangle
+   * @param {string} componentName - Component name to display
+   * @param {{ isMarked?: boolean }} [info] - Component info
+   */
+  animateTo(targetRect, componentName, info = {}) {
+    if (!this.#currentRect) {
+      this.#currentRect = { ...targetRect };
+      this.#drawOverlay(this.#currentRect, componentName, info);
+      return;
+    }
+
+    this.#cancelAnimation();
+
+    const animate = () => {
+      this.#currentRect.left = lerp(this.#currentRect.left, targetRect.left);
+      this.#currentRect.top = lerp(this.#currentRect.top, targetRect.top);
+      this.#currentRect.width = lerp(this.#currentRect.width, targetRect.width);
+      this.#currentRect.height = lerp(this.#currentRect.height, targetRect.height);
+
+      this.#drawOverlay(this.#currentRect, componentName, info);
+
+      const stillMoving =
+        Math.abs(this.#currentRect.left - targetRect.left) > 0.5 ||
+        Math.abs(this.#currentRect.top - targetRect.top) > 0.5 ||
+        Math.abs(this.#currentRect.width - targetRect.width) > 0.5 ||
+        Math.abs(this.#currentRect.height - targetRect.height) > 0.5;
+
+      if (stillMoving) {
+        this.#animationId = requestAnimationFrame(animate);
+      } else {
+        this.#currentRect = { ...targetRect };
+        this.#drawOverlay(this.#currentRect, componentName, info);
+      }
+    };
+
+    this.#animationId = requestAnimationFrame(animate);
+  }
+
+  /**
+   * Clear the canvas.
+   * @private
+   */
+  #clearCanvas() {
+    if (!this.#ctx || !this.#canvas) return;
+    const dpr = getDevicePixelRatio();
+    this.#ctx.clearRect(0, 0, this.#canvas.width / dpr, this.#canvas.height / dpr);
+  }
+
+  /**
+   * Cancel the current animation.
+   * @private
+   */
+  #cancelAnimation() {
+    if (this.#animationId) {
+      cancelAnimationFrame(this.#animationId);
+      this.#animationId = null;
+    }
+  }
+
+  /**
+   * Draw the overlay rectangle and label.
+   * @private
+   * @param {{ left: number, top: number, width: number, height: number }} rect - Rectangle to draw
+   * @param {string} componentName - Component name
+   * @param {{ isMarked?: boolean }} info - Component info
+   */
+  #drawOverlay(rect, componentName, info) {
+    if (!this.#ctx) return;
+
+    this.#clearCanvas();
+    if (!rect) return;
+
+    const isMarked = info?.isMarked || false;
+    const colors = CONFIG.colors;
+
+    // Select colors based on whether component is marked
+    const strokeColor = isMarked ? colors.inspectMarkedStroke : colors.inspectStroke;
+    const fillColor = isMarked ? colors.inspectMarkedFill : colors.inspectFill;
+
+    // Draw rectangle
+    this.#ctx.strokeStyle = strokeColor;
+    this.#ctx.fillStyle = fillColor;
+    this.#ctx.lineWidth = 1;
+    this.#ctx.setLineDash([4]);
+    this.#ctx.fillRect(rect.left, rect.top, rect.width, rect.height);
+    this.#ctx.strokeRect(rect.left, rect.top, rect.width, rect.height);
+
+    // Draw label pill
+    if (componentName) {
+      const pillHeight = 24;
+      const pillPadding = 8;
+
+      this.#ctx.font = "12px system-ui, -apple-system, sans-serif";
+      const textWidth = this.#ctx.measureText(componentName).width;
+      const pillWidth = textWidth + pillPadding * 2;
+      const pillX = rect.left;
+      const pillY = rect.top - pillHeight - 4;
+
+      // Pill background
+      this.#ctx.fillStyle = isMarked ? colors.inspectMarkedPillBg : colors.inspectPillBg;
+      this.#ctx.beginPath();
+      this.#ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 3);
+      this.#ctx.fill();
+
+      // Text
+      this.#ctx.fillStyle = isMarked ? colors.inspectMarkedPillText : colors.inspectPillText;
+      this.#ctx.textBaseline = "middle";
+      this.#ctx.fillText(componentName, pillX + pillPadding, pillY + pillHeight / 2);
+    }
+  }
+}
+
+
+// ============================================================================
+// CORE FEATURES
+// ============================================================================
+// Main devtools functionality: mutation scanning and component inspection.
+// ============================================================================
+
+/**
+ * Observes DOM mutations and visualizes them with animated highlights.
+ * Helps identify unexpected re-renders and DOM changes.
+ */
+class MutationScanner {
+  /** @type {MutationObserver | null} */
+  #observer = null;
+
+  /** @type {HighlightCanvas | null} */
+  #canvas = null;
+
+  /** @type {boolean} */
+  #running = false;
+
+  /** @type {boolean} Whether scanning is paused (e.g., during drag) */
+  #paused = false;
+
+  /** @type {Function | null} Callback when scanning state changes */
+  #onStateChange = null;
+
+  /**
+   * Create a new MutationScanner.
+   * @param {{ onStateChange?: (running: boolean) => void }} [options] - Options
+   */
+  constructor(options = {}) {
+    this.#onStateChange = options.onStateChange || null;
+  }
+
+  /**
+   * Check if the scanner is currently running.
+   * @returns {boolean} True if running
+   */
+  get isRunning() {
+    return this.#running;
+  }
+
+  /**
+   * Start observing DOM mutations.
+   */
+  start() {
+    if (this.#running) return;
+    this.#running = true;
+
+    this.#canvas = new HighlightCanvas();
+    this.#canvas.create();
+
+    this.#observer = new MutationObserver((mutations) => this.#handleMutations(mutations));
+    this.#observer.observe(document.body, {
+      attributes: true,
+      attributeOldValue: true,
+      characterData: true,
+      characterDataOldValue: true,
+      childList: true,
+      subtree: true,
+    });
+
+    this.#onStateChange?.(true);
+  }
+
+  /**
+   * Stop observing DOM mutations.
+   */
+  stop() {
+    if (!this.#running) return;
+    this.#running = false;
+
+    if (this.#observer) {
+      this.#observer.disconnect();
+      this.#observer = null;
+    }
+
+    if (this.#canvas) {
+      this.#canvas.destroy();
+      this.#canvas = null;
+    }
+
+    this.#onStateChange?.(false);
+  }
+
+  /**
+   * Toggle scanning on/off.
+   */
+  toggle() {
+    if (this.#running) {
+      this.stop();
+    } else {
+      this.start();
+    }
+  }
+
+  /**
+   * Pause scanning temporarily (useful during drag operations).
+   */
+  pause() {
+    this.#paused = true;
+    this.#canvas?.pause();
+  }
+
+  /**
+   * Resume scanning after a pause.
+   */
+  resume() {
+    this.#paused = false;
+    this.#canvas?.resume();
+  }
+
+  /**
+   * Handle mutation records.
+   * @private
+   * @param {MutationRecord[]} mutations - Mutation records
+   */
+  #handleMutations(mutations) {
+    if (!this.#running || this.#paused) return;
+
+    for (const record of mutations) {
+      const target =
+        record.target.nodeType === Node.ELEMENT_NODE
+          ? record.target
+          : record.target.parentElement;
+
+      // Skip devtools elements
+      if (!target || isDevtoolsElement(target)) continue;
+
+      this.#highlightElement(target);
+
+      // Highlight added nodes
+      for (const node of record.addedNodes) {
+        if (node.nodeType === Node.ELEMENT_NODE && !isDevtoolsElement(node)) {
+          this.#highlightElement(node);
+        }
+      }
+    }
+  }
+
+  /**
+   * Highlight an element with the canvas.
+   * @private
+   * @param {Element} element - Element to highlight
+   */
+  #highlightElement(element) {
+    if (!this.#canvas) return;
+    if (!element.isConnected) return;
+
+    const name = getScalaSource(element) || element.tagName.toLowerCase();
+    this.#canvas.highlight(element, name);
+  }
+}
+
+/**
+ * Manages the component inspection mode.
+ * Allows users to hover over components and click to open source in IDE.
+ */
+class ComponentInspector {
+  /** @type {'off' | 'inspecting'} */
+  #state = "off";
+
+  /** @type {InspectOverlay | null} */
+  #overlay = null;
+
+  /** @type {HTMLDivElement | null} Event catcher element */
+  #eventCatcher = null;
+
+  /** @type {Element | null} Last hovered element */
+  #lastHovered = null;
+
+  /** @type {Function | null} Callback when state changes */
+  #onStateChange = null;
+
+  // Bound event handlers for proper removal
+  #boundHandlePointerMove = null;
+  #boundHandleClick = null;
+  #boundHandleKeydown = null;
+
+  /**
+   * Create a new ComponentInspector.
+   * @param {{ onStateChange?: (inspecting: boolean) => void }} [options] - Options
+   */
+  constructor(options = {}) {
+    this.#onStateChange = options.onStateChange || null;
+    this.#boundHandlePointerMove = this.#handlePointerMove.bind(this);
+    this.#boundHandleClick = this.#handleClick.bind(this);
+    this.#boundHandleKeydown = this.#handleKeydown.bind(this);
+  }
+
+  /**
+   * Check if currently inspecting.
+   * @returns {boolean} True if inspecting
+   */
+  get isInspecting() {
+    return this.#state === "inspecting";
+  }
+
+  /**
+   * Start inspection mode.
+   */
+  start() {
+    if (this.#state !== "off") return;
+    this.#state = "inspecting";
+
+    // Create overlay
+    this.#overlay = new InspectOverlay();
+    const canvas = this.#overlay.create();
+    document.body.appendChild(canvas);
+
+    // Create event catcher
+    this.#eventCatcher = this.#createEventCatcher();
+    document.body.appendChild(this.#eventCatcher);
+
+    // Show with animation
+    requestAnimationFrame(() => {
+      this.#overlay?.show();
+      if (this.#eventCatcher) {
+        this.#eventCatcher.style.pointerEvents = "auto";
+      }
+    });
+
+    // Add event listeners
+    document.addEventListener("pointermove", this.#boundHandlePointerMove, {
+      passive: true,
+      capture: true,
+    });
+    document.addEventListener("click", this.#boundHandleClick, { capture: true });
+    document.addEventListener("keydown", this.#boundHandleKeydown);
+
+    this.#onStateChange?.(true);
+  }
+
+  /**
+   * Stop inspection mode.
+   */
+  stop() {
+    if (this.#state === "off") return;
+    this.#state = "off";
+
+    // Remove event listeners
+    document.removeEventListener("pointermove", this.#boundHandlePointerMove, { capture: true });
+    document.removeEventListener("click", this.#boundHandleClick, { capture: true });
+    document.removeEventListener("keydown", this.#boundHandleKeydown);
+
+    // Cleanup
+    this.#lastHovered = null;
+
+    if (this.#overlay) {
+      this.#overlay.destroy();
+      this.#overlay = null;
+    }
+
+    if (this.#eventCatcher?.parentNode) {
+      this.#eventCatcher.parentNode.removeChild(this.#eventCatcher);
+    }
+    this.#eventCatcher = null;
+
+    this.#onStateChange?.(false);
+  }
+
+  /**
+   * Toggle inspection mode.
+   */
+  toggle() {
+    if (this.#state === "off") {
+      this.start();
+    } else {
+      this.stop();
+    }
+  }
+
+  /**
+   * Create the event catcher element.
+   * @private
+   * @returns {HTMLDivElement} Event catcher element
+   */
+  #createEventCatcher() {
     const div = document.createElement("div");
-    div.setAttribute(DEVTOOLS_ATTR, "event-catcher");
+    div.setAttribute(CONFIG.attributes.devtools, "event-catcher");
     Object.assign(div.style, {
       position: "fixed",
       top: "0",
@@ -209,1993 +1738,1523 @@
     return div;
   }
 
-  function drawInspectOverlay(rect, componentName, componentInfo) {
-    if (!inspectCanvas || !inspectCanvasCtx) return;
-    const ctx = inspectCanvasCtx;
-    const dpr = Math.max(window.devicePixelRatio, 1);
-    ctx.clearRect(0, 0, inspectCanvas.width / dpr, inspectCanvas.height / dpr);
+  /**
+   * Handle pointer move during inspection.
+   * @private
+   * @param {PointerEvent} e - Pointer event
+   */
+  #handlePointerMove(e) {
+    if (this.#state !== "inspecting") return;
 
-    if (!rect) return;
-
-    // Use different colors for marked components
-    const isMarked = componentInfo?.isMarked || false;
-    const strokeColor = isMarked ? "rgba(79, 192, 255, 0.6)" : "rgba(142, 97, 227, 0.5)";
-    const fillColor = isMarked ? "rgba(79, 192, 255, 0.10)" : "rgba(173, 97, 230, 0.10)";
-
-    // Draw rectangle
-    ctx.strokeStyle = strokeColor;
-    ctx.fillStyle = fillColor;
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4]);
-    ctx.fillRect(rect.left, rect.top, rect.width, rect.height);
-    ctx.strokeRect(rect.left, rect.top, rect.width, rect.height);
-
-    // Draw label pill
-    if (componentName) {
-      const pillHeight = 24;
-      const pillPadding = 8;
-
-      ctx.font = "12px system-ui, -apple-system, sans-serif";
-      const textWidth = ctx.measureText(componentName).width;
-      const pillWidth = textWidth + pillPadding * 2;
-      const pillX = rect.left;
-      const pillY = rect.top - pillHeight - 4;
-
-      // Pill background - different color for marked components
-      ctx.fillStyle = isMarked ? "rgba(20, 60, 80, 0.85)" : "rgba(37, 37, 38, 0.75)";
-      ctx.beginPath();
-      ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 3);
-      ctx.fill();
-
-      // Text - cyan tint for marked components
-      ctx.fillStyle = isMarked ? "#79c0ff" : "white";
-      ctx.textBaseline = "middle";
-      ctx.fillText(componentName, pillX + pillPadding, pillY + pillHeight / 2);
-    }
-  }
-
-  function animateInspectRect(targetRect, componentName, componentInfo) {
-    if (!inspectCurrentRect) {
-      inspectCurrentRect = { ...targetRect };
-      drawInspectOverlay(inspectCurrentRect, componentName, componentInfo);
-      return;
+    // Clear stale reference if previously hovered element is disconnected
+    if (this.#lastHovered && !this.#lastHovered.isConnected) {
+      this.#lastHovered = null;
+      this.#overlay?.clear();
     }
 
-    const animate = () => {
-      inspectCurrentRect.left = lerp(inspectCurrentRect.left, targetRect.left);
-      inspectCurrentRect.top = lerp(inspectCurrentRect.top, targetRect.top);
-      inspectCurrentRect.width = lerp(inspectCurrentRect.width, targetRect.width);
-      inspectCurrentRect.height = lerp(inspectCurrentRect.height, targetRect.height);
-
-      drawInspectOverlay(inspectCurrentRect, componentName, componentInfo);
-
-      const stillMoving =
-        Math.abs(inspectCurrentRect.left - targetRect.left) > 0.5 ||
-        Math.abs(inspectCurrentRect.top - targetRect.top) > 0.5 ||
-        Math.abs(inspectCurrentRect.width - targetRect.width) > 0.5 ||
-        Math.abs(inspectCurrentRect.height - targetRect.height) > 0.5;
-
-      if (stillMoving) {
-        inspectRafId = requestAnimationFrame(animate);
-      } else {
-        inspectCurrentRect = { ...targetRect };
-        drawInspectOverlay(inspectCurrentRect, componentName, componentInfo);
-      }
-    };
-
-    cancelAnimationFrame(inspectRafId);
-    inspectRafId = requestAnimationFrame(animate);
-  }
-
-  function handleInspectPointerMove(e) {
-    if (inspectState.kind !== "inspecting") return;
-
-    // Clear stale reference if previously hovered element is disconnected (memory leak prevention)
-    if (inspectLastHovered && !inspectLastHovered.isConnected) {
-      inspectLastHovered = null;
-      inspectCurrentRect = null;
-      drawInspectOverlay(null, null, null);
-    }
-
-    inspectEventCatcher.style.pointerEvents = "none";
+    // Temporarily disable event catcher to find element underneath
+    this.#eventCatcher.style.pointerEvents = "none";
     const element = document.elementFromPoint(e.clientX, e.clientY);
-    inspectEventCatcher.style.pointerEvents = "auto";
+    this.#eventCatcher.style.pointerEvents = "auto";
 
     if (!element) return;
 
     const component = getScalaComponent(element);
     if (!component) {
-      if (inspectLastHovered) {
-        inspectLastHovered = null;
-        inspectCurrentRect = null;
-        drawInspectOverlay(null, null, null);
+      if (this.#lastHovered) {
+        this.#lastHovered = null;
+        this.#overlay?.clear();
       }
       return;
     }
 
-    if (component.element === inspectLastHovered) return;
-    inspectLastHovered = component.element;
+    if (component.element === this.#lastHovered) return;
+    this.#lastHovered = component.element;
 
     const rect = component.element.getBoundingClientRect();
-    const info = getComponentInfo(component.element);
-    animateInspectRect(
+    const info = getComponentSourceInfo(component.element);
+
+    this.#overlay?.animateTo(
       { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
       component.name,
       info
     );
   }
 
-  function handleInspectClick(e) {
-    if (inspectState.kind !== "inspecting") return;
+  /**
+   * Handle click during inspection.
+   * @private
+   * @param {MouseEvent} e - Click event
+   */
+  #handleClick(e) {
+    if (this.#state !== "inspecting") return;
 
-    // Allow clicks on devtools toolbar elements to pass through (e.g., clicking inspect button to exit)
-    // But NOT the event catcher - that's specifically there to catch clicks for inspection
-    if (isDevtoolsElement(e.target) && e.target !== inspectEventCatcher) return;
+    // Allow clicks on devtools elements to pass through
+    if (isDevtoolsElement(e.target) && e.target !== this.#eventCatcher) return;
 
     e.preventDefault();
     e.stopPropagation();
 
-    // Use the same technique as handleInspectPointerMove to find the actual element under the click
-    // This is necessary because the event catcher intercepts click events
-    inspectEventCatcher.style.pointerEvents = "none";
+    // Find element under click
+    this.#eventCatcher.style.pointerEvents = "none";
     const element = document.elementFromPoint(e.clientX, e.clientY);
-    inspectEventCatcher.style.pointerEvents = "auto";
+    this.#eventCatcher.style.pointerEvents = "auto";
 
     if (!element) return;
 
     const component = getScalaComponent(element);
     if (!component) return;
 
-    // Open file in IDE directly
-    const sourcePath = getSourcePath(component.element);
-    const sourceLine = getSourceLine(component.element);
-    if (sourcePath) {
-      openFileInIDE(sourcePath, sourceLine);
+    // Open file in IDE
+    const info = getComponentSourceInfo(component.element);
+    if (info?.sourcePath) {
+      openInIDE(info.sourcePath, info.sourceLine);
     } else {
       console.warn("ScalaDevtools: No source path found for element");
     }
   }
 
-  function handleInspectKeydown(e) {
-    if (e.key === "Escape" && inspectState.kind === "inspecting") {
-      stopInspecting();
+  /**
+   * Handle keydown during inspection.
+   * @private
+   * @param {KeyboardEvent} e - Keyboard event
+   */
+  #handleKeydown(e) {
+    if (e.key === "Escape" && this.#state === "inspecting") {
+      this.stop();
     }
   }
+}
 
-  function startInspecting() {
-    if (inspectState.kind !== "off") return;
 
-    inspectState = { kind: "inspecting", hoveredElement: null };
+// ============================================================================
+// UI COMPONENTS
+// ============================================================================
+// Reusable UI components for the toolbar: tooltips and drag handling.
+// ============================================================================
 
-    // Create canvas and event catcher
-    inspectCanvas = createInspectCanvas();
-    inspectEventCatcher = createEventCatcher();
+/**
+ * Manages tooltip display with animated content transitions.
+ */
+class TooltipManager {
+  /** @type {HTMLDivElement | null} Tooltip container element */
+  #element = null;
 
-    document.body.appendChild(inspectCanvas);
-    document.body.appendChild(inspectEventCatcher);
+  /** @type {HTMLDivElement | null} Inner content element */
+  #contentElement = null;
 
-    // Fade in
-    requestAnimationFrame(() => {
-      inspectCanvas.style.opacity = "1";
-      inspectEventCatcher.style.pointerEvents = "auto";
-    });
+  /** @type {number | null} Timeout for hiding tooltip */
+  #hideTimeout = null;
 
-    // Add event listeners
-    document.addEventListener("pointermove", handleInspectPointerMove, { passive: true, capture: true });
-    document.addEventListener("click", handleInspectClick, { capture: true });
-    document.addEventListener("keydown", handleInspectKeydown);
+  /** @type {number | null} Last hovered element's X position */
+  #lastElementX = null;
 
-    if (Toolbar.updateInspectButton) Toolbar.updateInspectButton();
+  /** @type {Array<Function>} Cleanup functions for event listeners */
+  #cleanupFns = [];
+
+  /** @type {boolean} Whether tooltips are disabled */
+  #disabled = false;
+
+  /**
+   * Create the tooltip DOM elements.
+   * @returns {{ container: HTMLDivElement, content: HTMLDivElement }} Tooltip elements
+   */
+  create() {
+    const container = document.createElement("div");
+    container.className = "devtools-tooltip";
+
+    const content = document.createElement("div");
+    content.className = "devtools-tooltip-content";
+    container.appendChild(content);
+
+    this.#element = container;
+    this.#contentElement = content;
+
+    return { container, content };
   }
 
-  function stopInspecting() {
-    if (inspectState.kind === "off") return;
+  /**
+   * Setup tooltip event handlers for elements with data-tooltip attribute.
+   * @param {HTMLElement} container - Container to search for tooltip elements
+   */
+  setupEvents(container) {
+    const tooltipElements = container.querySelectorAll("[data-tooltip]");
 
-    inspectState = { kind: "off" };
+    for (const el of tooltipElements) {
+      const handleMouseEnter = () => {
+        if (this.#disabled) return;
 
-    // Remove event listeners (passive option doesn't affect removeEventListener matching)
-    document.removeEventListener("pointermove", handleInspectPointerMove, { capture: true });
-    document.removeEventListener("click", handleInspectClick, { capture: true });
-    document.removeEventListener("keydown", handleInspectKeydown);
+        // Cancel any pending hide
+        this.#cancelHideTimeout();
 
-    // Cleanup
-    cancelAnimationFrame(inspectRafId);
-    inspectRafId = null;
-    inspectCurrentRect = null;
-    inspectLastHovered = null;
+        const tooltipText = el.getAttribute("data-tooltip");
+        const rect = el.getBoundingClientRect();
+        const currentX = rect.left + rect.width / 2;
 
-    // Cancel any pending canvas removal timeout to prevent race conditions
-    if (inspectCanvasRemoveTimeoutId) {
-      clearTimeout(inspectCanvasRemoveTimeoutId);
-      inspectCanvasRemoveTimeoutId = null;
-    }
-
-    if (inspectCanvas) {
-      const canvasToRemove = inspectCanvas;
-      inspectCanvas = null;
-      inspectCanvasCtx = null;
-      canvasToRemove.style.opacity = "0";
-      inspectCanvasRemoveTimeoutId = setTimeout(() => {
-        if (canvasToRemove.parentNode) {
-          canvasToRemove.parentNode.removeChild(canvasToRemove);
+        // Determine slide direction based on movement
+        let direction = "left";
+        if (this.#lastElementX !== null) {
+          direction = currentX > this.#lastElementX ? "left" : "right";
         }
-        inspectCanvasRemoveTimeoutId = null;
-      }, 150);
+        this.#lastElementX = currentX;
+
+        this.show(tooltipText, direction);
+      };
+
+      const handleMouseLeave = () => {
+        // Delay hiding to allow moving between buttons
+        this.#hideTimeout = setTimeout(() => {
+          this.hide();
+          this.#hideTimeout = null;
+        }, CONFIG.intervals.tooltipHideDelay || 200);
+      };
+
+      el.addEventListener("mouseenter", handleMouseEnter);
+      el.addEventListener("mouseleave", handleMouseLeave);
+
+      this.#cleanupFns.push(() => {
+        el.removeEventListener("mouseenter", handleMouseEnter);
+        el.removeEventListener("mouseleave", handleMouseLeave);
+      });
     }
-
-    if (inspectEventCatcher && inspectEventCatcher.parentNode) {
-      inspectEventCatcher.parentNode.removeChild(inspectEventCatcher);
-    }
-    inspectEventCatcher = null;
-
-    if (Toolbar.updateInspectButton) Toolbar.updateInspectButton();
   }
 
-  function toggleInspect() {
-    if (inspectState.kind === "off") {
-      startInspecting();
-    } else {
-      stopInspecting();
-    }
-  }
+  /**
+   * Show the tooltip with the given text.
+   * @param {string} text - Tooltip text
+   * @param {'left' | 'right'} [direction='left'] - Animation direction
+   */
+  show(text, direction = "left") {
+    if (!this.#element || !this.#contentElement) return;
 
-  // Utility functions
-  function lerp(start, end) {
-    return start + (end - start) * INTERPOLATION_SPEED;
-  }
+    const content = this.#contentElement;
+    const tooltip = this.#element;
 
-  function getScalaSource(node) {
-    const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
-    if (!element) return null;
-
-    const attr = element.getAttribute(DATA_SCALA_ATTR);
-    if (attr) return attr;
-
-    const closest = element.closest(`[${DATA_SCALA_ATTR}]`);
-    return closest ? closest.getAttribute(DATA_SCALA_ATTR) : null;
-  }
-
-  // Get source path from element (uses __scalasourcepath property)
-  function getSourcePath(element) {
-    if (!element) return null;
-    return element[SCALA_SOURCE_PATH_PROP] || null;
-  }
-
-  // Get source line from element (uses __scalasourceline property)
-  function getSourceLine(element) {
-    if (!element) return null;
-    const line = element[SCALA_SOURCE_LINE_PROP];
-    return line !== undefined ? String(line) : null;
-  }
-
-  // Get filename from element (uses __scalafilename property)
-  function getFilename(element) {
-    if (!element) return null;
-    return element[SCALA_FILENAME_PROP] || null;
-  }
-
-  // Get scala name (method/function name) from element
-  function getScalaName(element) {
-    if (!element) return null;
-    return element[SCALA_NAME_PROP] || null;
-  }
-
-  // Check if element is marked as component
-  function isMarkedAsComponent(element) {
-    if (!element) return false;
-    return element[MARK_AS_COMPONENT_PROP] === "true";
-  }
-
-  // Get component info object with all available source information
-  function getComponentInfo(element) {
-    if (!element) return null;
-    return {
-      sourcePath: getSourcePath(element),
-      sourceLine: getSourceLine(element),
-      filename: getFilename(element),
-      scalaName: getScalaName(element),
-      isMarked: isMarkedAsComponent(element),
-      displayName: element.getAttribute(DATA_SCALA_ATTR)
-    };
-  }
-
-  // Open file at source path using IDEA protocol
-  function openFileInIDE(sourcePath, sourceLine) {
-    if (!sourcePath) {
-      console.warn("ScalaDevtools: No source path provided");
+    // If not visible, just set content and show
+    if (!tooltip.classList.contains("visible")) {
+      content.textContent = text;
+      content.style.transform = "translateX(0)";
+      content.style.opacity = "1";
+      tooltip.classList.add("visible");
       return;
     }
 
-    // Build IDEA URI: idea://open?file=<path>&line=<line>
-    let uri = `idea://open?file=${sourcePath}`;
-    if (sourceLine) {
-      uri += `&line=${sourceLine}`;
+    // Animate content change with slide effect
+    const slideOutX = direction === "left" ? "15px" : "-15px";
+    const slideInX = direction === "left" ? "-15px" : "15px";
+    const slideMs = CONFIG.animation.tooltipSlideMs;
+
+    // Slide out current content
+    content.style.transition = `transform ${slideMs}ms ease-out, opacity ${slideMs}ms ease-out`;
+    content.style.transform = `translateX(${slideOutX})`;
+    content.style.opacity = "0";
+
+    // After slide out, update content and slide in
+    setTimeout(() => {
+      content.textContent = text;
+      content.style.transition = "none";
+      content.style.transform = `translateX(${slideInX})`;
+
+      // Force reflow
+      void content.offsetWidth;
+
+      content.style.transition = `transform ${slideMs + 30}ms ease-out, opacity ${slideMs + 30}ms ease-out`;
+      content.style.transform = "translateX(0)";
+      content.style.opacity = "1";
+    }, slideMs);
+  }
+
+  /**
+   * Hide the tooltip.
+   */
+  hide() {
+    if (!this.#element) return;
+    this.#element.classList.remove("visible");
+    this.#lastElementX = null;
+  }
+
+  /**
+   * Temporarily disable tooltips.
+   */
+  disable() {
+    this.#disabled = true;
+    this.hide();
+  }
+
+  /**
+   * Re-enable tooltips.
+   */
+  enable() {
+    this.#disabled = false;
+  }
+
+  /**
+   * Cleanup all event handlers.
+   */
+  destroy() {
+    this.#cancelHideTimeout();
+    for (const cleanup of this.#cleanupFns) {
+      cleanup();
+    }
+    this.#cleanupFns = [];
+    this.#element = null;
+    this.#contentElement = null;
+    this.#lastElementX = null;
+  }
+
+  /**
+   * Cancel the hide timeout.
+   * @private
+   */
+  #cancelHideTimeout() {
+    if (this.#hideTimeout) {
+      clearTimeout(this.#hideTimeout);
+      this.#hideTimeout = null;
+    }
+  }
+}
+
+/**
+ * Handles drag-to-move and snap-to-corner behavior for the toolbar.
+ */
+class DragController {
+  /** @type {HTMLElement | null} Element being dragged */
+  #element = null;
+
+  /** @type {boolean} Whether currently dragging */
+  #isDragging = false;
+
+  /** @type {{ x: number, y: number }} Current position */
+  #position = { x: 0, y: 0 };
+
+  /** @type {string} Current corner */
+  #corner = "bottom-right";
+
+  /** @type {{ corner: string, orientation: string } | null} Collapsed state */
+  #collapsed = null;
+
+  /** @type {number | null} Transition timeout ID */
+  #transitionTimeoutId = null;
+
+  // Callbacks
+  #onDragStart = null;
+  #onDragEnd = null;
+  #onPositionChange = null;
+  #onCollapse = null;
+  #onExpand = null;
+
+  /**
+   * Create a new DragController.
+   * @param {Object} options - Configuration options
+   * @param {(isDragging: boolean) => void} [options.onDragStart] - Called when drag starts
+   * @param {() => void} [options.onDragEnd] - Called when drag ends
+   * @param {(position: { x: number, y: number }, corner: string) => void} [options.onPositionChange] - Called when position changes
+   * @param {(corner: string, orientation: string) => void} [options.onCollapse] - Called when collapsing
+   * @param {(corner: string) => void} [options.onExpand] - Called when expanding
+   */
+  constructor(options = {}) {
+    this.#onDragStart = options.onDragStart || null;
+    this.#onDragEnd = options.onDragEnd || null;
+    this.#onPositionChange = options.onPositionChange || null;
+    this.#onCollapse = options.onCollapse || null;
+    this.#onExpand = options.onExpand || null;
+  }
+
+  /**
+   * Check if currently dragging.
+   * @returns {boolean}
+   */
+  get isDragging() {
+    return this.#isDragging;
+  }
+
+  /**
+   * Get current position.
+   * @returns {{ x: number, y: number }}
+   */
+  get position() {
+    return { ...this.#position };
+  }
+
+  /**
+   * Get current corner.
+   * @returns {string}
+   */
+  get corner() {
+    return this.#corner;
+  }
+
+  /**
+   * Get collapsed state.
+   * @returns {{ corner: string, orientation: string } | null}
+   */
+  get collapsed() {
+    return this.#collapsed ? { ...this.#collapsed } : null;
+  }
+
+  /**
+   * Initialize the drag controller with an element.
+   * @param {HTMLElement} element - Element to make draggable
+   */
+  init(element) {
+    this.#element = element;
+    element.addEventListener("pointerdown", (e) => this.#handlePointerDown(e));
+  }
+
+  /**
+   * Set the current position without animation.
+   * @param {{ x: number, y: number }} position - New position
+   * @param {string} [corner] - Corner identifier
+   */
+  setPosition(position, corner) {
+    this.#position = { ...position };
+    if (corner) this.#corner = corner;
+    this.#applyPosition(false);
+  }
+
+  /**
+   * Set collapsed state.
+   * @param {{ corner: string, orientation: string } | null} state - Collapsed state
+   */
+  setCollapsed(state) {
+    this.#collapsed = state ? { ...state } : null;
+    if (state) {
+      this.#corner = state.corner;
+    }
+  }
+
+  /**
+   * Animate to a corner position.
+   * @param {string} corner - Target corner
+   * @param {number} width - Element width
+   * @param {number} height - Element height
+   */
+  snapToCorner(corner, width, height) {
+    this.#corner = corner;
+    this.#position = this.#calculatePosition(corner, width, height);
+    this.#applyPosition(true);
+  }
+
+  /**
+   * Expand from collapsed state.
+   */
+  expand() {
+    if (!this.#collapsed) return;
+
+    const savedCorner = this.#collapsed.corner;
+    this.#collapsed = null;
+
+    this.#onExpand?.(savedCorner);
+  }
+
+  /**
+   * Handle pointer down event.
+   * @private
+   * @param {PointerEvent} e - Pointer event
+   */
+  #handlePointerDown(e) {
+    // Don't drag if clicking on buttons or inputs
+    if (e.target.closest("button") || e.target.closest("input") || e.target.closest("label")) {
+      return;
     }
 
-    console.log("ScalaDevtools: Opening file in IDE:", uri);
-    window.open(uri, "_blank");
-  }
+    e.preventDefault();
 
-  function createCanvas() {
-    const c = document.createElement("canvas");
-    c.setAttribute(DEVTOOLS_ATTR, "canvas");
-    const dpr = Math.max(window.devicePixelRatio, 1);
+    if (!this.#element) return;
 
-    Object.assign(c.style, {
-      position: "fixed",
-      top: "0",
-      left: "0",
-      width: `${window.innerWidth}px`,
-      height: `${window.innerHeight}px`,
-      pointerEvents: "none",
-      zIndex: "2147483647",
-    });
+    // If collapsed, handle expand drag
+    if (this.#collapsed) {
+      this.#handleCollapsedDrag(e);
+      return;
+    }
 
-    c.width = window.innerWidth * dpr;
-    c.height = window.innerHeight * dpr;
+    const toolbar = this.#element;
+    const toolbarStyle = toolbar.style;
 
-    document.body.appendChild(c);
+    const initialMouseX = e.clientX;
+    const initialMouseY = e.clientY;
+    const initialX = this.#position.x;
+    const initialY = this.#position.y;
 
-    // Cache context for performance
-    canvasCtx = c.getContext("2d");
-    canvasCtx.scale(dpr, dpr);
+    let currentX = initialX;
+    let currentY = initialY;
+    let lastMouseX = initialMouseX;
+    let lastMouseY = initialMouseY;
+    let hasMoved = false;
+    let rafId = null;
 
-    return c;
-  }
+    // Capture pointer for smooth tracking
+    toolbar.setPointerCapture(e.pointerId);
+    const pointerId = e.pointerId;
 
-  function drawHighlights() {
-    // Skip rendering while dragging toolbar for performance
-    if (!isEnabled || !canvas || !canvasCtx || isDraggingToolbar) return;
+    const handlePointerMove = (moveEvent) => {
+      lastMouseX = moveEvent.clientX;
+      lastMouseY = moveEvent.clientY;
 
-    const ctx = canvasCtx;
-    const dpr = Math.max(window.devicePixelRatio, 1);
+      if (rafId) return;
 
-    ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+      rafId = requestAnimationFrame(() => {
+        const deltaX = lastMouseX - initialMouseX;
+        const deltaY = lastMouseY - initialMouseY;
 
-    const toRemove = [];
-    const labelMap = new Map();
+        // Check if moved enough to start drag
+        if (!hasMoved && (Math.abs(deltaX) > CONFIG.thresholds.dragStart || Math.abs(deltaY) > CONFIG.thresholds.dragStart)) {
+          hasMoved = true;
+          this.#isDragging = true;
+          toolbar.classList.add("dragging");
+          this.#onDragStart?.(true);
+        }
 
-    activeHighlights.forEach((highlight, element) => {
-      // Check if element is still in the DOM to prevent stale references
-      if (!element.isConnected) {
-        toRemove.push(element);
+        if (hasMoved) {
+          currentX = initialX + deltaX;
+          currentY = initialY + deltaY;
+          toolbarStyle.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+        }
+
+        rafId = null;
+      });
+    };
+
+    const handlePointerEnd = () => {
+      if (toolbar.hasPointerCapture(pointerId)) {
+        toolbar.releasePointerCapture(pointerId);
+      }
+
+      document.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("pointerup", handlePointerEnd);
+      document.removeEventListener("pointercancel", handlePointerEnd);
+
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+
+      toolbar.classList.remove("dragging");
+      this.#isDragging = false;
+      this.#onDragEnd?.();
+
+      if (!hasMoved) return;
+
+      // Calculate movement
+      const totalDeltaX = Math.abs(lastMouseX - initialMouseX);
+      const totalDeltaY = Math.abs(lastMouseY - initialMouseY);
+      const totalMovement = Math.sqrt(totalDeltaX * totalDeltaX + totalDeltaY * totalDeltaY);
+
+      // Snap back if didn't move enough
+      if (totalMovement < CONFIG.thresholds.snapDistance) {
+        this.#position = this.#calculatePosition(this.#corner, toolbar.offsetWidth, toolbar.offsetHeight);
+        this.#applyPosition(true);
         return;
       }
 
-      // Interpolate position
-      highlight.x = lerp(highlight.x, highlight.targetX);
-      highlight.y = lerp(highlight.y, highlight.targetY);
-      highlight.width = lerp(highlight.width, highlight.targetWidth);
-      highlight.height = lerp(highlight.height, highlight.targetHeight);
+      // Check for collapse
+      const toolbarWidth = CONFIG.dimensions.toolbarWidth;
+      const toolbarHeight = toolbar.offsetHeight || 40;
 
-      const alpha = 1.0 - highlight.frame / TOTAL_FRAMES;
-      highlight.frame++;
+      if (this.#shouldCollapse(currentX, currentY, toolbarWidth, toolbarHeight)) {
+        const target = this.#getCollapseTarget(currentX, currentY, toolbarWidth, toolbarHeight);
+        if (target) {
+          this.#collapsed = target;
+          this.#corner = target.corner;
+          this.#onCollapse?.(target.corner, target.orientation);
+          return;
+        }
+      }
 
-      if (highlight.frame > TOTAL_FRAMES) {
-        toRemove.push(element);
+      // Determine new corner and snap
+      const newCorner = this.#getBestCorner(lastMouseX, lastMouseY, initialMouseX, initialMouseY);
+      this.#corner = newCorner;
+      this.#position = this.#calculatePosition(newCorner, toolbar.offsetWidth, toolbar.offsetHeight);
+      this.#applyPosition(true);
+
+      this.#onPositionChange?.(this.#position, this.#corner);
+    };
+
+    document.addEventListener("pointermove", handlePointerMove);
+    document.addEventListener("pointerup", handlePointerEnd);
+    document.addEventListener("pointercancel", handlePointerEnd);
+  }
+
+  /**
+   * Handle drag on collapsed toolbar.
+   * @private
+   * @param {PointerEvent} e - Pointer event
+   */
+  #handleCollapsedDrag(e) {
+    if (!this.#collapsed) return;
+
+    const { corner, orientation } = this.#collapsed;
+    const initialMouseX = e.clientX;
+    const initialMouseY = e.clientY;
+    let hasExpanded = false;
+
+    const handlePointerMove = (moveEvent) => {
+      if (hasExpanded) return;
+
+      const deltaX = moveEvent.clientX - initialMouseX;
+      const deltaY = moveEvent.clientY - initialMouseY;
+      const threshold = CONFIG.thresholds.expandDragDistance;
+
+      let shouldExpand = false;
+
+      if (orientation === "horizontal") {
+        if (corner.endsWith("left") && deltaX > threshold) shouldExpand = true;
+        else if (corner.endsWith("right") && deltaX < -threshold) shouldExpand = true;
       } else {
-        const { r, g, b } = PRIMARY_COLOR;
-
-        // Draw outline
-        ctx.strokeStyle = `rgba(${r},${g},${b},${alpha})`;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.rect(highlight.x, highlight.y, highlight.width, highlight.height);
-        ctx.stroke();
-
-        // Draw fill
-        ctx.fillStyle = `rgba(${r},${g},${b},${alpha * 0.1})`;
-        ctx.fill();
-
-        // Prepare label - aggregate counts for highlights at the same position
-        const labelKey = `${highlight.x},${highlight.y}`;
-        const existing = labelMap.get(labelKey);
-        if (!existing) {
-          labelMap.set(labelKey, { ...highlight, alpha });
-        } else {
-          // Aggregate counts and keep highest alpha
-          existing.count += highlight.count;
-          if (alpha > existing.alpha) {
-            existing.alpha = alpha;
-          }
-        }
+        if (corner.startsWith("top") && deltaY > threshold) shouldExpand = true;
+        else if (corner.startsWith("bottom") && deltaY < -threshold) shouldExpand = true;
       }
-    });
 
-    // Draw labels
-    ctx.font = MONO_FONT;
-    labelMap.forEach(({ x, y, name, count, alpha }) => {
-      // Show count in label like react-scan: "ComponentName ×N"
-      const labelText = count > 1 ? `${name} ×${count}` : name;
-      const textWidth = ctx.measureText(labelText).width;
-      const textHeight = 11;
-      const padding = 2;
+      if (shouldExpand) {
+        hasExpanded = true;
+        document.removeEventListener("pointermove", handlePointerMove);
+        document.removeEventListener("pointerup", handlePointerEnd);
+        this.expand();
+      }
+    };
 
-      let labelY = y - textHeight - padding * 2;
-      if (labelY < 0) labelY = 0;
+    const handlePointerEnd = () => {
+      document.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("pointerup", handlePointerEnd);
+    };
 
-      const { r, g, b } = PRIMARY_COLOR;
+    document.addEventListener("pointermove", handlePointerMove, { passive: true });
+    document.addEventListener("pointerup", handlePointerEnd);
+  }
 
-      ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
-      ctx.fillRect(x, labelY, textWidth + padding * 2, textHeight + padding * 2);
+  /**
+   * Apply current position to element.
+   * @private
+   * @param {boolean} animate - Whether to animate
+   */
+  #applyPosition(animate) {
+    if (!this.#element) return;
 
-      ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-      ctx.fillText(labelText, x + padding, labelY + textHeight + padding - 2);
-    });
+    const style = this.#element.style;
+    style.left = "0";
+    style.top = "0";
 
-    toRemove.forEach((el) => activeHighlights.delete(el));
+    if (animate) {
+      // Clear any existing timeout
+      if (this.#transitionTimeoutId) {
+        clearTimeout(this.#transitionTimeoutId);
+      }
 
-    if (activeHighlights.size > 0) {
-      animationFrameId = requestAnimationFrame(drawHighlights);
+      style.transition = `transform ${CONFIG.animation.snapTransitionMs}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+
+      requestAnimationFrame(() => {
+        style.transform = `translate3d(${this.#position.x}px, ${this.#position.y}px, 0)`;
+      });
+
+      this.#transitionTimeoutId = setTimeout(() => {
+        style.transition = "none";
+        this.#transitionTimeoutId = null;
+      }, CONFIG.animation.snapTransitionMs + 50);
     } else {
-      animationFrameId = null;
+      style.transition = "none";
+      style.transform = `translate3d(${this.#position.x}px, ${this.#position.y}px, 0)`;
     }
   }
 
-  function highlightElement(element) {
-    if (!isEnabled) return;
-    if (canvas && element === canvas) return;
-    // Prevent memory leaks: don't track elements that are already disconnected
-    if (!element.isConnected) return;
-
-    const rect = element.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return;
-
-    const name = getScalaSource(element) || element.tagName.toLowerCase();
-
-    const existing = activeHighlights.get(element);
-    if (existing) {
-      existing.targetX = rect.left;
-      existing.targetY = rect.top;
-      existing.targetWidth = rect.width;
-      existing.targetHeight = rect.height;
-      existing.frame = 0;
-      existing.count++; // Increment count on re-render
-    } else {
-      // Note: element is used as Map key only, not stored in object to avoid redundant references
-      activeHighlights.set(element, {
-        name,
-        x: rect.left,
-        y: rect.top,
-        width: rect.width,
-        height: rect.height,
-        targetX: rect.left,
-        targetY: rect.top,
-        targetWidth: rect.width,
-        targetHeight: rect.height,
-        frame: 0,
-        count: 1, // Initialize count
-      });
-    }
-
-    if (!animationFrameId) {
-      // Sweep stale entries before restarting animation loop to prevent memory leaks
-      sweepStaleHighlights();
-      animationFrameId = requestAnimationFrame(drawHighlights);
-    }
-  }
-
-  // Sweep disconnected elements from activeHighlights to prevent memory leaks
-  function sweepStaleHighlights() {
-    const toRemove = [];
-    activeHighlights.forEach((_, element) => {
-      if (!element.isConnected) {
-        toRemove.push(element);
-      }
-    });
-    toRemove.forEach((el) => activeHighlights.delete(el));
-  }
-
-  // Check if element is part of devtools UI (should be ignored by mutation observer)
-  function isDevtoolsElement(element) {
-    if (!element) return false;
-    return element.hasAttribute(DEVTOOLS_ATTR) || element.closest(`[${DEVTOOLS_ATTR}]`);
-  }
-
-  function handleMutations(mutationsList) {
-    // Skip all work while dragging toolbar for performance
-    if (!isEnabled || isDraggingToolbar) return;
-    mutationsList.forEach((record) => {
-      const target = record.target.nodeType === Node.ELEMENT_NODE
-        ? record.target
-        : record.target.parentElement;
-
-      // Skip devtools elements
-      if (!target || isDevtoolsElement(target)) return;
-
-      highlightElement(target);
-      record.addedNodes.forEach((node) => {
-        if (node.nodeType === Node.ELEMENT_NODE && !isDevtoolsElement(node)) {
-          highlightElement(node);
-        }
-      });
-    });
-  }
-
-  function handleResizeImmediate() {
-    if (!canvas || !canvasCtx) return;
-    const dpr = Math.max(window.devicePixelRatio, 1);
-    canvas.style.width = `${window.innerWidth}px`;
-    canvas.style.height = `${window.innerHeight}px`;
-    canvas.width = window.innerWidth * dpr;
-    canvas.height = window.innerHeight * dpr;
-    // Re-apply scale after canvas resize (resets the context)
-    canvasCtx.scale(dpr, dpr);
-  }
-
-  // Debounced resize handler to avoid excessive redraws during resize
-  function handleResize() {
-    if (resizeDebounceId) {
-      clearTimeout(resizeDebounceId);
-    }
-    resizeDebounceId = setTimeout(() => {
-      handleResizeImmediate();
-      resizeDebounceId = null;
-    }, 100);
-  }
-
-  // Devtools API
-  const ScalaDevtools = {
-    isRunning() {
-      return isEnabled;
-    },
-
-    start() {
-      if (isEnabled) return;
-      isEnabled = true;
-
-      canvas = createCanvas();
-
-      resizeHandler = handleResize;
-      window.addEventListener("resize", resizeHandler);
-
-      observer = new MutationObserver(handleMutations);
-      observer.observe(document.body, {
-        attributes: true,
-        attributeOldValue: true,
-        characterData: true,
-        characterDataOldValue: true,
-        childList: true,
-        subtree: true,
-      });
-    },
-
-    stop() {
-      if (!isEnabled) return;
-      isEnabled = false;
-
-      if (observer) {
-        observer.disconnect();
-        observer = null;
-      }
-
-      if (resizeHandler) {
-        window.removeEventListener("resize", resizeHandler);
-        resizeHandler = null;
-      }
-
-      // Cancel any pending resize debounce
-      if (resizeDebounceId) {
-        clearTimeout(resizeDebounceId);
-        resizeDebounceId = null;
-      }
-
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-      }
-
-      if (canvas && canvas.parentNode) {
-        canvas.parentNode.removeChild(canvas);
-        canvas = null;
-        canvasCtx = null;
-      }
-
-      activeHighlights.clear();
-    },
-
-    toggle() {
-      if (this.isRunning()) this.stop();
-      else this.start();
-    },
-
-    // Inspect API
-    isInspecting() {
-      return inspectState.kind === "inspecting";
-    },
-
-    startInspect() {
-      startInspecting();
-    },
-
-    stopInspect() {
-      stopInspecting();
-    },
-
-    toggleInspect() {
-      toggleInspect();
-    },
-  };
-
-  // Drag and snap constants
-  const SAFE_AREA = 16;
-  const LOCALSTORAGE_KEY = "FRONTEND_DEVTOOLS_POSITION";
-  const LOCALSTORAGE_COLLAPSED_KEY = "FRONTEND_DEVTOOLS_COLLAPSED";
-  const LOCALSTORAGE_ENABLED_KEY = "FRONTEND_DEVTOOLS_ENABLED";
-  const DRAG_THRESHOLD = 5;
-  const SNAP_THRESHOLD = 60;
-  const COLLAPSE_THRESHOLD = 0.5; // Collapse when 50% of toolbar is outside viewport
-  const EXPAND_DRAG_THRESHOLD = 50; // Pixels to drag to expand from collapsed state
-
-  // Collapsed state dimensions
-  const COLLAPSED_SIZE = {
-    horizontal: { width: 20, height: 48 },
-    vertical: { width: 48, height: 20 },
-  };
-
-  // Drag and snap state
-  let toolbarPosition = { x: 0, y: 0 };
-  let toolbarCorner = "bottom-right"; // 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
-  let toolbarCollapsed = null; // null | { corner: Corner, orientation: 'horizontal' | 'vertical' }
-
-  // Calculate position for a given corner
-  function calculatePosition(corner, width, height) {
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-
-    const rightX = windowWidth - width - SAFE_AREA;
-    const bottomY = windowHeight - height - SAFE_AREA;
+  /**
+   * Calculate position for a corner.
+   * @private
+   * @param {string} corner - Corner identifier
+   * @param {number} width - Element width
+   * @param {number} height - Element height
+   * @returns {{ x: number, y: number }}
+   */
+  #calculatePosition(corner, width, height) {
+    const safeArea = CONFIG.dimensions.safeArea;
+    const rightX = window.innerWidth - width - safeArea;
+    const bottomY = window.innerHeight - height - safeArea;
 
     switch (corner) {
       case "top-left":
-        return { x: SAFE_AREA, y: SAFE_AREA };
+        return { x: safeArea, y: safeArea };
       case "top-right":
-        return { x: rightX, y: SAFE_AREA };
+        return { x: rightX, y: safeArea };
       case "bottom-left":
-        return { x: SAFE_AREA, y: bottomY };
+        return { x: safeArea, y: bottomY };
       case "bottom-right":
       default:
         return { x: rightX, y: bottomY };
     }
   }
 
-  // Determine best corner based on current position and movement
-  function getBestCorner(mouseX, mouseY, initialMouseX, initialMouseY, threshold = 40) {
+  /**
+   * Determine best corner based on drag direction.
+   * @private
+   */
+  #getBestCorner(mouseX, mouseY, initialMouseX, initialMouseY) {
     const deltaX = mouseX - initialMouseX;
     const deltaY = mouseY - initialMouseY;
+    const threshold = 40;
 
-    const windowCenterX = window.innerWidth / 2;
-    const windowCenterY = window.innerHeight / 2;
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
 
-    // Determine movement direction
     const movingRight = deltaX > threshold;
     const movingLeft = deltaX < -threshold;
     const movingDown = deltaY > threshold;
     const movingUp = deltaY < -threshold;
 
-    // If significant horizontal movement
     if (movingRight || movingLeft) {
-      const isBottom = mouseY > windowCenterY;
+      const isBottom = mouseY > centerY;
       return movingRight
         ? (isBottom ? "bottom-right" : "top-right")
         : (isBottom ? "bottom-left" : "top-left");
     }
 
-    // If significant vertical movement
     if (movingDown || movingUp) {
-      const isRight = mouseX > windowCenterX;
+      const isRight = mouseX > centerX;
       return movingDown
         ? (isRight ? "bottom-right" : "bottom-left")
         : (isRight ? "top-right" : "top-left");
     }
 
-    // If no significant movement, use quadrant-based position
-    return mouseX > windowCenterX
-      ? (mouseY > windowCenterY ? "bottom-right" : "top-right")
-      : (mouseY > windowCenterY ? "bottom-left" : "top-left");
+    return mouseX > centerX
+      ? (mouseY > centerY ? "bottom-right" : "top-right")
+      : (mouseY > centerY ? "bottom-left" : "top-left");
   }
 
-  // Save position to localStorage
-  function saveToolbarPosition() {
-    try {
-      localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify({
-        corner: toolbarCorner,
-        position: toolbarPosition
-      }));
-    } catch (e) {
-      // Ignore localStorage errors
-    }
-  }
+  /**
+   * Check if toolbar should collapse.
+   * @private
+   */
+  #shouldCollapse(x, y, width, height) {
+    const right = x + width;
+    const bottom = y + height;
 
-  // Save collapsed state to localStorage
-  function saveCollapsedState() {
-    try {
-      localStorage.setItem(LOCALSTORAGE_COLLAPSED_KEY, JSON.stringify(toolbarCollapsed));
-    } catch (e) {
-      // Ignore localStorage errors
-    }
-  }
-
-  // Load collapsed state from localStorage
-  function loadCollapsedState() {
-    try {
-      const saved = localStorage.getItem(LOCALSTORAGE_COLLAPSED_KEY);
-      if (saved) {
-        toolbarCollapsed = JSON.parse(saved);
-        return toolbarCollapsed !== null;
-      }
-    } catch (e) {
-      // Ignore localStorage errors
-    }
-    return false;
-  }
-
-  // Load position from localStorage
-  function loadToolbarPosition() {
-    try {
-      const saved = localStorage.getItem(LOCALSTORAGE_KEY);
-      if (saved) {
-        const data = JSON.parse(saved);
-        if (data.corner) toolbarCorner = data.corner;
-        if (data.position) toolbarPosition = data.position;
-        return true;
-      }
-    } catch (e) {
-      // Ignore localStorage errors
-    }
-    return false;
-  }
-
-  // Calculate collapsed position (flush against edge)
-  function calculateCollapsedPosition(corner, orientation) {
-    const size = COLLAPSED_SIZE[orientation];
-    switch (corner) {
-      case "top-left":
-        return orientation === "horizontal"
-          ? { x: -1, y: SAFE_AREA }
-          : { x: SAFE_AREA, y: -1 };
-      case "bottom-left":
-        return orientation === "horizontal"
-          ? { x: -1, y: window.innerHeight - size.height - SAFE_AREA }
-          : { x: SAFE_AREA, y: window.innerHeight - size.height + 1 };
-      case "top-right":
-        return orientation === "horizontal"
-          ? { x: window.innerWidth - size.width + 1, y: SAFE_AREA }
-          : { x: window.innerWidth - size.width - SAFE_AREA, y: -1 };
-      case "bottom-right":
-      default:
-        return orientation === "horizontal"
-          ? { x: window.innerWidth - size.width + 1, y: window.innerHeight - size.height - SAFE_AREA }
-          : { x: window.innerWidth - size.width - SAFE_AREA, y: window.innerHeight - size.height + 1 };
-    }
-  }
-
-  // Determine if toolbar should collapse based on how much is outside viewport
-  function shouldCollapseToolbar(currentX, currentY, width, height) {
-    const widgetRight = currentX + width;
-    const widgetBottom = currentY + height;
-
-    const outsideLeft = Math.max(0, -currentX);
-    const outsideRight = Math.max(0, widgetRight - window.innerWidth);
-    const outsideTop = Math.max(0, -currentY);
-    const outsideBottom = Math.max(0, widgetBottom - window.innerHeight);
+    const outsideLeft = Math.max(0, -x);
+    const outsideRight = Math.max(0, right - window.innerWidth);
+    const outsideTop = Math.max(0, -y);
+    const outsideBottom = Math.max(0, bottom - window.innerHeight);
 
     const horizontalOutside = Math.min(width, outsideLeft + outsideRight);
     const verticalOutside = Math.min(height, outsideTop + outsideBottom);
     const areaOutside = horizontalOutside * height + verticalOutside * width - horizontalOutside * verticalOutside;
     const totalArea = width * height;
 
-    return areaOutside > totalArea * COLLAPSE_THRESHOLD;
+    return areaOutside > totalArea * CONFIG.thresholds.collapseRatio;
   }
 
-  // Determine which edge and orientation for collapse
-  function getCollapseTarget(currentX, currentY, width, height) {
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
+  /**
+   * Get collapse target corner and orientation.
+   * @private
+   */
+  #getCollapseTarget(x, y, width, height) {
+    const outsideLeft = -x;
+    const outsideRight = (x + width) - window.innerWidth;
+    const outsideTop = -y;
+    const outsideBottom = (y + height) - window.innerHeight;
 
-    // Calculate how far outside each edge
-    const outsideLeft = -currentX;
-    const outsideRight = (currentX + width) - windowWidth;
-    const outsideTop = -currentY;
-    const outsideBottom = (currentY + height) - windowHeight;
-
-    // Find the most dominant edge
     const maxOutside = Math.max(outsideLeft, outsideRight, outsideTop, outsideBottom);
+    if (maxOutside < 0) return null;
 
-    if (maxOutside < 0) return null; // Not outside any edge
-
-    let orientation, corner;
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
 
     if (outsideLeft === maxOutside) {
-      orientation = "horizontal";
-      corner = currentY < windowHeight / 2 ? "top-left" : "bottom-left";
+      return { orientation: "horizontal", corner: y < centerY ? "top-left" : "bottom-left" };
     } else if (outsideRight === maxOutside) {
-      orientation = "horizontal";
-      corner = currentY < windowHeight / 2 ? "top-right" : "bottom-right";
+      return { orientation: "horizontal", corner: y < centerY ? "top-right" : "bottom-right" };
     } else if (outsideTop === maxOutside) {
-      orientation = "vertical";
-      corner = currentX < windowWidth / 2 ? "top-left" : "top-right";
+      return { orientation: "vertical", corner: x < centerX ? "top-left" : "top-right" };
     } else {
-      orientation = "vertical";
-      corner = currentX < windowWidth / 2 ? "bottom-left" : "bottom-right";
+      return { orientation: "vertical", corner: x < centerX ? "bottom-left" : "bottom-right" };
     }
-
-    return { corner, orientation };
   }
 
-  // Toolbar styles
-  const TOOLBAR_WIDTH = 285; // Width in pixels for toolbar and tooltip
-  const TOOLTIP_HEIGHT = 80; // Min height in pixels for tooltip panel
-
-  const TOOLBAR_STYLES = `
-    .frontend-devtools-toolbar {
-      position: fixed;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      background: #000;
-      border-radius: 8px;
-      font-family: system-ui, -apple-system, sans-serif;
-      font-size: 13px;
-      color: #fff;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      z-index: 2147483646;
-      user-select: none;
-      cursor: grab;
-      touch-action: none;
-      width: ${TOOLBAR_WIDTH}px;
-      box-sizing: border-box;
-      /* GPU acceleration - always on for smooth dragging */
-      will-change: transform;
-      transform: translate3d(0, 0, 0);
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-      perspective: 1000px;
-      transform-style: preserve-3d;
-      -webkit-transform-style: preserve-3d;
+  /**
+   * Cleanup resources.
+   */
+  destroy() {
+    if (this.#transitionTimeoutId) {
+      clearTimeout(this.#transitionTimeoutId);
+      this.#transitionTimeoutId = null;
     }
-    .frontend-devtools-toolbar.dragging {
-      cursor: grabbing;
-      /* Remove transition during drag for immediate response */
-      transition: none !important;
+    this.#element = null;
+  }
+}
+
+
+// ============================================================================
+// TOOLBAR
+// ============================================================================
+// Main toolbar UI that composes all other components.
+// ============================================================================
+
+/**
+ * Main devtools toolbar component.
+ * Composes FPSMonitor, MemoryMonitor, TooltipManager, and DragController.
+ */
+class Toolbar {
+  /** @type {HTMLDivElement | null} Root container element */
+  #root = null;
+
+  /** @type {ShadowRoot | null} Shadow DOM root */
+  #shadowRoot = null;
+
+  /** @type {HTMLDivElement | null} Toolbar element */
+  #toolbar = null;
+
+  /** @type {HTMLDivElement | null} Content container (hidden when collapsed) */
+  #content = null;
+
+  /** @type {HTMLButtonElement | null} Expand button (shown when collapsed) */
+  #expandButton = null;
+
+  /** @type {HTMLButtonElement | null} Inspect button */
+  #inspectButton = null;
+
+  /** @type {HTMLInputElement | null} Scanning toggle checkbox */
+  #scanningToggle = null;
+
+  /** @type {HTMLSpanElement | null} FPS value display */
+  #fpsValueElement = null;
+
+  /** @type {HTMLSpanElement | null} Memory value display */
+  #memoryValueElement = null;
+
+  // Composed components
+  /** @type {FPSMonitor} */
+  #fpsMonitor = new FPSMonitor();
+
+  /** @type {MemoryMonitor} */
+  #memoryMonitor = new MemoryMonitor();
+
+  /** @type {TooltipManager} */
+  #tooltipManager = new TooltipManager();
+
+  /** @type {DragController} */
+  #dragController = null;
+
+  // Interval IDs for display updates
+  /** @type {number | null} */
+  #fpsIntervalId = null;
+
+  /** @type {number | null} */
+  #memoryIntervalId = null;
+
+  // Callbacks
+  /** @type {((enabled: boolean) => void) | null} */
+  #onScanningToggle = null;
+
+  /** @type {(() => void) | null} */
+  #onInspectToggle = null;
+
+  // State flags
+  /** @type {boolean} */
+  #isExpanding = false;
+
+  /** @type {boolean} */
+  #isSnapping = false;
+
+  /**
+   * Create a new Toolbar.
+   * @param {Object} options - Configuration options
+   * @param {(enabled: boolean) => void} [options.onScanningToggle] - Called when scanning toggle changes
+   * @param {() => void} [options.onInspectToggle] - Called when inspect button clicked
+   */
+  constructor(options = {}) {
+    this.#onScanningToggle = options.onScanningToggle || null;
+    this.#onInspectToggle = options.onInspectToggle || null;
+
+    // Initialize drag controller with callbacks
+    this.#dragController = new DragController({
+      onDragStart: () => {
+        this.#tooltipManager.disable();
+        this.#fpsMonitor.pause();
+        this.#stopDisplayUpdates();
+      },
+      onDragEnd: () => {
+        this.#fpsMonitor.resume();
+        this.#startDisplayUpdates();
+        // Don't re-enable tooltips yet - wait for snap animation
+      },
+      onPositionChange: (position, corner) => {
+        StorageManager.setToolbarPosition(corner, position);
+        this.#updateCornerClasses();
+        // Re-enable tooltips after position change
+        setTimeout(() => this.#tooltipManager.enable(), 50);
+      },
+      onCollapse: (corner, orientation) => {
+        this.#applyCollapsedState(corner, orientation);
+        StorageManager.setCollapsedState({ corner, orientation });
+      },
+      onExpand: (corner) => {
+        this.#expandFromCollapsed(corner);
+      },
+    });
+  }
+
+  /**
+   * Mount the toolbar to the DOM.
+   */
+  mount() {
+    if (this.#root) return;
+
+    // Create root container
+    this.#root = document.createElement("div");
+    this.#root.id = "devtools-root";
+    this.#root.setAttribute(CONFIG.attributes.devtools, "toolbar");
+
+    // Create shadow DOM
+    this.#shadowRoot = this.#root.attachShadow({ mode: "open" });
+
+    // Add styles
+    const style = document.createElement("style");
+    style.textContent = STYLES;
+    this.#shadowRoot.appendChild(style);
+
+    // Create toolbar
+    this.#toolbar = this.#createToolbar();
+    this.#shadowRoot.appendChild(this.#toolbar);
+
+    // Mount to document
+    document.documentElement.appendChild(this.#root);
+
+    // Initialize position after in DOM
+    requestAnimationFrame(() => {
+      this.#initPosition();
+    });
+
+    // Setup resize handler
+    window.addEventListener("resize", () => this.#handleResize());
+
+    // Start display updates
+    this.#startDisplayUpdates();
+  }
+
+  /**
+   * Unmount the toolbar from the DOM.
+   */
+  unmount() {
+    this.#stopDisplayUpdates();
+    this.#fpsMonitor.stop();
+    this.#tooltipManager.destroy();
+    this.#dragController?.destroy();
+
+    window.removeEventListener("resize", () => this.#handleResize());
+
+    if (this.#root?.parentNode) {
+      this.#root.parentNode.removeChild(this.#root);
     }
-    .frontend-devtools-label {
-      font-weight: 500;
-      color: #e5e5e5;
+
+    this.#root = null;
+    this.#shadowRoot = null;
+    this.#toolbar = null;
+    this.#content = null;
+    this.#expandButton = null;
+    this.#inspectButton = null;
+    this.#scanningToggle = null;
+    this.#fpsValueElement = null;
+    this.#memoryValueElement = null;
+  }
+
+  /**
+   * Update the inspect button state.
+   * @param {boolean} isInspecting - Whether currently inspecting
+   */
+  updateInspectButton(isInspecting) {
+    if (!this.#inspectButton) return;
+
+    this.#inspectButton.classList.toggle("active", isInspecting);
+    this.#inspectButton.innerHTML = isInspecting ? ICONS.close : ICONS.inspect;
+    this.#inspectButton.setAttribute(
+      "data-tooltip",
+      isInspecting
+        ? "Exit inspect mode — or press Esc"
+        : "Inspect component — click to jump to source code in your IDE"
+    );
+  }
+
+  /**
+   * Create the toolbar element structure.
+   * @private
+   * @returns {HTMLDivElement}
+   */
+  #createToolbar() {
+    const toolbar = document.createElement("div");
+    toolbar.className = "devtools-toolbar";
+
+    // Initialize drag controller
+    this.#dragController.init(toolbar);
+
+    // Create expand button (for collapsed state)
+    this.#expandButton = this.#createExpandButton();
+    this.#expandButton.style.display = "none";
+    toolbar.appendChild(this.#expandButton);
+
+    // Create content container
+    this.#content = document.createElement("div");
+    this.#content.style.cssText = "display: flex; align-items: center; gap: 8px;";
+
+    // Add inspect button
+    this.#inspectButton = this.#createInspectButton();
+    this.#content.appendChild(this.#inspectButton);
+
+    // Add scanning toggle
+    const toggle = this.#createScanningToggle();
+    this.#content.appendChild(toggle);
+
+    // Add FPS meter
+    const fpsMeter = this.#createFPSMeter();
+    this.#content.appendChild(fpsMeter);
+
+    // Add memory meter (if supported)
+    if (MemoryMonitor.isSupported()) {
+      const memoryMeter = this.#createMemoryMeter();
+      this.#content.appendChild(memoryMeter);
     }
-    .frontend-devtools-toggle {
-      position: relative;
-      width: 36px;
-      height: 20px;
-      cursor: pointer;
-      display: inline-flex;
+
+    // Add collapse button
+    const collapseBtn = this.#createCollapseButton();
+    this.#content.appendChild(collapseBtn);
+
+    toolbar.appendChild(this.#content);
+
+    // Create and add tooltip
+    const { container: tooltip } = this.#tooltipManager.create();
+    toolbar.appendChild(tooltip);
+
+    // Setup tooltip events
+    this.#tooltipManager.setupEvents(toolbar);
+
+    return toolbar;
+  }
+
+  /**
+   * Create the expand button.
+   * @private
+   */
+  #createExpandButton() {
+    const btn = document.createElement("button");
+    btn.className = "devtools-expand-btn";
+    btn.title = "Expand toolbar";
+    btn.innerHTML = ICONS.chevronRight;
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.#dragController.expand();
+    });
+    return btn;
+  }
+
+  /**
+   * Create the inspect button.
+   * @private
+   */
+  #createInspectButton() {
+    const btn = document.createElement("button");
+    btn.className = "devtools-icon-btn";
+    btn.setAttribute("data-tooltip", "Inspect component — click to jump to source code in your IDE");
+    btn.innerHTML = ICONS.inspect;
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.#onInspectToggle?.();
+    });
+    return btn;
+  }
+
+  /**
+   * Create the scanning toggle.
+   * @private
+   */
+  #createScanningToggle() {
+    const toggle = document.createElement("label");
+    toggle.className = "devtools-toggle";
+    toggle.setAttribute("data-tooltip", "Highlight DOM mutations — detect unexpected re-renders");
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = StorageManager.isScanningEnabled();
+    checkbox.addEventListener("change", () => {
+      this.#onScanningToggle?.(checkbox.checked);
+      StorageManager.setScanningEnabled(checkbox.checked);
+    });
+    this.#scanningToggle = checkbox;
+
+    const track = document.createElement("div");
+    track.className = "devtools-toggle-track";
+
+    const thumb = document.createElement("div");
+    thumb.className = "devtools-toggle-thumb";
+    track.appendChild(thumb);
+
+    toggle.appendChild(checkbox);
+    toggle.appendChild(track);
+
+    return toggle;
+  }
+
+  /**
+   * Create the FPS meter.
+   * @private
+   */
+  #createFPSMeter() {
+    const container = document.createElement("div");
+    container.className = "devtools-meter";
+    container.setAttribute("data-tooltip", "Frames per second — detect long-running scripts blocking the main thread");
+
+    const value = document.createElement("span");
+    value.className = "devtools-meter-value";
+    value.textContent = "60";
+    this.#fpsValueElement = value;
+
+    const label = document.createElement("span");
+    label.className = "devtools-meter-label";
+    label.textContent = "FPS";
+
+    container.appendChild(value);
+    container.appendChild(label);
+
+    return container;
+  }
+
+  /**
+   * Create the memory meter.
+   * @private
+   */
+  #createMemoryMeter() {
+    const container = document.createElement("div");
+    container.className = "devtools-meter";
+    container.setAttribute("data-tooltip", "JS heap memory usage — detect memory leaks and excessive allocations");
+
+    const value = document.createElement("span");
+    value.className = "devtools-meter-value memory";
+    value.textContent = "--";
+    this.#memoryValueElement = value;
+
+    const label = document.createElement("span");
+    label.className = "devtools-meter-label";
+    label.textContent = "MB";
+
+    container.appendChild(value);
+    container.appendChild(label);
+
+    return container;
+  }
+
+  /**
+   * Create the collapse button.
+   * @private
+   */
+  #createCollapseButton() {
+    const btn = document.createElement("button");
+    btn.className = "devtools-collapse-btn";
+    btn.setAttribute("data-tooltip", "Collapse toolbar");
+    btn.innerHTML = ICONS.chevronRight;
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const corner = this.#dragController.corner;
+      this.#dragController.setCollapsed({ corner, orientation: "horizontal" });
+      this.#applyCollapsedState(corner, "horizontal");
+      StorageManager.setCollapsedState({ corner, orientation: "horizontal" });
+    });
+    return btn;
+  }
+
+  /**
+   * Initialize toolbar position.
+   * @private
+   */
+  #initPosition() {
+    if (!this.#toolbar) return;
+
+    // Load collapsed state first
+    const collapsedState = StorageManager.getCollapsedState();
+    if (collapsedState) {
+      this.#dragController.setCollapsed(collapsedState);
+      this.#applyCollapsedState(collapsedState.corner, collapsedState.orientation);
+      return;
     }
-    .frontend-devtools-toggle input {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-      margin: 0;
+
+    // Load or calculate position
+    const saved = StorageManager.getToolbarPosition();
+    const rect = this.#toolbar.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+
+    let corner = "bottom-right";
+    if (saved?.corner) {
+      corner = saved.corner;
     }
-    .frontend-devtools-toggle-track {
-      position: absolute;
-      inset: 0;
-      background: #525252;
-      border-radius: 9999px;
-      transition: background-color 0.2s;
+
+    // Calculate position for corner
+    const safeArea = CONFIG.dimensions.safeArea;
+    const rightX = window.innerWidth - width - safeArea;
+    const bottomY = window.innerHeight - height - safeArea;
+
+    let position;
+    switch (corner) {
+      case "top-left":
+        position = { x: safeArea, y: safeArea };
+        break;
+      case "top-right":
+        position = { x: rightX, y: safeArea };
+        break;
+      case "bottom-left":
+        position = { x: safeArea, y: bottomY };
+        break;
+      case "bottom-right":
+      default:
+        position = { x: rightX, y: bottomY };
+        break;
     }
-    .frontend-devtools-toggle input:checked + .frontend-devtools-toggle-track {
-      background: #7361e6;
+
+    this.#dragController.setPosition(position, corner);
+    this.#updateCornerClasses();
+  }
+
+  /**
+   * Apply collapsed state to toolbar.
+   * @private
+   */
+  #applyCollapsedState(corner, orientation) {
+    if (!this.#toolbar) return;
+
+    // Hide content, show expand button
+    if (this.#content) this.#content.style.display = "none";
+    if (this.#expandButton) this.#expandButton.style.display = "flex";
+
+    // Add collapsed classes
+    this.#toolbar.classList.add("collapsed", `collapsed-${orientation}`);
+    this.#toolbar.classList.remove("edge-left", "edge-right", "edge-top", "edge-bottom");
+
+    // Add edge class
+    if (orientation === "horizontal") {
+      this.#toolbar.classList.add(corner.endsWith("left") ? "edge-left" : "edge-right");
+    } else {
+      this.#toolbar.classList.add(corner.startsWith("top") ? "edge-top" : "edge-bottom");
     }
-    .frontend-devtools-toggle-thumb {
-      position: absolute;
-      top: 50%;
-      left: 2px;
-      transform: translateY(-50%);
-      width: 16px;
-      height: 16px;
-      background: #fff;
-      border-radius: 9999px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-      transition: left 0.2s ease;
+
+    // Calculate collapsed position
+    const collapsedSize = orientation === "horizontal"
+      ? CONFIG.dimensions.collapsedHorizontal
+      : CONFIG.dimensions.collapsedVertical;
+    const safeArea = CONFIG.dimensions.safeArea;
+
+    let position;
+    switch (corner) {
+      case "top-left":
+        position = orientation === "horizontal"
+          ? { x: -1, y: safeArea }
+          : { x: safeArea, y: -1 };
+        break;
+      case "bottom-left":
+        position = orientation === "horizontal"
+          ? { x: -1, y: window.innerHeight - collapsedSize.height - safeArea }
+          : { x: safeArea, y: window.innerHeight - collapsedSize.height + 1 };
+        break;
+      case "top-right":
+        position = orientation === "horizontal"
+          ? { x: window.innerWidth - collapsedSize.width + 1, y: safeArea }
+          : { x: window.innerWidth - collapsedSize.width - safeArea, y: -1 };
+        break;
+      case "bottom-right":
+      default:
+        position = orientation === "horizontal"
+          ? { x: window.innerWidth - collapsedSize.width + 1, y: window.innerHeight - collapsedSize.height - safeArea }
+          : { x: window.innerWidth - collapsedSize.width - safeArea, y: window.innerHeight - collapsedSize.height + 1 };
+        break;
     }
-    .frontend-devtools-toggle input:checked + .frontend-devtools-toggle-track .frontend-devtools-toggle-thumb {
-      left: calc(100% - 18px);
-    }
-    .frontend-devtools-fps {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 0 8px;
-      height: 24px;
-      border-radius: 6px;
-      font-family: ui-monospace, monospace;
-      background: #141414;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
-    }
-    .frontend-devtools-fps-value {
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: 0.025em;
-      transition: color 0.15s ease-in-out;
-      min-width: 24px;
-      text-align: center;
-    }
-    .frontend-devtools-fps-label {
-      color: rgba(255,255,255,0.3);
-      font-size: 11px;
-      font-weight: 500;
-      letter-spacing: 0.025em;
-    }
-    .frontend-devtools-memory {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 0 8px;
-      height: 24px;
-      border-radius: 6px;
-      font-family: ui-monospace, monospace;
-      background: #141414;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
-    }
-    .frontend-devtools-memory-value {
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: 0.025em;
-      transition: color 0.15s ease-in-out;
-      min-width: 38px;
-      text-align: right;
-    }
-    .frontend-devtools-memory-label {
-      color: rgba(255,255,255,0.3);
-      font-size: 11px;
-      font-weight: 500;
-      letter-spacing: 0.025em;
-    }
-    .frontend-devtools-inspect-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      border: none;
-      background: transparent;
-      border-radius: 4px;
-      cursor: pointer;
-      color: #999;
-      transition: color 0.15s, background 0.15s;
-    }
-    .frontend-devtools-inspect-btn:hover {
-      background: rgba(255,255,255,0.1);
-    }
-    .frontend-devtools-inspect-btn:focus {
-      outline: none;
-    }
-    .frontend-devtools-inspect-btn.active {
-      color: #8e61e3;
-    }
-    .frontend-devtools-inspect-btn svg {
-      width: 16px;
-      height: 16px;
-    }
-    .frontend-devtools-collapse-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 16px;
-      height: 24px;
-      border: none;
-      background: transparent;
-      border-left: 1px solid rgba(255,255,255,0.12);
-      border-radius: 0;
-      cursor: pointer;
-      color: #555;
-      padding: 0;
-      margin-left: 4px;
-      transition: color 0.15s, background 0.15s;
-    }
-    .frontend-devtools-collapse-btn:hover {
-      color: #aaa;
-      background: rgba(255,255,255,0.05);
-    }
-    .frontend-devtools-collapse-btn:focus {
-      outline: none;
-    }
-    .frontend-devtools-collapse-btn svg {
-      width: 16px;
-      height: 16px;
-    }
-    /* Rotate collapse icon based on corner position */
-    .frontend-devtools-toolbar:not(.corner-left) .frontend-devtools-collapse-btn svg {
-      transform: rotate(0deg);
-    }
-    .frontend-devtools-toolbar.corner-left .frontend-devtools-collapse-btn svg {
-      transform: rotate(180deg);
-    }
-    /* Tooltip styles - DOM element with sliding content animation */
-    .frontend-devtools-tooltip {
-      position: absolute;
-      left: 0;
-      bottom: calc(100% + 8px);
-      width: ${TOOLBAR_WIDTH}px;
-      min-height: ${TOOLTIP_HEIGHT}px;
-      padding: 12px;
-      background: rgba(35, 35, 38, 0.98);
-      color: #f0f0f0;
-      font-size: 12px;
-      font-weight: 400;
-      line-height: 1.4;
-      text-align: left;
-      border-radius: 8px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08);
-      box-sizing: border-box;
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-      transition: opacity 0.2s ease-out, visibility 0.2s ease-out;
-      z-index: 10;
-      overflow: hidden;
-    }
-    .frontend-devtools-tooltip.visible {
-      opacity: 1;
-      visibility: visible;
-    }
-    .frontend-devtools-tooltip-content {
-      white-space: normal;
-      will-change: transform, opacity;
-    }
-    /* Tooltip below (for top corners) */
-    .frontend-devtools-toolbar.corner-top .frontend-devtools-tooltip {
-      bottom: auto;
-      top: calc(100% + 8px);
-    }
-    /* Collapsed toolbar styles */
-    .frontend-devtools-toolbar.collapsed {
-      width: auto;
-      height: auto;
-      padding: 0;
-      cursor: pointer;
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .frontend-devtools-toolbar.collapsed.collapsed-horizontal {
-      width: 20px;
-      height: 48px;
-    }
-    .frontend-devtools-toolbar.collapsed.collapsed-vertical {
-      width: 48px;
-      height: 20px;
-    }
-    /* Rounded corners based on edge position */
-    .frontend-devtools-toolbar.collapsed.edge-left {
-      border-radius: 0 8px 8px 0;
-    }
-    .frontend-devtools-toolbar.collapsed.edge-right {
-      border-radius: 8px 0 0 8px;
-    }
-    .frontend-devtools-toolbar.collapsed.edge-top {
-      border-radius: 0 0 8px 8px;
-    }
-    .frontend-devtools-toolbar.collapsed.edge-bottom {
-      border-radius: 8px 8px 0 0;
-    }
-    .frontend-devtools-expand-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-      border: none;
-      background: transparent;
-      cursor: pointer;
-      color: #fff;
-      padding: 0;
-    }
-    .frontend-devtools-expand-btn svg {
-      width: 16px;
-      height: 16px;
-      transition: transform 0.15s ease;
-    }
-    /* Arrow rotation based on edge */
-    .frontend-devtools-toolbar.collapsed.edge-right .frontend-devtools-expand-btn svg {
-      transform: rotate(180deg);
-    }
-    .frontend-devtools-toolbar.collapsed.edge-top .frontend-devtools-expand-btn svg {
-      transform: rotate(90deg);
-    }
-    .frontend-devtools-toolbar.collapsed.edge-bottom .frontend-devtools-expand-btn svg {
-      transform: rotate(-90deg);
-    }
-    .frontend-devtools-toolbar.collapsed .frontend-devtools-tooltip {
-      display: none;
-    }
-  `;
 
-  // Chevron arrow SVG for collapsed/expand state
-  const CHEVRON_RIGHT_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M9 18l6-6-6-6"/>
-  </svg>`;
-
-  // Toolbar
-  const Toolbar = {
-    rootContainer: null,
-    shadowRoot: null,
-    toolbarElement: null,
-    toolbarContent: null,  // Container for toolbar content (hidden when collapsed)
-    expandButton: null,    // Button shown when collapsed
-    collapseButton: null,  // Button to collapse the toolbar
-    fpsValueElement: null,
-    memoryValueElement: null,
-    fpsIntervalId: null,
-    memoryIntervalId: null,
-    inspectButton: null,
-    isDragging: false,
-    resizeHandler: null,
-    transitionFallbackTimeoutId: null, // Fallback for transitionend
-
-    // Initialize toolbar position
-    initPosition() {
-      if (!this.toolbarElement) return;
-
-      // Load collapsed state first
-      loadCollapsedState();
-
-      if (toolbarCollapsed) {
-        // If collapsed, apply collapsed state
-        this.applyCollapsedState();
-        return;
-      }
-
-      const rect = this.toolbarElement.getBoundingClientRect();
-      const width = rect.width;
-      const height = rect.height;
-
-      // Try to load saved position
-      if (!loadToolbarPosition()) {
-        // Default to bottom-right
-        toolbarCorner = "bottom-right";
-        toolbarPosition = calculatePosition(toolbarCorner, width, height);
-      } else {
-        // Recalculate position for current corner (in case window was resized)
-        toolbarPosition = calculatePosition(toolbarCorner, width, height);
-      }
-
-      this.applyPosition(false);
-    },
-
-    // Apply collapsed state to toolbar
-    applyCollapsedState() {
-      if (!this.toolbarElement || !toolbarCollapsed) return;
-
-      const { corner, orientation } = toolbarCollapsed;
-
-      // Hide toolbar content, show expand button
-      if (this.toolbarContent) this.toolbarContent.style.display = "none";
-      if (this.expandButton) this.expandButton.style.display = "flex";
-
-      // Add collapsed classes
-      this.toolbarElement.classList.add("collapsed");
-      this.toolbarElement.classList.add(`collapsed-${orientation}`);
-      this.toolbarElement.classList.remove("edge-left", "edge-right", "edge-top", "edge-bottom");
-
-      // Add edge class based on corner and orientation
-      if (orientation === "horizontal") {
-        this.toolbarElement.classList.add(corner.endsWith("left") ? "edge-left" : "edge-right");
-      } else {
-        this.toolbarElement.classList.add(corner.startsWith("top") ? "edge-top" : "edge-bottom");
-      }
-
-      // Calculate and apply collapsed position
-      toolbarPosition = calculateCollapsedPosition(corner, orientation);
-      this.toolbarElement.style.transform = `translate3d(${toolbarPosition.x}px, ${toolbarPosition.y}px, 0)`;
-      this.toolbarElement.style.left = "0";
-      this.toolbarElement.style.top = "0";
-    },
-
-    // Track expand timeout for cleanup
-    expandTimeoutId: null,
-
-    // Expand from collapsed state
-    expandToolbar() {
-      if (!toolbarCollapsed) return;
-
-      // Cancel any pending expand timeout
-      if (this.expandTimeoutId) {
-        clearTimeout(this.expandTimeoutId);
-        this.expandTimeoutId = null;
-      }
-
-      // Disable tooltips during expansion to prevent accidental tooltip shows
-      isExpandingToolbar = true;
-
-      const savedCorner = toolbarCollapsed.corner;
-      toolbarCollapsed = null;
-      saveCollapsedState();
-
-      // Remove collapsed classes
-      this.toolbarElement.classList.remove("collapsed", "collapsed-horizontal", "collapsed-vertical");
-      this.toolbarElement.classList.remove("edge-left", "edge-right", "edge-top", "edge-bottom");
-
-      // Show toolbar content, hide expand button
-      if (this.toolbarContent) this.toolbarContent.style.display = "flex";
-      if (this.expandButton) this.expandButton.style.display = "none";
-
-      // Calculate new position for the saved corner
-      requestAnimationFrame(() => {
-        const rect = this.toolbarElement.getBoundingClientRect();
-        toolbarCorner = savedCorner;
-        toolbarPosition = calculatePosition(savedCorner, TOOLBAR_WIDTH, rect.height || 40);
-        this.applyPosition(true);
-        saveToolbarPosition();
-
-        // Re-enable tooltips after the expand animation completes (300ms transition + buffer)
-        this.expandTimeoutId = setTimeout(() => {
-          isExpandingToolbar = false;
-          this.expandTimeoutId = null;
-        }, 400);
-      });
-    },
-
-    // Collapse toolbar to an edge
-    collapseToolbar(corner, orientation) {
-      toolbarCollapsed = { corner, orientation };
-      toolbarCorner = corner;
-      saveCollapsedState();
-      saveToolbarPosition();
-      this.applyCollapsedState();
-    },
-
-    // Apply current position to toolbar
-    applyPosition(animate = true) {
-      if (!this.toolbarElement) return;
-
-      const toolbar = this.toolbarElement;
-      const toolbarStyle = toolbar.style;
-
-      // Update corner classes for tooltip and collapse button positioning
-      const isTop = toolbarCorner.startsWith("top");
-      const isLeft = toolbarCorner.endsWith("left");
-      toolbar.classList.toggle("corner-top", isTop);
-      toolbar.classList.toggle("corner-left", isLeft);
-
-      toolbarStyle.left = "0";
-      toolbarStyle.top = "0";
-
-      if (animate) {
-        // Disable tooltips during snap animation to prevent accidental triggers
-        isSnappingToolbar = true;
-
-        // Cancel any existing transition fallback timeout
-        if (this.transitionFallbackTimeoutId) {
-          clearTimeout(this.transitionFallbackTimeoutId);
-          this.transitionFallbackTimeoutId = null;
-        }
-
-        // Use inline transition for better performance (avoids class-based reflow)
-        toolbarStyle.transition = "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
-
-        // Schedule transform update in next frame for proper transition
-        requestAnimationFrame(() => {
-          toolbarStyle.transform = `translate3d(${toolbarPosition.x}px, ${toolbarPosition.y}px, 0)`;
-        });
-
-        // Use transitionend event instead of setTimeout for accuracy
-        let transitionCompleted = false;
-        const onTransitionEnd = () => {
-          if (transitionCompleted) return;
-          transitionCompleted = true;
-          toolbarStyle.transition = "none";
-          isSnappingToolbar = false; // Re-enable tooltips after snap animation
-          toolbar.removeEventListener("transitionend", onTransitionEnd);
-          if (this.transitionFallbackTimeoutId) {
-            clearTimeout(this.transitionFallbackTimeoutId);
-            this.transitionFallbackTimeoutId = null;
-          }
-        };
-        toolbar.addEventListener("transitionend", onTransitionEnd, { once: true });
-
-        // Fallback timeout in case transitionend never fires (e.g., element removed, transition cancelled)
-        this.transitionFallbackTimeoutId = setTimeout(() => {
-          if (!transitionCompleted) {
-            onTransitionEnd();
-          }
-          this.transitionFallbackTimeoutId = null;
-        }, 350); // Slightly longer than 300ms transition
-      } else {
-        toolbarStyle.transition = "none";
-        toolbarStyle.transform = `translate3d(${toolbarPosition.x}px, ${toolbarPosition.y}px, 0)`;
-      }
-    },
-
-    // Handle drag start
-    handleDragStart(e) {
-      // Don't drag if clicking on buttons or inputs
-      if (e.target.closest("button") || e.target.closest("input") || e.target.closest("label")) {
-        return;
-      }
-
-      e.preventDefault();
-
-      const toolbar = this.toolbarElement;
-      if (!toolbar) return;
-
-      this.isDragging = false;
-      const initialMouseX = e.clientX;
-      const initialMouseY = e.clientY;
-      const initialX = toolbarPosition.x;
-      const initialY = toolbarPosition.y;
-
-      let currentX = initialX;
-      let currentY = initialY;
-      let lastMouseX = initialMouseX;
-      let lastMouseY = initialMouseY;
-      let hasMoved = false;
-      let rafId = null;
-
-      // Cache style reference to avoid repeated lookups
-      const toolbarStyle = toolbar.style;
-
-      // Capture pointer for smooth tracking even when cursor leaves toolbar
-      toolbar.setPointerCapture(e.pointerId);
-      const pointerId = e.pointerId;
-
-      // CRITICAL: Pause the FPS RAF loop during drag to free up animation frames
-      // The FPS display interval is separate and less impactful
-      pauseFPSLoop();
-      const wasFpsDisplayRunning = this.fpsIntervalId !== null;
-      if (wasFpsDisplayRunning) {
-        this.stopFPSUpdates();
-      }
-
-      const handlePointerMove = (e) => {
-        // ALWAYS update mouse position, even if RAF is pending
-        // This ensures we have the latest position when the frame fires
-        lastMouseX = e.clientX;
-        lastMouseY = e.clientY;
-
-        // Skip scheduling new RAF if one is already pending
-        if (rafId) return;
-
-        rafId = requestAnimationFrame(() => {
-          const deltaX = lastMouseX - initialMouseX;
-          const deltaY = lastMouseY - initialMouseY;
-
-          // Check if we've moved enough to consider it a drag
-          if (!hasMoved && (Math.abs(deltaX) > DRAG_THRESHOLD || Math.abs(deltaY) > DRAG_THRESHOLD)) {
-            hasMoved = true;
-            this.isDragging = true;
-            isDraggingToolbar = true; // Pause all scanning/highlighting work
-            // Batch class changes - transition disabled via CSS class
-            toolbar.classList.add("dragging");
-            this.hideTooltip(); // Hide tooltip during drag
-          }
-
-          if (hasMoved) {
-            currentX = initialX + deltaX;
-            currentY = initialY + deltaY;
-
-            // Apply position directly using translate3d for GPU acceleration
-            // Use cached style reference for faster access
-            toolbarStyle.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
-          }
-
-          rafId = null;
-        });
-      };
-
-      const handlePointerEnd = () => {
-        // Release pointer capture
-        if (toolbar.hasPointerCapture(pointerId)) {
-          toolbar.releasePointerCapture(pointerId);
-        }
-
-        document.removeEventListener("pointermove", handlePointerMove);
-        document.removeEventListener("pointerup", handlePointerEnd);
-        document.removeEventListener("pointercancel", handlePointerEnd);
-
-        if (rafId) {
-          cancelAnimationFrame(rafId);
-          rafId = null;
-        }
-
-        toolbar.classList.remove("dragging");
-        this.isDragging = false;
-        isDraggingToolbar = false; // Resume all scanning/highlighting work
-
-        // Resume FPS RAF loop and display updates after drag
-        resumeFPSLoop();
-        if (wasFpsDisplayRunning) {
-          this.startFPSUpdates();
-        }
-
-        if (!hasMoved) return;
-
-        // Calculate total movement
-        const totalDeltaX = Math.abs(lastMouseX - initialMouseX);
-        const totalDeltaY = Math.abs(lastMouseY - initialMouseY);
-        const totalMovement = Math.sqrt(totalDeltaX * totalDeltaX + totalDeltaY * totalDeltaY);
-
-        // Only snap if moved enough
-        if (totalMovement < SNAP_THRESHOLD) {
-          // Snap back to original position with smooth animation
-          toolbarPosition = calculatePosition(toolbarCorner, toolbar.offsetWidth, toolbar.offsetHeight);
-          this.applyPosition(true);
-          return;
-        }
-
-        // Check if toolbar should collapse (dragged outside viewport)
-        const toolbarWidth = TOOLBAR_WIDTH;
-        const toolbarHeight = toolbar.offsetHeight || 40;
-        if (shouldCollapseToolbar(currentX, currentY, toolbarWidth, toolbarHeight)) {
-          const collapseTarget = getCollapseTarget(currentX, currentY, toolbarWidth, toolbarHeight);
-          if (collapseTarget) {
-            this.collapseToolbar(collapseTarget.corner, collapseTarget.orientation);
-            return;
-          }
-        }
-
-        // Determine new corner based on drag direction and position
-        const newCorner = getBestCorner(lastMouseX, lastMouseY, initialMouseX, initialMouseY, 40);
-
-        // Calculate snap position for the new corner
-        const rect = toolbar.getBoundingClientRect();
-        toolbarCorner = newCorner;
-        toolbarPosition = calculatePosition(newCorner, rect.width, rect.height);
-
-        // Animate to snap position
-        this.applyPosition(true);
-
-        // Save to localStorage
-        saveToolbarPosition();
-      };
-
-      // CRITICAL: Do NOT use { passive: true } - it causes lag due to browser scroll optimization
-      document.addEventListener("pointermove", handlePointerMove);
-      document.addEventListener("pointerup", handlePointerEnd);
-      document.addEventListener("pointercancel", handlePointerEnd);
-    },
-
-    // Handle window resize
-    handleResize() {
-      if (!this.toolbarElement) return;
-
-      if (toolbarCollapsed) {
-        // Recalculate collapsed position for new window size
-        this.applyCollapsedState();
-      } else {
-        const rect = this.toolbarElement.getBoundingClientRect();
-        toolbarPosition = calculatePosition(toolbarCorner, rect.width, rect.height);
-        this.applyPosition(false);
-      }
-    },
-
-    createFPSMeter() {
-      const container = document.createElement("div");
-      container.className = "frontend-devtools-fps";
-      container.setAttribute("data-tooltip", "Frames per second — detect long-running scripts blocking the main thread");
-
-      const value = document.createElement("span");
-      value.className = "frontend-devtools-fps-value";
-      value.textContent = "60";
-      this.fpsValueElement = value;
-
-      const label = document.createElement("span");
-      label.className = "frontend-devtools-fps-label";
-      label.textContent = "FPS";
-
-      container.appendChild(value);
-      container.appendChild(label);
-
-      return container;
-    },
-
-    createMemoryMeter() {
-      // Only create if memory API is supported
-      if (!isMemorySupported()) {
-        return null;
-      }
-
-      const container = document.createElement("div");
-      container.className = "frontend-devtools-memory";
-      container.setAttribute("data-tooltip", "JS heap memory usage — detect memory leaks and excessive allocations");
-
-      const value = document.createElement("span");
-      value.className = "frontend-devtools-memory-value";
-      value.textContent = "--";
-      this.memoryValueElement = value;
-
-      const label = document.createElement("span");
-      label.className = "frontend-devtools-memory-label";
-      label.textContent = "MB";
-
-      container.appendChild(value);
-      container.appendChild(label);
-
-      return container;
-    },
-
-    createInspectButton() {
-      const btn = document.createElement("button");
-      btn.className = "frontend-devtools-inspect-btn";
-      btn.setAttribute("data-tooltip", "Inspect component — click to jump to source code in your IDE");
-      btn.innerHTML = INSPECT_ICON_SVG;
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        toggleInspect();
-      });
-      this.inspectButton = btn;
-      return btn;
-    },
-
-    updateInspectButton() {
-      if (!this.inspectButton) return;
-      const isActive = inspectState.kind === "inspecting";
-      this.inspectButton.classList.toggle("active", isActive);
-      // Switch icon between inspect cursor and close/cross
-      this.inspectButton.innerHTML = isActive ? CLOSE_ICON_SVG : INSPECT_ICON_SVG;
-      this.inspectButton.setAttribute("data-tooltip", isActive ? "Exit inspect mode — or press Esc" : "Inspect component — click to jump to source code in your IDE");
-    },
-
-    createCollapseButton() {
-      const btn = document.createElement("button");
-      btn.className = "frontend-devtools-collapse-btn";
-      btn.setAttribute("data-tooltip", "Collapse toolbar");
-      btn.innerHTML = CHEVRON_RIGHT_SVG;
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        // Collapse to the current corner with horizontal orientation (to the side edge)
-        const orientation = "horizontal";
-        this.collapseToolbar(toolbarCorner, orientation);
-      });
-      this.collapseButton = btn;
-      return btn;
-    },
-
-    startFPSUpdates() {
-      // Initialize FPS tracking
-      getFPS();
-
-      // Update FPS display every 200ms (needs fast updates)
-      this.fpsIntervalId = setInterval(() => {
-        if (this.fpsValueElement) {
-          const currentFPS = getFPS();
-          this.fpsValueElement.textContent = currentFPS;
-          this.fpsValueElement.style.color = getFPSColor(currentFPS);
-        }
-      }, 200);
-
-      // Update memory display every 1000ms (doesn't change as rapidly)
-      this.memoryIntervalId = setInterval(() => {
-        if (this.memoryValueElement) {
-          const memInfo = getMemoryInfo();
-          if (memInfo) {
-            this.memoryValueElement.textContent = memInfo.usedMB;
-            this.memoryValueElement.style.color = getMemoryColor(memInfo.percent);
-          }
-        }
-      }, 1000);
-    },
-
-    stopFPSUpdates() {
-      if (this.fpsIntervalId) {
-        clearInterval(this.fpsIntervalId);
-        this.fpsIntervalId = null;
-      }
-      if (this.memoryIntervalId) {
-        clearInterval(this.memoryIntervalId);
-        this.memoryIntervalId = null;
-      }
-    },
-
-    // Track tooltip cleanup functions
-    tooltipCleanupFns: [],
-    tooltipHideTimeout: null,
-    tooltipElement: null,           // Tooltip DOM element
-    tooltipContentElement: null,    // Inner content element for animation
-    lastTooltipElementX: null,      // Track last hovered element's X position for direction
-
-    // Cleanup tooltip event handlers
-    cleanupTooltipEvents() {
-      // Clear any pending hide timeout
-      if (this.tooltipHideTimeout) {
-        clearTimeout(this.tooltipHideTimeout);
-        this.tooltipHideTimeout = null;
-      }
-      // Remove all event listeners
-      this.tooltipCleanupFns.forEach(fn => fn());
-      this.tooltipCleanupFns = [];
-      // Reset tooltip state
-      this.lastTooltipElementX = null;
-    },
-
-    // Create tooltip DOM element
-    createTooltipElement() {
-      const tooltip = document.createElement("div");
-      tooltip.className = "frontend-devtools-tooltip";
-
-      const content = document.createElement("div");
-      content.className = "frontend-devtools-tooltip-content";
-      tooltip.appendChild(content);
-
-      this.tooltipElement = tooltip;
-      this.tooltipContentElement = content;
-      return tooltip;
-    },
-
-    // Update tooltip with slide animation based on direction
-    updateTooltip(text, direction) {
-      if (!this.tooltipElement || !this.tooltipContentElement) return;
-
-      const content = this.tooltipContentElement;
-      const tooltip = this.tooltipElement;
-
-      // If tooltip is not visible, just set content and show
-      if (!tooltip.classList.contains("visible")) {
-        content.textContent = text;
-        content.style.transform = "translateX(0)";
-        content.style.opacity = "1";
-        tooltip.classList.add("visible");
-        return;
-      }
-
-      // Animate content change with slide effect
-      const slideOutX = direction === "left" ? "15px" : "-15px";
-      const slideInX = direction === "left" ? "-15px" : "15px";
-
-      // Slide out current content
-      content.style.transition = "transform 0.12s ease-out, opacity 0.12s ease-out";
-      content.style.transform = `translateX(${slideOutX})`;
-      content.style.opacity = "0";
-
-      // After slide out, update content and slide in
+    this.#dragController.setPosition(position, corner);
+  }
+
+  /**
+   * Expand from collapsed state.
+   * @private
+   */
+  #expandFromCollapsed(savedCorner) {
+    if (!this.#toolbar) return;
+
+    this.#isExpanding = true;
+    this.#tooltipManager.disable();
+
+    // Remove collapsed classes
+    this.#toolbar.classList.remove("collapsed", "collapsed-horizontal", "collapsed-vertical");
+    this.#toolbar.classList.remove("edge-left", "edge-right", "edge-top", "edge-bottom");
+
+    // Show content, hide expand button
+    if (this.#content) this.#content.style.display = "flex";
+    if (this.#expandButton) this.#expandButton.style.display = "none";
+
+    // Animate to corner position
+    requestAnimationFrame(() => {
+      const rect = this.#toolbar.getBoundingClientRect();
+      this.#dragController.snapToCorner(savedCorner, CONFIG.dimensions.toolbarWidth, rect.height || 40);
+      StorageManager.setToolbarPosition(savedCorner, this.#dragController.position);
+      StorageManager.setCollapsedState(null);
+      this.#updateCornerClasses();
+
+      // Re-enable tooltips after animation
       setTimeout(() => {
-        content.textContent = text;
-        content.style.transition = "none";
-        content.style.transform = `translateX(${slideInX})`;
-
-        // Force reflow to ensure the transform is applied before animating
-        void content.offsetWidth;
-
-        content.style.transition = "transform 0.15s ease-out, opacity 0.15s ease-out";
-        content.style.transform = "translateX(0)";
-        content.style.opacity = "1";
-      }, 120);
-    },
-
-    // Hide tooltip with fade out
-    hideTooltip() {
-      if (!this.tooltipElement) return;
-      this.tooltipElement.classList.remove("visible");
-      this.lastTooltipElementX = null;
-    },
-
-    // Setup tooltip event handlers for elements with data-tooltip
-    setupTooltipEvents(toolbar) {
-      const tooltipElements = toolbar.querySelectorAll("[data-tooltip]");
-      const self = this;
-
-      tooltipElements.forEach((el) => {
-        const handleMouseEnter = () => {
-          // Don't show tooltips while dragging, expanding, or snapping
-          if (isDraggingToolbar || isExpandingToolbar || isSnappingToolbar) return;
-          // Cancel any pending hide
-          if (self.tooltipHideTimeout) {
-            clearTimeout(self.tooltipHideTimeout);
-            self.tooltipHideTimeout = null;
-          }
-
-          const tooltipText = el.getAttribute("data-tooltip");
-          const rect = el.getBoundingClientRect();
-          const currentX = rect.left + rect.width / 2;
-
-          // Determine slide direction based on movement
-          let direction = "left"; // default
-          if (self.lastTooltipElementX !== null) {
-            direction = currentX > self.lastTooltipElementX ? "left" : "right";
-          }
-          self.lastTooltipElementX = currentX;
-
-          self.updateTooltip(tooltipText, direction);
-        };
-
-        const handleMouseLeave = () => {
-          // Delay hiding to allow moving between buttons without flickering
-          self.tooltipHideTimeout = setTimeout(() => {
-            self.hideTooltip();
-            self.tooltipHideTimeout = null;
-          }, 200);
-        };
-
-        el.addEventListener("mouseenter", handleMouseEnter);
-        el.addEventListener("mouseleave", handleMouseLeave);
-
-        // Store cleanup function
-        self.tooltipCleanupFns.push(() => {
-          el.removeEventListener("mouseenter", handleMouseEnter);
-          el.removeEventListener("mouseleave", handleMouseLeave);
-        });
-      });
-    },
-
-    createExpandButton() {
-      const btn = document.createElement("button");
-      btn.className = "frontend-devtools-expand-btn";
-      btn.title = "Expand toolbar";
-      btn.innerHTML = CHEVRON_RIGHT_SVG;
-      btn.style.display = "none"; // Hidden by default
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this.expandToolbar();
-      });
-      this.expandButton = btn;
-      return btn;
-    },
-
-    // Handle drag on collapsed toolbar
-    handleCollapsedDrag(e) {
-      e.preventDefault();
-
-      if (!this.toolbarElement || !toolbarCollapsed) return;
-
-      const { corner, orientation } = toolbarCollapsed;
-      const initialMouseX = e.clientX;
-      const initialMouseY = e.clientY;
-
-      let hasExpanded = false;
-
-      const handlePointerMove = (moveEvent) => {
-        if (hasExpanded) return;
-
-        const deltaX = moveEvent.clientX - initialMouseX;
-        const deltaY = moveEvent.clientY - initialMouseY;
-
-        let shouldExpand = false;
-
-        if (orientation === "horizontal") {
-          // Left edge: drag right to expand
-          if (corner.endsWith("left") && deltaX > EXPAND_DRAG_THRESHOLD) {
-            shouldExpand = true;
-          }
-          // Right edge: drag left to expand
-          else if (corner.endsWith("right") && deltaX < -EXPAND_DRAG_THRESHOLD) {
-            shouldExpand = true;
-          }
-        } else {
-          // Top edge: drag down to expand
-          if (corner.startsWith("top") && deltaY > EXPAND_DRAG_THRESHOLD) {
-            shouldExpand = true;
-          }
-          // Bottom edge: drag up to expand
-          else if (corner.startsWith("bottom") && deltaY < -EXPAND_DRAG_THRESHOLD) {
-            shouldExpand = true;
-          }
-        }
-
-        if (shouldExpand) {
-          hasExpanded = true;
-          document.removeEventListener("pointermove", handlePointerMove);
-          document.removeEventListener("pointerup", handlePointerEnd);
-          this.expandToolbar();
-        }
-      };
-
-      const handlePointerEnd = () => {
-        document.removeEventListener("pointermove", handlePointerMove);
-        document.removeEventListener("pointerup", handlePointerEnd);
-      };
-
-      document.addEventListener("pointermove", handlePointerMove, { passive: true });
-      document.addEventListener("pointerup", handlePointerEnd);
-    },
-
-    createToolbar() {
-      const toolbar = document.createElement("div");
-      toolbar.className = "frontend-devtools-toolbar";
-
-      // Add drag handler - will dispatch to collapsed or normal drag
-      toolbar.addEventListener("pointerdown", (e) => {
-        if (toolbarCollapsed) {
-          this.handleCollapsedDrag(e);
-        } else {
-          this.handleDragStart(e);
-        }
-      });
-
-      // Create expand button for collapsed state (hidden by default)
-      const expandBtn = this.createExpandButton();
-      toolbar.appendChild(expandBtn);
-
-      // Create content container for normal toolbar state
-      const content = document.createElement("div");
-      content.className = "frontend-devtools-content";
-      content.style.cssText = "display: flex; align-items: center; gap: 8px;";
-      this.toolbarContent = content;
-
-      // Add inspect button first
-      const inspectBtn = this.createInspectButton();
-      content.appendChild(inspectBtn);
-
-      const toggle = document.createElement("label");
-      toggle.className = "frontend-devtools-toggle";
-      toggle.setAttribute("data-tooltip", "Highlight DOM mutations — detect unexpected re-renders");
-
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      // Load initial state from localStorage, start scanning if enabled
-      const savedScanningEnabled = isScanningEnabled();
-      checkbox.checked = savedScanningEnabled;
-      if (savedScanningEnabled) {
-        ScalaDevtools.start();
-      }
-      checkbox.addEventListener("change", () => {
-        if (checkbox.checked) {
-          ScalaDevtools.start();
-        } else {
-          ScalaDevtools.stop();
-        }
-        saveScanningEnabled(checkbox.checked);
-      });
-      toggle.appendChild(checkbox);
-
-      const track = document.createElement("div");
-      track.className = "frontend-devtools-toggle-track";
-      const thumb = document.createElement("div");
-      thumb.className = "frontend-devtools-toggle-thumb";
-      track.appendChild(thumb);
-      toggle.appendChild(track);
-
-      content.appendChild(toggle);
-
-      // Add FPS meter
-      const fpsMeter = this.createFPSMeter();
-      content.appendChild(fpsMeter);
-
-      // Add memory meter (only if supported by browser)
-      const memoryMeter = this.createMemoryMeter();
-      if (memoryMeter) {
-        content.appendChild(memoryMeter);
-      }
-
-      // Add collapse button at the end
-      const collapseBtn = this.createCollapseButton();
-      content.appendChild(collapseBtn);
-
-      toolbar.appendChild(content);
-
-      // Create and append tooltip element
-      const tooltip = this.createTooltipElement();
-      toolbar.appendChild(tooltip);
-
-      // Setup tooltip events
-      this.setupTooltipEvents(toolbar);
-
-      this.toolbarElement = toolbar;
-      return toolbar;
-    },
-
-    mount() {
-      if (this.rootContainer) return;
-
-      this.rootContainer = document.createElement("div");
-      this.rootContainer.id = "frontend-devtools-root";
-      this.rootContainer.setAttribute(DEVTOOLS_ATTR, "toolbar");
-
-      this.shadowRoot = this.rootContainer.attachShadow({ mode: "open" });
-
-      const style = document.createElement("style");
-      style.textContent = TOOLBAR_STYLES;
-      this.shadowRoot.appendChild(style);
-
-      const toolbar = this.createToolbar();
-      this.shadowRoot.appendChild(toolbar);
-
-      document.documentElement.appendChild(this.rootContainer);
-
-      // Initialize position after toolbar is in DOM (so we can measure it)
-      requestAnimationFrame(() => {
-        this.initPosition();
-      });
-
-      // Add resize handler
-      this.resizeHandler = () => this.handleResize();
-      window.addEventListener("resize", this.resizeHandler);
-
-      // Start FPS updates
-      this.startFPSUpdates();
-    },
-
-    remove() {
-      // Stop FPS updates and reset state
-      this.stopFPSUpdates();
-      resetFPSState();
-
-      // Cleanup tooltip event handlers
-      this.cleanupTooltipEvents();
-
-      // Cancel any pending expand timeout
-      if (this.expandTimeoutId) {
-        clearTimeout(this.expandTimeoutId);
-        this.expandTimeoutId = null;
-      }
-
-      // Cancel any pending transition fallback timeout
-      if (this.transitionFallbackTimeoutId) {
-        clearTimeout(this.transitionFallbackTimeoutId);
-        this.transitionFallbackTimeoutId = null;
-      }
-
-      // Remove resize handler
-      if (this.resizeHandler) {
-        window.removeEventListener("resize", this.resizeHandler);
-        this.resizeHandler = null;
-      }
-
-      // Cancel resize debounce
-      if (resizeDebounceId) {
-        clearTimeout(resizeDebounceId);
-        resizeDebounceId = null;
-      }
-
-      if (this.rootContainer && this.rootContainer.parentNode) {
-        this.rootContainer.parentNode.removeChild(this.rootContainer);
-      }
-      this.rootContainer = null;
-      this.shadowRoot = null;
-      this.toolbarElement = null;
-      this.toolbarContent = null;
-      this.expandButton = null;
-      this.collapseButton = null;
-      this.fpsValueElement = null;
-      this.memoryValueElement = null;
-      this.inspectButton = null;
-      this.tooltipCleanupFns = [];
-      this.tooltipElement = null;
-      this.tooltipContentElement = null;
-      this.lastTooltipElementX = null;
-    },
-  };
-
-  // Check if devtools is enabled via localStorage
-  function isDevtoolsEnabled() {
-    try {
-      const value = localStorage.getItem(LOCALSTORAGE_ENABLED_KEY);
-      // Default to disabled if not set
-      return value === "true";
-    } catch (e) {
-      return false; // Default to disabled if localStorage not available
-    }
+        this.#isExpanding = false;
+        this.#tooltipManager.enable();
+      }, 400);
+    });
   }
 
-  // Check if scanning toggle is enabled via localStorage
-  function isScanningEnabled() {
-    try {
-      const value = localStorage.getItem("FRONTEND_DEVTOOLS_SCANNING");
-      // Default to false if not set
-      return value === "true";
-    } catch (e) {
-      return false;
-    }
+  /**
+   * Update corner-based CSS classes.
+   * @private
+   */
+  #updateCornerClasses() {
+    if (!this.#toolbar) return;
+
+    const corner = this.#dragController.corner;
+    const isTop = corner.startsWith("top");
+    const isLeft = corner.endsWith("left");
+
+    this.#toolbar.classList.toggle("corner-top", isTop);
+    this.#toolbar.classList.toggle("corner-left", isLeft);
   }
 
-  // Save scanning toggle state to localStorage
-  function saveScanningEnabled(enabled) {
-    try {
-      localStorage.setItem("FRONTEND_DEVTOOLS_SCANNING", enabled ? "true" : "false");
-    } catch (e) {
-      // Ignore localStorage errors
-    }
-  }
+  /**
+   * Handle window resize.
+   * @private
+   */
+  #handleResize() {
+    if (!this.#toolbar) return;
 
-  // Auto-mount toolbar when DOM is ready (only if enabled)
-  if (isDevtoolsEnabled()) {
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", () => Toolbar.mount());
+    const collapsed = this.#dragController.collapsed;
+    if (collapsed) {
+      this.#applyCollapsedState(collapsed.corner, collapsed.orientation);
     } else {
-      Toolbar.mount();
+      const rect = this.#toolbar.getBoundingClientRect();
+      const corner = this.#dragController.corner;
+
+      // Recalculate position for current corner
+      const safeArea = CONFIG.dimensions.safeArea;
+      const rightX = window.innerWidth - rect.width - safeArea;
+      const bottomY = window.innerHeight - rect.height - safeArea;
+
+      let position;
+      switch (corner) {
+        case "top-left":
+          position = { x: safeArea, y: safeArea };
+          break;
+        case "top-right":
+          position = { x: rightX, y: safeArea };
+          break;
+        case "bottom-left":
+          position = { x: safeArea, y: bottomY };
+          break;
+        case "bottom-right":
+        default:
+          position = { x: rightX, y: bottomY };
+          break;
+      }
+
+      this.#dragController.setPosition(position, corner);
     }
   }
-})();
 
+  /**
+   * Start FPS and memory display updates.
+   * @private
+   */
+  #startDisplayUpdates() {
+    this.#fpsMonitor.start();
+
+    // FPS updates
+    this.#fpsIntervalId = setInterval(() => {
+      if (this.#fpsValueElement) {
+        const fps = this.#fpsMonitor.getFPS();
+        this.#fpsValueElement.textContent = fps;
+        this.#fpsValueElement.style.color = this.#fpsMonitor.getColor();
+      }
+    }, CONFIG.intervals.fpsDisplay);
+
+    // Memory updates
+    this.#memoryIntervalId = setInterval(() => {
+      if (this.#memoryValueElement) {
+        const info = this.#memoryMonitor.getInfo();
+        if (info) {
+          this.#memoryValueElement.textContent = info.usedMB;
+          this.#memoryValueElement.style.color = this.#memoryMonitor.getColor(info.percent);
+        }
+      }
+    }, CONFIG.intervals.memoryDisplay);
+  }
+
+  /**
+   * Stop display updates.
+   * @private
+   */
+  #stopDisplayUpdates() {
+    if (this.#fpsIntervalId) {
+      clearInterval(this.#fpsIntervalId);
+      this.#fpsIntervalId = null;
+    }
+    if (this.#memoryIntervalId) {
+      clearInterval(this.#memoryIntervalId);
+      this.#memoryIntervalId = null;
+    }
+  }
+}
+
+
+// ============================================================================
+// PUBLIC API
+// ============================================================================
+// Clean facade exposing the public devtools API.
+// ============================================================================
+
+/**
+ * ScalaDevtools - Public API facade.
+ * Coordinates the scanner, inspector, and toolbar components.
+ */
+const ScalaDevtools = {
+  /** @type {MutationScanner | null} */
+  _scanner: null,
+
+  /** @type {ComponentInspector | null} */
+  _inspector: null,
+
+  /** @type {Toolbar | null} */
+  _toolbar: null,
+
+  /**
+   * Initialize the devtools system.
+   * Creates the toolbar and sets up component coordination.
+   */
+  init() {
+    if (this._toolbar) return; // Already initialized
+
+    // Create scanner
+    this._scanner = new MutationScanner();
+
+    // Create inspector with state change callback
+    this._inspector = new ComponentInspector({
+      onStateChange: (inspecting) => {
+        this._toolbar?.updateInspectButton(inspecting);
+      },
+    });
+
+    // Create toolbar with callbacks
+    this._toolbar = new Toolbar({
+      onScanningToggle: (enabled) => {
+        if (enabled) {
+          this._scanner.start();
+        } else {
+          this._scanner.stop();
+        }
+      },
+      onInspectToggle: () => {
+        this._inspector.toggle();
+      },
+    });
+
+    // Mount toolbar
+    this._toolbar.mount();
+
+    // Auto-start scanning if previously enabled
+    if (StorageManager.isScanningEnabled()) {
+      this._scanner.start();
+    }
+  },
+
+  /**
+   * Destroy the devtools system.
+   */
+  destroy() {
+    this._scanner?.stop();
+    this._inspector?.stop();
+    this._toolbar?.unmount();
+
+    this._scanner = null;
+    this._inspector = null;
+    this._toolbar = null;
+  },
+
+  // ===== Scanner API =====
+
+  /**
+   * Check if the mutation scanner is running.
+   * @returns {boolean}
+   */
+  isRunning() {
+    return this._scanner?.isRunning ?? false;
+  },
+
+  /**
+   * Start the mutation scanner.
+   */
+  start() {
+    this._scanner?.start();
+  },
+
+  /**
+   * Stop the mutation scanner.
+   */
+  stop() {
+    this._scanner?.stop();
+  },
+
+  /**
+   * Toggle the mutation scanner.
+   */
+  toggle() {
+    this._scanner?.toggle();
+  },
+
+  // ===== Inspector API =====
+
+  /**
+   * Check if component inspection is active.
+   * @returns {boolean}
+   */
+  isInspecting() {
+    return this._inspector?.isInspecting ?? false;
+  },
+
+  /**
+   * Start component inspection mode.
+   */
+  startInspect() {
+    this._inspector?.start();
+  },
+
+  /**
+   * Stop component inspection mode.
+   */
+  stopInspect() {
+    this._inspector?.stop();
+  },
+
+  /**
+   * Toggle component inspection mode.
+   */
+  toggleInspect() {
+    this._inspector?.toggle();
+  },
+};
+
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+// Auto-mount logic when DOM is ready.
+// ============================================================================
+
+/**
+ * Initialize devtools when the DOM is ready (if enabled).
+ */
+function initDevtools() {
+  if (StorageManager.isDevtoolsEnabled()) {
+    ScalaDevtools.init();
+  }
+}
+
+// Auto-mount when DOM is ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initDevtools);
+} else {
+  initDevtools();
+}
+
+
+})();
