@@ -655,12 +655,105 @@
     },
   };
 
+  // Drag and snap constants
+  const SAFE_AREA = 16;
+  const LOCALSTORAGE_KEY = "scala-devtools-position";
+  const DRAG_THRESHOLD = 5;
+  const SNAP_THRESHOLD = 60;
+
+  // Drag and snap state
+  let toolbarPosition = { x: 0, y: 0 };
+  let toolbarCorner = "bottom-right"; // 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+
+  // Calculate position for a given corner
+  function calculatePosition(corner, width, height) {
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    const rightX = windowWidth - width - SAFE_AREA;
+    const bottomY = windowHeight - height - SAFE_AREA;
+
+    switch (corner) {
+      case "top-left":
+        return { x: SAFE_AREA, y: SAFE_AREA };
+      case "top-right":
+        return { x: rightX, y: SAFE_AREA };
+      case "bottom-left":
+        return { x: SAFE_AREA, y: bottomY };
+      case "bottom-right":
+      default:
+        return { x: rightX, y: bottomY };
+    }
+  }
+
+  // Determine best corner based on current position and movement
+  function getBestCorner(mouseX, mouseY, initialMouseX, initialMouseY, threshold = 40) {
+    const deltaX = mouseX - initialMouseX;
+    const deltaY = mouseY - initialMouseY;
+
+    const windowCenterX = window.innerWidth / 2;
+    const windowCenterY = window.innerHeight / 2;
+
+    // Determine movement direction
+    const movingRight = deltaX > threshold;
+    const movingLeft = deltaX < -threshold;
+    const movingDown = deltaY > threshold;
+    const movingUp = deltaY < -threshold;
+
+    // If significant horizontal movement
+    if (movingRight || movingLeft) {
+      const isBottom = mouseY > windowCenterY;
+      return movingRight
+        ? (isBottom ? "bottom-right" : "top-right")
+        : (isBottom ? "bottom-left" : "top-left");
+    }
+
+    // If significant vertical movement
+    if (movingDown || movingUp) {
+      const isRight = mouseX > windowCenterX;
+      return movingDown
+        ? (isRight ? "bottom-right" : "bottom-left")
+        : (isRight ? "top-right" : "top-left");
+    }
+
+    // If no significant movement, use quadrant-based position
+    return mouseX > windowCenterX
+      ? (mouseY > windowCenterY ? "bottom-right" : "top-right")
+      : (mouseY > windowCenterY ? "bottom-left" : "top-left");
+  }
+
+  // Save position to localStorage
+  function saveToolbarPosition() {
+    try {
+      localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify({
+        corner: toolbarCorner,
+        position: toolbarPosition
+      }));
+    } catch (e) {
+      // Ignore localStorage errors
+    }
+  }
+
+  // Load position from localStorage
+  function loadToolbarPosition() {
+    try {
+      const saved = localStorage.getItem(LOCALSTORAGE_KEY);
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.corner) toolbarCorner = data.corner;
+        if (data.position) toolbarPosition = data.position;
+        return true;
+      }
+    } catch (e) {
+      // Ignore localStorage errors
+    }
+    return false;
+  }
+
   // Toolbar styles
   const TOOLBAR_STYLES = `
     .scala-devtools-toolbar {
       position: fixed;
-      bottom: 16px;
-      right: 16px;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -673,6 +766,15 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       z-index: 2147483646;
       user-select: none;
+      cursor: grab;
+      touch-action: none;
+    }
+    .scala-devtools-toolbar.dragging {
+      cursor: grabbing;
+      transition: none !important;
+    }
+    .scala-devtools-toolbar.snapping {
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .scala-devtools-label {
       font-weight: 500;
@@ -776,9 +878,169 @@
   const Toolbar = {
     rootContainer: null,
     shadowRoot: null,
+    toolbarElement: null,
     fpsValueElement: null,
     fpsIntervalId: null,
     inspectButton: null,
+    isDragging: false,
+    resizeHandler: null,
+
+    // Initialize toolbar position
+    initPosition() {
+      if (!this.toolbarElement) return;
+
+      const rect = this.toolbarElement.getBoundingClientRect();
+      const width = rect.width;
+      const height = rect.height;
+
+      // Try to load saved position
+      if (!loadToolbarPosition()) {
+        // Default to bottom-right
+        toolbarCorner = "bottom-right";
+        toolbarPosition = calculatePosition(toolbarCorner, width, height);
+      } else {
+        // Recalculate position for current corner (in case window was resized)
+        toolbarPosition = calculatePosition(toolbarCorner, width, height);
+      }
+
+      this.applyPosition(false);
+    },
+
+    // Apply current position to toolbar
+    applyPosition(animate = true) {
+      if (!this.toolbarElement) return;
+
+      if (animate) {
+        this.toolbarElement.classList.add("snapping");
+        this.toolbarElement.classList.remove("dragging");
+      } else {
+        this.toolbarElement.classList.remove("snapping", "dragging");
+      }
+
+      this.toolbarElement.style.transform = `translate3d(${toolbarPosition.x}px, ${toolbarPosition.y}px, 0)`;
+      this.toolbarElement.style.left = "0";
+      this.toolbarElement.style.top = "0";
+
+      if (animate) {
+        // Remove snapping class after animation
+        setTimeout(() => {
+          if (this.toolbarElement) {
+            this.toolbarElement.classList.remove("snapping");
+          }
+        }, 300);
+      }
+    },
+
+    // Handle drag start
+    handleDragStart(e) {
+      // Don't drag if clicking on buttons or inputs
+      if (e.target.closest("button") || e.target.closest("input") || e.target.closest("label")) {
+        return;
+      }
+
+      e.preventDefault();
+
+      const toolbar = this.toolbarElement;
+      if (!toolbar) return;
+
+      this.isDragging = false;
+      const initialMouseX = e.clientX;
+      const initialMouseY = e.clientY;
+      const initialX = toolbarPosition.x;
+      const initialY = toolbarPosition.y;
+
+      let currentX = initialX;
+      let currentY = initialY;
+      let lastMouseX = initialMouseX;
+      let lastMouseY = initialMouseY;
+      let hasMoved = false;
+      let rafId = null;
+
+      const handlePointerMove = (e) => {
+        if (rafId) return;
+
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+
+        rafId = requestAnimationFrame(() => {
+          const deltaX = lastMouseX - initialMouseX;
+          const deltaY = lastMouseY - initialMouseY;
+
+          // Check if we've moved enough to consider it a drag
+          if (!hasMoved && (Math.abs(deltaX) > DRAG_THRESHOLD || Math.abs(deltaY) > DRAG_THRESHOLD)) {
+            hasMoved = true;
+            this.isDragging = true;
+            toolbar.classList.add("dragging");
+            toolbar.classList.remove("snapping");
+          }
+
+          if (hasMoved) {
+            currentX = initialX + deltaX;
+            currentY = initialY + deltaY;
+
+            // Apply position directly (no transition during drag)
+            toolbar.style.transition = "none";
+            toolbar.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+          }
+
+          rafId = null;
+        });
+      };
+
+      const handlePointerEnd = () => {
+        document.removeEventListener("pointermove", handlePointerMove);
+        document.removeEventListener("pointerup", handlePointerEnd);
+
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+
+        toolbar.classList.remove("dragging");
+        this.isDragging = false;
+
+        if (!hasMoved) return;
+
+        // Calculate total movement
+        const totalDeltaX = Math.abs(lastMouseX - initialMouseX);
+        const totalDeltaY = Math.abs(lastMouseY - initialMouseY);
+        const totalMovement = Math.sqrt(totalDeltaX * totalDeltaX + totalDeltaY * totalDeltaY);
+
+        // Only snap if moved enough
+        if (totalMovement < SNAP_THRESHOLD) {
+          // Snap back to original position
+          toolbarPosition = calculatePosition(toolbarCorner, toolbar.offsetWidth, toolbar.offsetHeight);
+          this.applyPosition(true);
+          return;
+        }
+
+        // Determine new corner based on drag direction and position
+        const newCorner = getBestCorner(lastMouseX, lastMouseY, initialMouseX, initialMouseY, 40);
+
+        // Calculate snap position for the new corner
+        const rect = toolbar.getBoundingClientRect();
+        toolbarCorner = newCorner;
+        toolbarPosition = calculatePosition(newCorner, rect.width, rect.height);
+
+        // Animate to snap position
+        this.applyPosition(true);
+
+        // Save to localStorage
+        saveToolbarPosition();
+      };
+
+      document.addEventListener("pointermove", handlePointerMove);
+      document.addEventListener("pointerup", handlePointerEnd);
+    },
+
+    // Handle window resize
+    handleResize() {
+      if (!this.toolbarElement) return;
+
+      const rect = this.toolbarElement.getBoundingClientRect();
+      toolbarPosition = calculatePosition(toolbarCorner, rect.width, rect.height);
+      this.applyPosition(false);
+    },
 
     createFPSMeter() {
       const container = document.createElement("div");
@@ -844,6 +1106,9 @@
       const toolbar = document.createElement("div");
       toolbar.className = "scala-devtools-toolbar";
 
+      // Add drag handler
+      toolbar.addEventListener("pointerdown", (e) => this.handleDragStart(e));
+
       // Add inspect button first
       const inspectBtn = this.createInspectButton();
       toolbar.appendChild(inspectBtn);
@@ -873,6 +1138,7 @@
       const fpsMeter = this.createFPSMeter();
       toolbar.appendChild(fpsMeter);
 
+      this.toolbarElement = toolbar;
       return toolbar;
     },
 
@@ -894,6 +1160,15 @@
 
       document.documentElement.appendChild(this.rootContainer);
 
+      // Initialize position after toolbar is in DOM (so we can measure it)
+      requestAnimationFrame(() => {
+        this.initPosition();
+      });
+
+      // Add resize handler
+      this.resizeHandler = () => this.handleResize();
+      window.addEventListener("resize", this.resizeHandler);
+
       // Start FPS updates
       this.startFPSUpdates();
     },
@@ -901,6 +1176,12 @@
     remove() {
       // Stop FPS updates
       this.stopFPSUpdates();
+
+      // Remove resize handler
+      if (this.resizeHandler) {
+        window.removeEventListener("resize", this.resizeHandler);
+        this.resizeHandler = null;
+      }
 
       if (fpsAnimationId) {
         cancelAnimationFrame(fpsAnimationId);
@@ -912,6 +1193,7 @@
       }
       this.rootContainer = null;
       this.shadowRoot = null;
+      this.toolbarElement = null;
       this.fpsValueElement = null;
     },
   };
