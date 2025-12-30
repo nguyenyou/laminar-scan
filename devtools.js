@@ -50,6 +50,9 @@
   // Expanding state - when true, tooltips are disabled to prevent accidental shows
   let isExpandingToolbar = false;
 
+  // Snapping state - when true, tooltips are disabled during snap-back animation
+  let isSnappingToolbar = false;
+
   // FPS tracking state
   let fps = 0;
   let fpsLastTime = performance.now();
@@ -1319,6 +1322,9 @@
       toolbarStyle.top = "0";
 
       if (animate) {
+        // Disable tooltips during snap animation to prevent accidental triggers
+        isSnappingToolbar = true;
+
         // Use inline transition for better performance (avoids class-based reflow)
         toolbarStyle.transition = "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
 
@@ -1330,6 +1336,7 @@
         // Use transitionend event instead of setTimeout for accuracy
         const onTransitionEnd = () => {
           toolbarStyle.transition = "none";
+          isSnappingToolbar = false; // Re-enable tooltips after snap animation
           toolbar.removeEventListener("transitionend", onTransitionEnd);
         };
         toolbar.addEventListener("transitionend", onTransitionEnd, { once: true });
@@ -1586,8 +1593,8 @@
 
       tooltipElements.forEach((el) => {
         el.addEventListener("mouseenter", () => {
-          // Don't show tooltips while dragging or expanding
-          if (isDraggingToolbar || isExpandingToolbar) return;
+          // Don't show tooltips while dragging, expanding, or snapping
+          if (isDraggingToolbar || isExpandingToolbar || isSnappingToolbar) return;
           // Cancel any pending hide
           if (hideTimeout) {
             clearTimeout(hideTimeout);
