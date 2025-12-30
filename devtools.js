@@ -1036,6 +1036,9 @@
     .frontend-devtools-inspect-btn:hover {
       background: rgba(255,255,255,0.1);
     }
+    .frontend-devtools-inspect-btn:focus {
+      outline: none;
+    }
     .frontend-devtools-inspect-btn.active {
       color: #8e61e3;
     }
