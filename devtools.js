@@ -1930,10 +1930,19 @@
 
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
-      checkbox.checked = ScalaDevtools.isRunning();
+      // Load initial state from localStorage, start scanning if enabled
+      const savedScanningEnabled = isScanningEnabled();
+      checkbox.checked = savedScanningEnabled;
+      if (savedScanningEnabled) {
+        ScalaDevtools.start();
+      }
       checkbox.addEventListener("change", () => {
-        if (checkbox.checked) ScalaDevtools.start();
-        else ScalaDevtools.stop();
+        if (checkbox.checked) {
+          ScalaDevtools.start();
+        } else {
+          ScalaDevtools.stop();
+        }
+        saveScanningEnabled(checkbox.checked);
       });
       toggle.appendChild(checkbox);
 
@@ -2056,6 +2065,26 @@
       return value === "true";
     } catch (e) {
       return false; // Default to disabled if localStorage not available
+    }
+  }
+
+  // Check if scanning toggle is enabled via localStorage
+  function isScanningEnabled() {
+    try {
+      const value = localStorage.getItem("FRONTEND_DEVTOOLS_SCANNING");
+      // Default to false if not set
+      return value === "true";
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Save scanning toggle state to localStorage
+  function saveScanningEnabled(enabled) {
+    try {
+      localStorage.setItem("FRONTEND_DEVTOOLS_SCANNING", enabled ? "true" : "false");
+    } catch (e) {
+      // Ignore localStorage errors
     }
   }
 
