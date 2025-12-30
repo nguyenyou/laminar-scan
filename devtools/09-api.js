@@ -29,6 +29,9 @@ const FrontendDevtools = {
   /** @type {Toolbar | null} */
   _toolbar: null,
 
+  /** @type {HotkeyManager | null} */
+  _hotkeys: null,
+
   // ===== Enable/Disable API =====
 
   /**
@@ -111,6 +114,13 @@ const FrontendDevtools = {
     // Mount toolbar
     this._toolbar.mount();
 
+    // Setup hotkeys
+    this._hotkeys = new HotkeyManager();
+    this._hotkeys.register("ctrl+shift+c", () => {
+      this._inspector?.toggle();
+    });
+    this._hotkeys.start();
+
     // Auto-start scanning if previously enabled
     if (StorageManager.isScanningEnabled()) {
       this._scanner.start();
@@ -121,10 +131,12 @@ const FrontendDevtools = {
    * Destroy the devtools system.
    */
   destroy() {
+    this._hotkeys?.destroy();
     this._scanner?.stop();
     this._inspector?.stop();
     this._toolbar?.unmount();
 
+    this._hotkeys = null;
     this._scanner = null;
     this._inspector = null;
     this._toolbar = null;

@@ -13,10 +13,11 @@ The files are numbered to indicate the correct order for combining:
 03-monitors.js   - FPSMonitor, MemoryMonitor classes
 04-canvas.js     - HighlightCanvas, InspectOverlay classes
 05-core.js       - MutationScanner, ComponentInspector classes
-06-ui.js         - TooltipManager, DragController classes
-07-toolbar.js    - Main Toolbar class
-08-api.js        - FrontendDevtools public API facade
-09-init.js       - Auto-initialization logic
+06-hotkeys.js    - HotkeyManager class (Ctrl+Shift+C for inspect)
+07-ui.js         - TooltipManager, DragController classes
+08-toolbar.js    - Main Toolbar class
+09-api.js        - FrontendDevtools public API facade
+10-init.js       - Auto-initialization logic
 ```
 
 ## How to Combine into a Single File

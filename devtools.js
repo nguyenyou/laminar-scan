@@ -1828,6 +1828,106 @@ class ComponentInspector {
 
 
 // ============================================================================
+// HOTKEY MANAGER
+// ============================================================================
+// Global keyboard shortcut handling.
+// ============================================================================
+
+/**
+ * Manages global keyboard shortcuts for devtools.
+ * 
+ * Default hotkeys:
+ * - Ctrl+Shift+C: Toggle inspect mode
+ */
+class HotkeyManager {
+  /** @type {Map<string, Function>} Registered hotkey handlers */
+  #handlers = new Map();
+
+  /** @type {boolean} Whether the manager is active */
+  #active = false;
+
+  /** @type {Function} Bound keydown handler */
+  #boundKeydown = null;
+
+  constructor() {
+    this.#boundKeydown = this.#handleKeydown.bind(this);
+  }
+
+  /**
+   * Start listening for hotkeys.
+   */
+  start() {
+    if (this.#active) return;
+    this.#active = true;
+    document.addEventListener("keydown", this.#boundKeydown, { capture: true });
+  }
+
+  /**
+   * Stop listening for hotkeys.
+   */
+  stop() {
+    if (!this.#active) return;
+    this.#active = false;
+    document.removeEventListener("keydown", this.#boundKeydown, { capture: true });
+  }
+
+  /**
+   * Register a hotkey handler.
+   * @param {string} combo - Key combination (e.g., "ctrl+shift+c")
+   * @param {Function} handler - Handler function
+   */
+  register(combo, handler) {
+    this.#handlers.set(combo.toLowerCase(), handler);
+  }
+
+  /**
+   * Unregister a hotkey handler.
+   * @param {string} combo - Key combination to remove
+   */
+  unregister(combo) {
+    this.#handlers.delete(combo.toLowerCase());
+  }
+
+  /**
+   * Handle keydown events.
+   * @private
+   * @param {KeyboardEvent} e
+   */
+  #handleKeydown(e) {
+    // Build the key combo string
+    const parts = [];
+    if (e.ctrlKey || e.metaKey) parts.push("ctrl");
+    if (e.shiftKey) parts.push("shift");
+    if (e.altKey) parts.push("alt");
+
+    // Add the key itself (lowercase)
+    const key = e.key.toLowerCase();
+    if (!["control", "shift", "alt", "meta"].includes(key)) {
+      parts.push(key);
+    }
+
+    const combo = parts.join("+");
+
+    // Check if we have a handler for this combo
+    const handler = this.#handlers.get(combo);
+    if (handler) {
+      e.preventDefault();
+      e.stopPropagation();
+      handler();
+    }
+  }
+
+  /**
+   * Cleanup all handlers.
+   */
+  destroy() {
+    this.stop();
+    this.#handlers.clear();
+  }
+}
+
+
+// ============================================================================
 // UI COMPONENTS
 // ============================================================================
 // Reusable UI components for the toolbar: tooltips and drag handling.
@@ -3128,6 +3228,9 @@ const FrontendDevtools = {
   /** @type {Toolbar | null} */
   _toolbar: null,
 
+  /** @type {HotkeyManager | null} */
+  _hotkeys: null,
+
   // ===== Enable/Disable API =====
 
   /**
@@ -3210,6 +3313,13 @@ const FrontendDevtools = {
     // Mount toolbar
     this._toolbar.mount();
 
+    // Setup hotkeys
+    this._hotkeys = new HotkeyManager();
+    this._hotkeys.register("ctrl+shift+c", () => {
+      this._inspector?.toggle();
+    });
+    this._hotkeys.start();
+
     // Auto-start scanning if previously enabled
     if (StorageManager.isScanningEnabled()) {
       this._scanner.start();
@@ -3220,10 +3330,12 @@ const FrontendDevtools = {
    * Destroy the devtools system.
    */
   destroy() {
+    this._hotkeys?.destroy();
     this._scanner?.stop();
     this._inspector?.stop();
     this._toolbar?.unmount();
 
+    this._hotkeys = null;
     this._scanner = null;
     this._inspector = null;
     this._toolbar = null;

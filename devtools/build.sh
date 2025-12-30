@@ -16,8 +16,8 @@ cat > "$OUTPUT_FILE" << 'EOF'
 
 EOF
 
-# Concatenate all module files in order
-for file in "$SCRIPT_DIR"/0{0,1,2,3,4,5,6,7,8,9}-*.js; do
+# Concatenate all module files in order (sorted numerically)
+for file in $(ls "$SCRIPT_DIR"/*.js 2>/dev/null | grep -E '/[0-9]+-' | sort -t'-' -k1 -V); do
   if [ -f "$file" ]; then
     echo "  Adding $(basename "$file")..."
     cat "$file" >> "$OUTPUT_FILE"
