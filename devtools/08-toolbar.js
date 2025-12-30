@@ -228,6 +228,10 @@ class Toolbar {
       this.#content.appendChild(memoryMeter);
     }
 
+    // Add help button
+    const helpBtn = this.#createHelpButton();
+    this.#content.appendChild(helpBtn);
+
     // Add collapse button
     const collapseBtn = this.#createCollapseButton();
     this.#content.appendChild(collapseBtn);
@@ -353,6 +357,18 @@ class Toolbar {
     container.appendChild(label);
 
     return container;
+  }
+
+  /**
+   * Create the help button.
+   * @private
+   */
+  #createHelpButton() {
+    const btn = document.createElement("button");
+    btn.className = "devtools-icon-btn";
+    btn.setAttribute("data-tooltip", "Console API:\n• Devtools.enable() — show toolbar\n• Devtools.disable() — hide toolbar\nHotkey: Ctrl+Shift+C to inspect");
+    btn.innerHTML = ICONS.help;
+    return btn;
   }
 
   /**

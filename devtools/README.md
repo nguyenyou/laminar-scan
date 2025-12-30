@@ -16,7 +16,7 @@ The files are numbered to indicate the correct order for combining:
 06-hotkeys.js    - HotkeyManager class (Ctrl+Shift+C for inspect)
 07-ui.js         - TooltipManager, DragController classes
 08-toolbar.js    - Main Toolbar class
-09-api.js        - FrontendDevtools public API facade
+09-api.js        - Devtools public API facade
 10-init.js       - Auto-initialization logic
 ```
 
@@ -70,7 +70,7 @@ echo '})();' >> devtools.js
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                       FrontendDevtools (API)                     │
+│                          Devtools (API)                          │
 ├─────────────────────────────────────────────────────────────────┤
 │   ┌─────────────────┐  ┌──────────────────┐  ┌───────────────┐  │
 │   │ MutationScanner │  │ComponentInspector│  │    Toolbar    │  │
@@ -111,5 +111,5 @@ echo '})();' >> devtools.js
 | `TooltipManager` | Animated tooltip display |
 | `DragController` | Drag-to-move and snap-to-corner behavior |
 | `Toolbar` | Main UI component composing others |
-| `FrontendDevtools` | Public API facade |
+| `Devtools` | Public API facade |
 

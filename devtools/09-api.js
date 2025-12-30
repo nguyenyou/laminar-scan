@@ -5,21 +5,21 @@
 // ============================================================================
 
 /**
- * FrontendDevtools - Public API facade.
+ * Devtools - Public API facade.
  * Coordinates the scanner, inspector, and toolbar components.
  * 
  * @example
  * // Enable devtools (shows toolbar on next page load)
- * FrontendDevtools.enable();
+ * Devtools.enable();
  * 
  * // Disable devtools (hides toolbar on next page load)
- * FrontendDevtools.disable();
+ * Devtools.disable();
  * 
  * // Toggle devtools visibility immediately
- * FrontendDevtools.show();
- * FrontendDevtools.hide();
+ * Devtools.show();
+ * Devtools.hide();
  */
-const FrontendDevtools = {
+const Devtools = {
   /** @type {MutationScanner | null} */
   _scanner: null,
 
@@ -43,7 +43,7 @@ const FrontendDevtools = {
     if (!this._toolbar) {
       this.init();
     }
-    console.log("FrontendDevtools: Enabled. Toolbar is now visible.");
+    console.log("Devtools: Enabled. Toolbar is now visible.");
   },
 
   /**
@@ -53,7 +53,7 @@ const FrontendDevtools = {
   disable() {
     StorageManager.setString(CONFIG.storageKeys.enabled, "false");
     this.destroy();
-    console.log("FrontendDevtools: Disabled. Toolbar hidden.");
+    console.log("Devtools: Disabled. Toolbar hidden.");
   },
 
   /**
@@ -206,5 +206,5 @@ const FrontendDevtools = {
 };
 
 // Expose to global scope for console access
-window.FrontendDevtools = FrontendDevtools;
+window.Devtools = Devtools;
 

@@ -43,8 +43,8 @@ const CONFIG = {
 
   /** UI dimensions in pixels */
   dimensions: {
-    toolbarWidth: 285,
-    tooltipMinHeight: 80,
+    toolbarWidth: 312,
+    tooltipMinHeight: 90,
     safeArea: 16,
     collapsedHorizontal: { width: 20, height: 48 },
     collapsedVertical: { width: 48, height: 20 },
@@ -126,6 +126,13 @@ const ICONS = {
   /** Chevron for expand/collapse */
   chevronRight: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M9 18l6-6-6-6"/>
+  </svg>`,
+
+  /** Help/question mark icon */
+  help: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+    <path d="M12 17h.01"/>
   </svg>`,
 };
 
@@ -349,7 +356,7 @@ const STYLES = `
   }
 
   .devtools-tooltip-content {
-    white-space: normal;
+    white-space: pre-line;
     will-change: transform, opacity;
   }
 

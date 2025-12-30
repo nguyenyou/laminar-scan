@@ -46,8 +46,8 @@ const CONFIG = {
 
   /** UI dimensions in pixels */
   dimensions: {
-    toolbarWidth: 285,
-    tooltipMinHeight: 80,
+    toolbarWidth: 312,
+    tooltipMinHeight: 90,
     safeArea: 16,
     collapsedHorizontal: { width: 20, height: 48 },
     collapsedVertical: { width: 48, height: 20 },
@@ -129,6 +129,13 @@ const ICONS = {
   /** Chevron for expand/collapse */
   chevronRight: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M9 18l6-6-6-6"/>
+  </svg>`,
+
+  /** Help/question mark icon */
+  help: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+    <path d="M12 17h.01"/>
   </svg>`,
 };
 
@@ -352,7 +359,7 @@ const STYLES = `
   }
 
   .devtools-tooltip-content {
-    white-space: normal;
+    white-space: pre-line;
     will-change: transform, opacity;
   }
 
@@ -568,7 +575,7 @@ function getComponentSourceInfo(element) {
  */
 function openInIDE(sourcePath, sourceLine = null) {
   if (!sourcePath) {
-    console.warn("FrontendDevtools: No source path provided");
+    console.warn("Devtools: No source path provided");
     return;
   }
 
@@ -577,7 +584,7 @@ function openInIDE(sourcePath, sourceLine = null) {
     uri += `&line=${sourceLine}`;
   }
 
-  console.log("FrontendDevtools: Opening file in IDE:", uri);
+  console.log("Devtools: Opening file in IDE:", uri);
   window.open(uri, "_blank");
 }
 
@@ -1813,7 +1820,7 @@ class ComponentInspector {
       // Exit inspect mode after jumping to source
       this.stop();
     } else {
-      console.warn("FrontendDevtools: No source path found for element");
+      console.warn("Devtools: No source path found for element");
     }
   }
 
@@ -2812,6 +2819,10 @@ class Toolbar {
       this.#content.appendChild(memoryMeter);
     }
 
+    // Add help button
+    const helpBtn = this.#createHelpButton();
+    this.#content.appendChild(helpBtn);
+
     // Add collapse button
     const collapseBtn = this.#createCollapseButton();
     this.#content.appendChild(collapseBtn);
@@ -2937,6 +2948,18 @@ class Toolbar {
     container.appendChild(label);
 
     return container;
+  }
+
+  /**
+   * Create the help button.
+   * @private
+   */
+  #createHelpButton() {
+    const btn = document.createElement("button");
+    btn.className = "devtools-icon-btn";
+    btn.setAttribute("data-tooltip", "Console API:\n• Devtools.enable() — show toolbar\n• Devtools.disable() — hide toolbar\nHotkey: Ctrl+Shift+C to inspect");
+    btn.innerHTML = ICONS.help;
+    return btn;
   }
 
   /**
@@ -3207,21 +3230,21 @@ class Toolbar {
 // ============================================================================
 
 /**
- * FrontendDevtools - Public API facade.
+ * Devtools - Public API facade.
  * Coordinates the scanner, inspector, and toolbar components.
  * 
  * @example
  * // Enable devtools (shows toolbar on next page load)
- * FrontendDevtools.enable();
+ * Devtools.enable();
  * 
  * // Disable devtools (hides toolbar on next page load)
- * FrontendDevtools.disable();
+ * Devtools.disable();
  * 
  * // Toggle devtools visibility immediately
- * FrontendDevtools.show();
- * FrontendDevtools.hide();
+ * Devtools.show();
+ * Devtools.hide();
  */
-const FrontendDevtools = {
+const Devtools = {
   /** @type {MutationScanner | null} */
   _scanner: null,
 
@@ -3245,7 +3268,7 @@ const FrontendDevtools = {
     if (!this._toolbar) {
       this.init();
     }
-    console.log("FrontendDevtools: Enabled. Toolbar is now visible.");
+    console.log("Devtools: Enabled. Toolbar is now visible.");
   },
 
   /**
@@ -3255,7 +3278,7 @@ const FrontendDevtools = {
   disable() {
     StorageManager.setString(CONFIG.storageKeys.enabled, "false");
     this.destroy();
-    console.log("FrontendDevtools: Disabled. Toolbar hidden.");
+    console.log("Devtools: Disabled. Toolbar hidden.");
   },
 
   /**
@@ -3408,7 +3431,7 @@ const FrontendDevtools = {
 };
 
 // Expose to global scope for console access
-window.FrontendDevtools = FrontendDevtools;
+window.Devtools = Devtools;
 
 
 // ============================================================================
@@ -3422,7 +3445,7 @@ window.FrontendDevtools = FrontendDevtools;
  */
 function initDevtools() {
   if (StorageManager.isDevtoolsEnabled()) {
-    FrontendDevtools.init();
+    Devtools.init();
   }
 }
 

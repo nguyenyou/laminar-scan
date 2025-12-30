@@ -365,7 +365,7 @@ class ComponentInspector {
       // Exit inspect mode after jumping to source
       this.stop();
     } else {
-      console.warn("FrontendDevtools: No source path found for element");
+      console.warn("Devtools: No source path found for element");
     }
   }
 
