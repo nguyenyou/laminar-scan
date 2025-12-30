@@ -38,6 +38,9 @@
   let resizeHandler = null;
   const activeHighlights = new Map();
 
+  // Drag state - when true, all scanning/highlighting work is paused
+  let isDraggingToolbar = false;
+
   // FPS tracking state
   let fps = 0;
   let fpsLastTime = performance.now();
@@ -433,7 +436,8 @@
   }
 
   function drawHighlights() {
-    if (!isEnabled || !canvas) return;
+    // Skip rendering while dragging toolbar for performance
+    if (!isEnabled || !canvas || isDraggingToolbar) return;
 
     const ctx = canvas.getContext("2d");
     const dpr = Math.max(window.devicePixelRatio, 1);
@@ -550,7 +554,8 @@
   }
 
   function handleMutations(mutationsList) {
-    if (!isEnabled) return;
+    // Skip all work while dragging toolbar for performance
+    if (!isEnabled || isDraggingToolbar) return;
     mutationsList.forEach((record) => {
       const target = record.target.nodeType === Node.ELEMENT_NODE
         ? record.target
@@ -1021,8 +1026,9 @@
           if (!hasMoved && (Math.abs(deltaX) > DRAG_THRESHOLD || Math.abs(deltaY) > DRAG_THRESHOLD)) {
             hasMoved = true;
             this.isDragging = true;
+            isDraggingToolbar = true; // Pause all scanning/highlighting work
             toolbar.classList.add("dragging");
-            toolbar.classList.remove("snapping");
+            toolbar.classList.remove("snapping", "tooltip-visible"); // Hide tooltip during drag
             // Enable GPU acceleration hint during drag
             toolbar.style.willChange = "transform";
           }
@@ -1051,6 +1057,7 @@
         toolbar.classList.remove("dragging");
         toolbar.style.willChange = "";
         this.isDragging = false;
+        isDraggingToolbar = false; // Resume all scanning/highlighting work
 
         // Resume FPS updates after drag
         if (wasFpsRunning) {
@@ -1166,6 +1173,8 @@
       const tooltipElements = toolbar.querySelectorAll("[data-tooltip]");
       tooltipElements.forEach((el) => {
         el.addEventListener("mouseenter", () => {
+          // Don't show tooltips while dragging
+          if (isDraggingToolbar) return;
           const tooltipText = el.getAttribute("data-tooltip");
           toolbar.setAttribute("data-active-tooltip", tooltipText);
           toolbar.classList.add("tooltip-visible");
