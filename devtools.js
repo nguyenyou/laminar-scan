@@ -30,6 +30,12 @@
     <path d="M3 14v1"/>
   </svg>`;
 
+  // Close/cross icon SVG for exiting inspect mode
+  const CLOSE_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 6L6 18"/>
+    <path d="M6 6l12 12"/>
+  </svg>`;
+
   // State
   let isEnabled = false;
   let observer = null;
@@ -265,10 +271,14 @@
   }
 
   function handleInspectClick(e) {
+    if (inspectState.kind !== "inspecting") return;
+
+    // Allow clicks on devtools toolbar elements to pass through (e.g., clicking inspect button to exit)
+    if (isDevtoolsElement(e.target)) return;
+
     e.preventDefault();
     e.stopPropagation();
 
-    if (inspectState.kind !== "inspecting") return;
     if (!inspectLastHovered) return;
 
     const component = getScalaComponent(inspectLastHovered);
@@ -1476,7 +1486,9 @@
       if (!this.inspectButton) return;
       const isActive = inspectState.kind === "inspecting";
       this.inspectButton.classList.toggle("active", isActive);
-      this.inspectButton.setAttribute("data-tooltip", isActive ? "Click any component to open in IDE — press Esc to cancel" : "Inspect component — click to jump to source code in your IDE");
+      // Switch icon between inspect cursor and close/cross
+      this.inspectButton.innerHTML = isActive ? CLOSE_ICON_SVG : INSPECT_ICON_SVG;
+      this.inspectButton.setAttribute("data-tooltip", isActive ? "Exit inspect mode — or press Esc" : "Inspect component — click to jump to source code in your IDE");
     },
 
     startFPSUpdates() {
