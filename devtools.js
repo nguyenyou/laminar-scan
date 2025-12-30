@@ -1166,9 +1166,8 @@
     .frontend-devtools-toolbar.corner-left .frontend-devtools-collapse-btn svg {
       transform: rotate(180deg);
     }
-    /* Tooltip styles - fixed rectangle panel relative to toolbar */
-    .frontend-devtools-toolbar::before {
-      content: attr(data-active-tooltip);
+    /* Tooltip styles - DOM element with sliding content animation */
+    .frontend-devtools-tooltip {
       position: absolute;
       left: 0;
       bottom: calc(100% + 8px);
@@ -1184,21 +1183,23 @@
       border-radius: 8px;
       box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08);
       box-sizing: border-box;
-      display: block;
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
       transition: opacity 0.2s ease-out, visibility 0.2s ease-out;
       z-index: 10;
-      white-space: normal;
       overflow: hidden;
     }
-    .frontend-devtools-toolbar.tooltip-visible::before {
+    .frontend-devtools-tooltip.visible {
       opacity: 1;
       visibility: visible;
     }
+    .frontend-devtools-tooltip-content {
+      white-space: normal;
+      will-change: transform, opacity;
+    }
     /* Tooltip below (for top corners) */
-    .frontend-devtools-toolbar.corner-top::before {
+    .frontend-devtools-toolbar.corner-top .frontend-devtools-tooltip {
       bottom: auto;
       top: calc(100% + 8px);
     }
@@ -1258,7 +1259,7 @@
     .frontend-devtools-toolbar.collapsed.edge-bottom .frontend-devtools-expand-btn svg {
       transform: rotate(-90deg);
     }
-    .frontend-devtools-toolbar.collapsed::before {
+    .frontend-devtools-toolbar.collapsed .frontend-devtools-tooltip {
       display: none;
     }
   `;
@@ -1517,7 +1518,7 @@
             isDraggingToolbar = true; // Pause all scanning/highlighting work
             // Batch class changes - transition disabled via CSS class
             toolbar.classList.add("dragging");
-            toolbar.classList.remove("tooltip-visible"); // Hide tooltip during drag
+            self.hideTooltip(); // Hide tooltip during drag
           }
 
           if (hasMoved) {
@@ -1700,6 +1701,9 @@
     // Track tooltip cleanup functions
     tooltipCleanupFns: [],
     tooltipHideTimeout: null,
+    tooltipElement: null,           // Tooltip DOM element
+    tooltipContentElement: null,    // Inner content element for animation
+    lastTooltipElementX: null,      // Track last hovered element's X position for direction
 
     // Cleanup tooltip event handlers
     cleanupTooltipEvents() {
@@ -1711,6 +1715,69 @@
       // Remove all event listeners
       this.tooltipCleanupFns.forEach(fn => fn());
       this.tooltipCleanupFns = [];
+      // Reset tooltip state
+      this.lastTooltipElementX = null;
+    },
+
+    // Create tooltip DOM element
+    createTooltipElement() {
+      const tooltip = document.createElement("div");
+      tooltip.className = "frontend-devtools-tooltip";
+
+      const content = document.createElement("div");
+      content.className = "frontend-devtools-tooltip-content";
+      tooltip.appendChild(content);
+
+      this.tooltipElement = tooltip;
+      this.tooltipContentElement = content;
+      return tooltip;
+    },
+
+    // Update tooltip with slide animation based on direction
+    updateTooltip(text, direction) {
+      if (!this.tooltipElement || !this.tooltipContentElement) return;
+
+      const content = this.tooltipContentElement;
+      const tooltip = this.tooltipElement;
+
+      // If tooltip is not visible, just set content and show
+      if (!tooltip.classList.contains("visible")) {
+        content.textContent = text;
+        content.style.transform = "translateX(0)";
+        content.style.opacity = "1";
+        tooltip.classList.add("visible");
+        return;
+      }
+
+      // Animate content change with slide effect
+      const slideOutX = direction === "left" ? "15px" : "-15px";
+      const slideInX = direction === "left" ? "-15px" : "15px";
+
+      // Slide out current content
+      content.style.transition = "transform 0.12s ease-out, opacity 0.12s ease-out";
+      content.style.transform = `translateX(${slideOutX})`;
+      content.style.opacity = "0";
+
+      // After slide out, update content and slide in
+      setTimeout(() => {
+        content.textContent = text;
+        content.style.transition = "none";
+        content.style.transform = `translateX(${slideInX})`;
+
+        // Force reflow to ensure the transform is applied before animating
+        void content.offsetWidth;
+
+        content.style.transition = "transform 0.15s ease-out, opacity 0.15s ease-out";
+        content.style.transform = "translateX(0)";
+        content.style.opacity = "1";
+      }, 120);
+    },
+
+    // Hide tooltip with fade out
+    hideTooltip() {
+      if (!this.tooltipElement) return;
+      this.tooltipElement.classList.remove("visible");
+      this.lastTooltipElementX = null;
     },
 
     // Setup tooltip event handlers for elements with data-tooltip
@@ -1727,15 +1794,25 @@
             clearTimeout(self.tooltipHideTimeout);
             self.tooltipHideTimeout = null;
           }
+
           const tooltipText = el.getAttribute("data-tooltip");
-          toolbar.setAttribute("data-active-tooltip", tooltipText);
-          toolbar.classList.add("tooltip-visible");
+          const rect = el.getBoundingClientRect();
+          const currentX = rect.left + rect.width / 2;
+
+          // Determine slide direction based on movement
+          let direction = "left"; // default
+          if (self.lastTooltipElementX !== null) {
+            direction = currentX > self.lastTooltipElementX ? "left" : "right";
+          }
+          self.lastTooltipElementX = currentX;
+
+          self.updateTooltip(tooltipText, direction);
         };
 
         const handleMouseLeave = () => {
           // Delay hiding to allow moving between buttons without flickering
           self.tooltipHideTimeout = setTimeout(() => {
-            toolbar.classList.remove("tooltip-visible");
+            self.hideTooltip();
             self.tooltipHideTimeout = null;
           }, 200);
         };
@@ -1881,6 +1958,10 @@
 
       toolbar.appendChild(content);
 
+      // Create and append tooltip element
+      const tooltip = this.createTooltipElement();
+      toolbar.appendChild(tooltip);
+
       // Setup tooltip events
       this.setupTooltipEvents(toolbar);
 
@@ -1963,6 +2044,9 @@
       this.fpsValueElement = null;
       this.inspectButton = null;
       this.tooltipCleanupFns = [];
+      this.tooltipElement = null;
+      this.tooltipContentElement = null;
+      this.lastTooltipElementX = null;
     },
   };
 
