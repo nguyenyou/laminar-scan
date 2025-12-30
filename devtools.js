@@ -1518,16 +1518,27 @@
     // Setup tooltip event handlers for elements with data-tooltip
     setupTooltipEvents(toolbar) {
       const tooltipElements = toolbar.querySelectorAll("[data-tooltip]");
+      let hideTimeout = null;
+
       tooltipElements.forEach((el) => {
         el.addEventListener("mouseenter", () => {
           // Don't show tooltips while dragging
           if (isDraggingToolbar) return;
+          // Cancel any pending hide
+          if (hideTimeout) {
+            clearTimeout(hideTimeout);
+            hideTimeout = null;
+          }
           const tooltipText = el.getAttribute("data-tooltip");
           toolbar.setAttribute("data-active-tooltip", tooltipText);
           toolbar.classList.add("tooltip-visible");
         });
         el.addEventListener("mouseleave", () => {
-          toolbar.classList.remove("tooltip-visible");
+          // Delay hiding to allow moving between buttons without flickering
+          hideTimeout = setTimeout(() => {
+            toolbar.classList.remove("tooltip-visible");
+            hideTimeout = null;
+          }, 200);
         });
       });
     },
