@@ -16,6 +16,40 @@
   let resizeHandler = null;
   const activeHighlights = new Map();
 
+  // FPS tracking state
+  let fps = 0;
+  let fpsLastTime = performance.now();
+  let fpsFrameCount = 0;
+  let fpsInitialized = false;
+  let fpsAnimationId = null;
+
+  // FPS functions
+  function updateFPS() {
+    fpsFrameCount++;
+    const now = performance.now();
+    if (now - fpsLastTime >= 1000) {
+      fps = fpsFrameCount;
+      fpsFrameCount = 0;
+      fpsLastTime = now;
+    }
+    fpsAnimationId = requestAnimationFrame(updateFPS);
+  }
+
+  function getFPS() {
+    if (!fpsInitialized) {
+      fpsInitialized = true;
+      updateFPS();
+      fps = 60; // Default until first measurement
+    }
+    return fps;
+  }
+
+  function getFPSColor(fps) {
+    if (fps < 30) return "#EF4444"; // Red
+    if (fps < 50) return "#F59E0B"; // Yellow
+    return "rgb(214,132,245)"; // Purple
+  }
+
   // Utility functions
   function lerp(start, end) {
     return start + (end - start) * INTERPOLATION_SPEED;
@@ -323,12 +357,79 @@
       transform: translate(-100%, -50%);
       border-color: #7361e6;
     }
+    .scala-devtools-fps {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 8px;
+      height: 24px;
+      border-radius: 6px;
+      font-family: ui-monospace, monospace;
+      background: #141414;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+    }
+    .scala-devtools-fps-value {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.025em;
+      transition: color 0.15s ease-in-out;
+      min-width: 24px;
+      text-align: center;
+    }
+    .scala-devtools-fps-label {
+      color: rgba(255,255,255,0.3);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.025em;
+    }
   `;
 
   // Toolbar
   const Toolbar = {
     rootContainer: null,
     shadowRoot: null,
+    fpsValueElement: null,
+    fpsIntervalId: null,
+
+    createFPSMeter() {
+      const container = document.createElement("div");
+      container.className = "scala-devtools-fps";
+
+      const value = document.createElement("span");
+      value.className = "scala-devtools-fps-value";
+      value.textContent = "60";
+      this.fpsValueElement = value;
+
+      const label = document.createElement("span");
+      label.className = "scala-devtools-fps-label";
+      label.textContent = "FPS";
+
+      container.appendChild(value);
+      container.appendChild(label);
+
+      return container;
+    },
+
+    startFPSUpdates() {
+      // Initialize FPS tracking
+      getFPS();
+
+      // Update FPS display every 200ms
+      this.fpsIntervalId = setInterval(() => {
+        if (this.fpsValueElement) {
+          const currentFPS = getFPS();
+          this.fpsValueElement.textContent = currentFPS;
+          this.fpsValueElement.style.color = getFPSColor(currentFPS);
+        }
+      }, 200);
+    },
+
+    stopFPSUpdates() {
+      if (this.fpsIntervalId) {
+        clearInterval(this.fpsIntervalId);
+        this.fpsIntervalId = null;
+      }
+    },
 
     createToolbar() {
       const toolbar = document.createElement("div");
@@ -359,6 +460,11 @@
       toggle.appendChild(track);
 
       toolbar.appendChild(toggle);
+
+      // Add FPS meter
+      const fpsMeter = this.createFPSMeter();
+      toolbar.appendChild(fpsMeter);
+
       return toolbar;
     },
 
@@ -378,14 +484,26 @@
       this.shadowRoot.appendChild(toolbar);
 
       document.documentElement.appendChild(this.rootContainer);
+
+      // Start FPS updates
+      this.startFPSUpdates();
     },
 
     remove() {
+      // Stop FPS updates
+      this.stopFPSUpdates();
+
+      if (fpsAnimationId) {
+        cancelAnimationFrame(fpsAnimationId);
+        fpsAnimationId = null;
+      }
+
       if (this.rootContainer && this.rootContainer.parentNode) {
         this.rootContainer.parentNode.removeChild(this.rootContainer);
       }
       this.rootContainer = null;
       this.shadowRoot = null;
+      this.fpsValueElement = null;
     },
   };
 
