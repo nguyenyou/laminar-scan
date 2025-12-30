@@ -1,4 +1,5 @@
 import "./style.css";
+import "./devtools.js"
 
 if (process.env.NODE_ENV === "development") {
   import("./out/www/fastLinkJS.dest/main.js");
