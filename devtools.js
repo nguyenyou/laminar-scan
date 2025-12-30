@@ -2054,10 +2054,10 @@
   function isDevtoolsEnabled() {
     try {
       const value = localStorage.getItem(LOCALSTORAGE_ENABLED_KEY);
-      // Default to enabled if not set
-      return value === null || value === "true";
+      // Default to disabled if not set
+      return value === "true";
     } catch (e) {
-      return true; // Default to enabled if localStorage not available
+      return false; // Default to disabled if localStorage not available
     }
   }
 
