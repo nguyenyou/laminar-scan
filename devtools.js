@@ -1039,8 +1039,8 @@
     }
     .frontend-devtools-toggle {
       position: relative;
-      width: 40px;
-      height: 24px;
+      width: 36px;
+      height: 20px;
       cursor: pointer;
       display: inline-flex;
     }
@@ -1056,10 +1056,10 @@
     }
     .frontend-devtools-toggle-track {
       position: absolute;
-      inset: 4px;
+      inset: 0;
       background: #525252;
       border-radius: 9999px;
-      transition: background-color 0.3s;
+      transition: background-color 0.2s;
     }
     .frontend-devtools-toggle input:checked + .frontend-devtools-toggle-track {
       background: #7361e6;
@@ -1067,19 +1067,17 @@
     .frontend-devtools-toggle-thumb {
       position: absolute;
       top: 50%;
-      left: 0;
+      left: 2px;
       transform: translateY(-50%);
       width: 16px;
       height: 16px;
       background: #fff;
-      border: 2px solid #525252;
       border-radius: 9999px;
-      transition: all 0.3s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      transition: left 0.2s ease;
     }
     .frontend-devtools-toggle input:checked + .frontend-devtools-toggle-track .frontend-devtools-toggle-thumb {
-      left: 100%;
-      transform: translate(-100%, -50%);
-      border-color: #7361e6;
+      left: calc(100% - 18px);
     }
     .frontend-devtools-fps {
       display: flex;
