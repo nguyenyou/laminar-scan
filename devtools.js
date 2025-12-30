@@ -776,6 +776,7 @@
     .frontend-devtools-toolbar.dragging {
       cursor: grabbing;
       transition: none !important;
+      will-change: transform;
     }
     .frontend-devtools-toolbar.snapping {
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1000,6 +1001,12 @@
       let hasMoved = false;
       let rafId = null;
 
+      // Pause FPS updates during drag to avoid layout thrashing
+      const wasFpsRunning = this.fpsIntervalId !== null;
+      if (wasFpsRunning) {
+        this.stopFPSUpdates();
+      }
+
       const handlePointerMove = (e) => {
         if (rafId) return;
 
@@ -1016,14 +1023,15 @@
             this.isDragging = true;
             toolbar.classList.add("dragging");
             toolbar.classList.remove("snapping");
+            // Enable GPU acceleration hint during drag
+            toolbar.style.willChange = "transform";
           }
 
           if (hasMoved) {
             currentX = initialX + deltaX;
             currentY = initialY + deltaY;
 
-            // Apply position directly (no transition during drag)
-            toolbar.style.transition = "none";
+            // Apply position directly using translate3d for GPU acceleration
             toolbar.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
           }
 
@@ -1041,7 +1049,13 @@
         }
 
         toolbar.classList.remove("dragging");
+        toolbar.style.willChange = "";
         this.isDragging = false;
+
+        // Resume FPS updates after drag
+        if (wasFpsRunning) {
+          this.startFPSUpdates();
+        }
 
         if (!hasMoved) return;
 
@@ -1073,7 +1087,7 @@
         saveToolbarPosition();
       };
 
-      document.addEventListener("pointermove", handlePointerMove);
+      document.addEventListener("pointermove", handlePointerMove, { passive: true });
       document.addEventListener("pointerup", handlePointerEnd);
     },
 
