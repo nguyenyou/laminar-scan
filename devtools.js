@@ -7,6 +7,7 @@
   const INTERPOLATION_SPEED = 0.51; // Same as react-scan "fast" speed
   const MONO_FONT = "11px Menlo,Consolas,Monaco,Liberation Mono,Lucida Console,monospace";
   const DATA_SCALA_ATTR = "data-scala";
+  const DEVTOOLS_ATTR = "data-scala-devtools";
 
   // Scala element properties for source info
   const SCALA_SOURCE_PATH_PROP = "__scalasourcepath";
@@ -91,6 +92,7 @@
 
   function createInspectCanvas() {
     const c = document.createElement("canvas");
+    c.setAttribute(DEVTOOLS_ATTR, "inspect-canvas");
     const dpr = Math.max(window.devicePixelRatio, 1);
     Object.assign(c.style, {
       position: "fixed",
@@ -111,6 +113,7 @@
 
   function createEventCatcher() {
     const div = document.createElement("div");
+    div.setAttribute(DEVTOOLS_ATTR, "event-catcher");
     Object.assign(div.style, {
       position: "fixed",
       top: "0",
@@ -405,6 +408,7 @@
 
   function createCanvas() {
     const c = document.createElement("canvas");
+    c.setAttribute(DEVTOOLS_ATTR, "canvas");
     const dpr = Math.max(window.devicePixelRatio, 1);
 
     Object.assign(c.style, {
@@ -539,6 +543,12 @@
     }
   }
 
+  // Check if element is part of devtools UI (should be ignored by mutation observer)
+  function isDevtoolsElement(element) {
+    if (!element) return false;
+    return element.hasAttribute(DEVTOOLS_ATTR) || element.closest(`[${DEVTOOLS_ATTR}]`);
+  }
+
   function handleMutations(mutationsList) {
     if (!isEnabled) return;
     mutationsList.forEach((record) => {
@@ -546,14 +556,15 @@
         ? record.target
         : record.target.parentElement;
 
-      if (target) {
-        highlightElement(target);
-        record.addedNodes.forEach((node) => {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            highlightElement(node);
-          }
-        });
-      }
+      // Skip devtools elements
+      if (!target || isDevtoolsElement(target)) return;
+
+      highlightElement(target);
+      record.addedNodes.forEach((node) => {
+        if (node.nodeType === Node.ELEMENT_NODE && !isDevtoolsElement(node)) {
+          highlightElement(node);
+        }
+      });
     });
   }
 
@@ -870,6 +881,7 @@
 
       this.rootContainer = document.createElement("div");
       this.rootContainer.id = "scala-devtools-root";
+      this.rootContainer.setAttribute(DEVTOOLS_ATTR, "toolbar");
 
       this.shadowRoot = this.rootContainer.attachShadow({ mode: "open" });
 
