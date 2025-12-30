@@ -47,7 +47,7 @@ const CONFIG = {
   /** UI dimensions in pixels */
   dimensions: {
     toolbarWidth: 312,
-    tooltipMinHeight: 90,
+    tooltipMinHeight: 94,
     safeArea: 16,
     collapsedHorizontal: { width: 20, height: 48 },
     collapsedVertical: { width: 48, height: 20 },
@@ -302,7 +302,6 @@ const STYLES = `
     cursor: pointer;
     color: #555;
     padding: 0;
-    margin-left: 4px;
     transition: color 0.15s, background 0.15s;
   }
 
@@ -2863,7 +2862,7 @@ class Toolbar {
   #createInspectButton() {
     const btn = document.createElement("button");
     btn.className = "devtools-icon-btn";
-    btn.setAttribute("data-tooltip", "Inspect component (Ctrl+Shift+C) — click to jump to source code in your IDE");
+    btn.setAttribute("data-tooltip", "Inspect component (Ctrl+Shift+C) \n Click to jump to source code in your IDE");
     btn.innerHTML = ICONS.inspect;
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -2879,7 +2878,7 @@ class Toolbar {
   #createScanningToggle() {
     const toggle = document.createElement("label");
     toggle.className = "devtools-toggle";
-    toggle.setAttribute("data-tooltip", "Highlight DOM mutations — detect unexpected re-renders");
+    toggle.setAttribute("data-tooltip", "Highlight DOM mutations \n Detect unexpected re-renders");
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
@@ -2910,7 +2909,7 @@ class Toolbar {
   #createFPSMeter() {
     const container = document.createElement("div");
     container.className = "devtools-meter";
-    container.setAttribute("data-tooltip", "Frames per second — detect long-running scripts blocking the main thread");
+    container.setAttribute("data-tooltip", "Frames per second \n Detect long-running scripts blocking the main thread");
 
     const value = document.createElement("span");
     value.className = "devtools-meter-value";
@@ -2934,7 +2933,7 @@ class Toolbar {
   #createMemoryMeter() {
     const container = document.createElement("div");
     container.className = "devtools-meter";
-    container.setAttribute("data-tooltip", "JS heap memory usage — detect memory leaks and excessive allocations");
+    container.setAttribute("data-tooltip", "JS heap memory usage \n Detect memory leaks and excessive allocations");
 
     const value = document.createElement("span");
     value.className = "devtools-meter-value memory";
@@ -2958,7 +2957,7 @@ class Toolbar {
   #createHelpButton() {
     const btn = document.createElement("button");
     btn.className = "devtools-icon-btn";
-    btn.setAttribute("data-tooltip", "Console API:\n• Devtools.enable() — show toolbar\n• Devtools.disable() — hide toolbar\nHotkey: Ctrl+Shift+C to inspect");
+    btn.setAttribute("data-tooltip", "Console API:\n• Devtools.enable() to enable devtools \n• Devtools.disable() to disable devtools\nHotkey: Ctrl+Shift+C to inspect");
     btn.innerHTML = ICONS.help;
     return btn;
   }

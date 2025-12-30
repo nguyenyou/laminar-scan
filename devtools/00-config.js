@@ -44,7 +44,7 @@ const CONFIG = {
   /** UI dimensions in pixels */
   dimensions: {
     toolbarWidth: 312,
-    tooltipMinHeight: 90,
+    tooltipMinHeight: 94,
     safeArea: 16,
     collapsedHorizontal: { width: 20, height: 48 },
     collapsedVertical: { width: 48, height: 20 },
@@ -299,7 +299,6 @@ const STYLES = `
     cursor: pointer;
     color: #555;
     padding: 0;
-    margin-left: 4px;
     transition: color 0.15s, background 0.15s;
   }
 
