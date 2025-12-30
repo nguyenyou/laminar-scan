@@ -1024,7 +1024,7 @@
   }
 
   // Toolbar styles
-  const TOOLBAR_WIDTH = 270; // Width in pixels for toolbar and tooltip
+  const TOOLBAR_WIDTH = 285; // Width in pixels for toolbar and tooltip
   const TOOLTIP_HEIGHT = 80; // Min height in pixels for tooltip panel
 
   const TOOLBAR_STYLES = `
@@ -1147,8 +1147,8 @@
       font-weight: 600;
       letter-spacing: 0.025em;
       transition: color 0.15s ease-in-out;
-      min-width: 28px;
-      text-align: center;
+      min-width: 38px;
+      text-align: right;
     }
     .frontend-devtools-memory-label {
       color: rgba(255,255,255,0.3);
