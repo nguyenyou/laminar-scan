@@ -1734,6 +1734,7 @@ class ComponentInspector {
       height: "100vh",
       pointerEvents: "none",
       zIndex: "2147483645",
+      cursor: "crosshair",
     });
     return div;
   }
