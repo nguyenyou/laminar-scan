@@ -49,7 +49,15 @@
   let fpsAnimationId = null;
 
   // FPS functions
+  // IMPORTANT: FPS loop can be paused during drag to free up RAF for smooth dragging
+  let fpsPaused = false;
+
   function updateFPS() {
+    // Stop the RAF loop if paused
+    if (fpsPaused) {
+      fpsAnimationId = null;
+      return;
+    }
     fpsFrameCount++;
     const now = performance.now();
     if (now - fpsLastTime >= 1000) {
@@ -58,6 +66,24 @@
       fpsLastTime = now;
     }
     fpsAnimationId = requestAnimationFrame(updateFPS);
+  }
+
+  function pauseFPSLoop() {
+    fpsPaused = true;
+    if (fpsAnimationId) {
+      cancelAnimationFrame(fpsAnimationId);
+      fpsAnimationId = null;
+    }
+  }
+
+  function resumeFPSLoop() {
+    if (!fpsPaused) return;
+    fpsPaused = false;
+    if (fpsInitialized && !fpsAnimationId) {
+      fpsLastTime = performance.now(); // Reset timing to avoid FPS spike
+      fpsFrameCount = 0;
+      fpsAnimationId = requestAnimationFrame(updateFPS);
+    }
   }
 
   function getFPS() {
@@ -1269,9 +1295,15 @@
       // Cache style reference to avoid repeated lookups
       const toolbarStyle = toolbar.style;
 
-      // Pause FPS updates during drag to avoid layout thrashing
-      const wasFpsRunning = this.fpsIntervalId !== null;
-      if (wasFpsRunning) {
+      // Capture pointer for smooth tracking even when cursor leaves toolbar
+      toolbar.setPointerCapture(e.pointerId);
+      const pointerId = e.pointerId;
+
+      // CRITICAL: Pause the FPS RAF loop during drag to free up animation frames
+      // The FPS display interval is separate and less impactful
+      pauseFPSLoop();
+      const wasFpsDisplayRunning = this.fpsIntervalId !== null;
+      if (wasFpsDisplayRunning) {
         this.stopFPSUpdates();
       }
 
@@ -1312,8 +1344,14 @@
       };
 
       const handlePointerEnd = () => {
+        // Release pointer capture
+        if (toolbar.hasPointerCapture(pointerId)) {
+          toolbar.releasePointerCapture(pointerId);
+        }
+
         document.removeEventListener("pointermove", handlePointerMove);
         document.removeEventListener("pointerup", handlePointerEnd);
+        document.removeEventListener("pointercancel", handlePointerEnd);
 
         if (rafId) {
           cancelAnimationFrame(rafId);
@@ -1324,8 +1362,9 @@
         this.isDragging = false;
         isDraggingToolbar = false; // Resume all scanning/highlighting work
 
-        // Resume FPS updates after drag
-        if (wasFpsRunning) {
+        // Resume FPS RAF loop and display updates after drag
+        resumeFPSLoop();
+        if (wasFpsDisplayRunning) {
           this.startFPSUpdates();
         }
 
@@ -1370,8 +1409,10 @@
         saveToolbarPosition();
       };
 
-      document.addEventListener("pointermove", handlePointerMove, { passive: true });
+      // CRITICAL: Do NOT use { passive: true } - it causes lag due to browser scroll optimization
+      document.addEventListener("pointermove", handlePointerMove);
       document.addEventListener("pointerup", handlePointerEnd);
+      document.addEventListener("pointercancel", handlePointerEnd);
     },
 
     // Handle window resize
