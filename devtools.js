@@ -47,6 +47,9 @@
   // Drag state - when true, all scanning/highlighting work is paused
   let isDraggingToolbar = false;
 
+  // Expanding state - when true, tooltips are disabled to prevent accidental shows
+  let isExpandingToolbar = false;
+
   // FPS tracking state
   let fps = 0;
   let fpsLastTime = performance.now();
@@ -1225,6 +1228,9 @@
     expandToolbar() {
       if (!toolbarCollapsed) return;
 
+      // Disable tooltips during expansion to prevent accidental tooltip shows
+      isExpandingToolbar = true;
+
       const savedCorner = toolbarCollapsed.corner;
       toolbarCollapsed = null;
       saveCollapsedState();
@@ -1244,6 +1250,11 @@
         toolbarPosition = calculatePosition(savedCorner, TOOLBAR_WIDTH, rect.height || 40);
         this.applyPosition(true);
         saveToolbarPosition();
+
+        // Re-enable tooltips after the expand animation completes (300ms transition + buffer)
+        setTimeout(() => {
+          isExpandingToolbar = false;
+        }, 400);
       });
     },
 
@@ -1523,8 +1534,8 @@
 
       tooltipElements.forEach((el) => {
         el.addEventListener("mouseenter", () => {
-          // Don't show tooltips while dragging
-          if (isDraggingToolbar) return;
+          // Don't show tooltips while dragging or expanding
+          if (isDraggingToolbar || isExpandingToolbar) return;
           // Cancel any pending hide
           if (hideTimeout) {
             clearTimeout(hideTimeout);
