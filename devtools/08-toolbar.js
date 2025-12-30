@@ -232,10 +232,6 @@ class Toolbar {
     const helpBtn = this.#createHelpButton();
     this.#content.appendChild(helpBtn);
 
-    // Add collapse button
-    const collapseBtn = this.#createCollapseButton();
-    this.#content.appendChild(collapseBtn);
-
     toolbar.appendChild(this.#content);
 
     // Create and add tooltip
@@ -366,27 +362,8 @@ class Toolbar {
   #createHelpButton() {
     const btn = document.createElement("button");
     btn.className = "devtools-icon-btn";
-    btn.setAttribute("data-tooltip", "Console API:\n• Devtools.enable() to enable devtools \n• Devtools.disable() to disable devtools\nHotkey: Ctrl+Shift+C to inspect");
+    btn.setAttribute("data-tooltip", "Console API:\n• Devtools.enable() / disable()\n\n Drag toolbar to edge to minimize");
     btn.innerHTML = ICONS.help;
-    return btn;
-  }
-
-  /**
-   * Create the collapse button.
-   * @private
-   */
-  #createCollapseButton() {
-    const btn = document.createElement("button");
-    btn.className = "devtools-collapse-btn";
-    btn.setAttribute("data-tooltip", "Collapse toolbar");
-    btn.innerHTML = ICONS.chevronRight;
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const corner = this.#dragController.corner;
-      this.#dragController.setCollapsed({ corner, orientation: "horizontal" });
-      this.#applyCollapsedState(corner, "horizontal");
-      StorageManager.setCollapsedState({ corner, orientation: "horizontal" });
-    });
     return btn;
   }
 

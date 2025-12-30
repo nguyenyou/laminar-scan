@@ -46,8 +46,8 @@ const CONFIG = {
 
   /** UI dimensions in pixels */
   dimensions: {
-    toolbarWidth: 312,
-    tooltipMinHeight: 94,
+    toolbarWidth: 284,
+    tooltipMinHeight: 92,
     safeArea: 16,
     collapsedHorizontal: { width: 20, height: 48 },
     collapsedVertical: { width: 48, height: 20 },
@@ -286,45 +286,6 @@ const STYLES = `
   .devtools-icon-btn svg {
     width: 16px;
     height: 16px;
-  }
-
-  /* ===== Collapse Button ===== */
-  .devtools-collapse-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 24px;
-    border: none;
-    background: transparent;
-    border-left: 1px solid rgba(255,255,255,0.12);
-    border-radius: 0;
-    cursor: pointer;
-    color: #555;
-    padding: 0;
-    transition: color 0.15s, background 0.15s;
-  }
-
-  .devtools-collapse-btn:hover {
-    color: #aaa;
-    background: rgba(255,255,255,0.05);
-  }
-
-  .devtools-collapse-btn:focus {
-    outline: none;
-  }
-
-  .devtools-collapse-btn svg {
-    width: 16px;
-    height: 16px;
-  }
-
-  .devtools-toolbar:not(.corner-left) .devtools-collapse-btn svg {
-    transform: rotate(0deg);
-  }
-
-  .devtools-toolbar.corner-left .devtools-collapse-btn svg {
-    transform: rotate(180deg);
   }
 
   /* ===== Tooltip ===== */
@@ -2823,10 +2784,6 @@ class Toolbar {
     const helpBtn = this.#createHelpButton();
     this.#content.appendChild(helpBtn);
 
-    // Add collapse button
-    const collapseBtn = this.#createCollapseButton();
-    this.#content.appendChild(collapseBtn);
-
     toolbar.appendChild(this.#content);
 
     // Create and add tooltip
@@ -2957,27 +2914,8 @@ class Toolbar {
   #createHelpButton() {
     const btn = document.createElement("button");
     btn.className = "devtools-icon-btn";
-    btn.setAttribute("data-tooltip", "Console API:\n• Devtools.enable() to enable devtools \n• Devtools.disable() to disable devtools\nHotkey: Ctrl+Shift+C to inspect");
+    btn.setAttribute("data-tooltip", "Console API:\n• Devtools.enable() / disable()\n\n Drag toolbar to edge to minimize");
     btn.innerHTML = ICONS.help;
-    return btn;
-  }
-
-  /**
-   * Create the collapse button.
-   * @private
-   */
-  #createCollapseButton() {
-    const btn = document.createElement("button");
-    btn.className = "devtools-collapse-btn";
-    btn.setAttribute("data-tooltip", "Collapse toolbar");
-    btn.innerHTML = ICONS.chevronRight;
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const corner = this.#dragController.corner;
-      this.#dragController.setCollapsed({ corner, orientation: "horizontal" });
-      this.#applyCollapsedState(corner, "horizontal");
-      StorageManager.setCollapsedState({ corner, orientation: "horizontal" });
-    });
     return btn;
   }
 

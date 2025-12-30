@@ -43,8 +43,8 @@ const CONFIG = {
 
   /** UI dimensions in pixels */
   dimensions: {
-    toolbarWidth: 312,
-    tooltipMinHeight: 94,
+    toolbarWidth: 284,
+    tooltipMinHeight: 92,
     safeArea: 16,
     collapsedHorizontal: { width: 20, height: 48 },
     collapsedVertical: { width: 48, height: 20 },
@@ -283,45 +283,6 @@ const STYLES = `
   .devtools-icon-btn svg {
     width: 16px;
     height: 16px;
-  }
-
-  /* ===== Collapse Button ===== */
-  .devtools-collapse-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 24px;
-    border: none;
-    background: transparent;
-    border-left: 1px solid rgba(255,255,255,0.12);
-    border-radius: 0;
-    cursor: pointer;
-    color: #555;
-    padding: 0;
-    transition: color 0.15s, background 0.15s;
-  }
-
-  .devtools-collapse-btn:hover {
-    color: #aaa;
-    background: rgba(255,255,255,0.05);
-  }
-
-  .devtools-collapse-btn:focus {
-    outline: none;
-  }
-
-  .devtools-collapse-btn svg {
-    width: 16px;
-    height: 16px;
-  }
-
-  .devtools-toolbar:not(.corner-left) .devtools-collapse-btn svg {
-    transform: rotate(0deg);
-  }
-
-  .devtools-toolbar.corner-left .devtools-collapse-btn svg {
-    transform: rotate(180deg);
   }
 
   /* ===== Tooltip ===== */
