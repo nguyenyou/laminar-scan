@@ -9,7 +9,7 @@
  */
 function initDevtools() {
   if (StorageManager.isDevtoolsEnabled()) {
-    ScalaDevtools.init();
+    FrontendDevtools.init();
   }
 }
 

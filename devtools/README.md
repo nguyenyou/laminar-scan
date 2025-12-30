@@ -15,7 +15,7 @@ The files are numbered to indicate the correct order for combining:
 05-core.js       - MutationScanner, ComponentInspector classes
 06-ui.js         - TooltipManager, DragController classes
 07-toolbar.js    - Main Toolbar class
-08-api.js        - ScalaDevtools public API facade
+08-api.js        - FrontendDevtools public API facade
 09-init.js       - Auto-initialization logic
 ```
 
@@ -69,7 +69,7 @@ echo '})();' >> devtools.js
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        ScalaDevtools (API)                       │
+│                       FrontendDevtools (API)                     │
 ├─────────────────────────────────────────────────────────────────┤
 │   ┌─────────────────┐  ┌──────────────────┐  ┌───────────────┐  │
 │   │ MutationScanner │  │ComponentInspector│  │    Toolbar    │  │
@@ -110,5 +110,5 @@ echo '})();' >> devtools.js
 | `TooltipManager` | Animated tooltip display |
 | `DragController` | Drag-to-move and snap-to-corner behavior |
 | `Toolbar` | Main UI component composing others |
-| `ScalaDevtools` | Public API facade |
+| `FrontendDevtools` | Public API facade |
 

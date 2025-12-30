@@ -362,7 +362,7 @@ class ComponentInspector {
     if (info?.sourcePath) {
       openInIDE(info.sourcePath, info.sourceLine);
     } else {
-      console.warn("ScalaDevtools: No source path found for element");
+      console.warn("FrontendDevtools: No source path found for element");
     }
   }
 

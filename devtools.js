@@ -568,7 +568,7 @@ function getComponentSourceInfo(element) {
  */
 function openInIDE(sourcePath, sourceLine = null) {
   if (!sourcePath) {
-    console.warn("ScalaDevtools: No source path provided");
+    console.warn("FrontendDevtools: No source path provided");
     return;
   }
 
@@ -577,7 +577,7 @@ function openInIDE(sourcePath, sourceLine = null) {
     uri += `&line=${sourceLine}`;
   }
 
-  console.log("ScalaDevtools: Opening file in IDE:", uri);
+  console.log("FrontendDevtools: Opening file in IDE:", uri);
   window.open(uri, "_blank");
 }
 
@@ -1810,7 +1810,7 @@ class ComponentInspector {
     if (info?.sourcePath) {
       openInIDE(info.sourcePath, info.sourceLine);
     } else {
-      console.warn("ScalaDevtools: No source path found for element");
+      console.warn("FrontendDevtools: No source path found for element");
     }
   }
 
@@ -3104,10 +3104,21 @@ class Toolbar {
 // ============================================================================
 
 /**
- * ScalaDevtools - Public API facade.
+ * FrontendDevtools - Public API facade.
  * Coordinates the scanner, inspector, and toolbar components.
+ * 
+ * @example
+ * // Enable devtools (shows toolbar on next page load)
+ * FrontendDevtools.enable();
+ * 
+ * // Disable devtools (hides toolbar on next page load)
+ * FrontendDevtools.disable();
+ * 
+ * // Toggle devtools visibility immediately
+ * FrontendDevtools.show();
+ * FrontendDevtools.hide();
  */
-const ScalaDevtools = {
+const FrontendDevtools = {
   /** @type {MutationScanner | null} */
   _scanner: null,
 
@@ -3116,6 +3127,54 @@ const ScalaDevtools = {
 
   /** @type {Toolbar | null} */
   _toolbar: null,
+
+  // ===== Enable/Disable API =====
+
+  /**
+   * Enable devtools. Sets localStorage and initializes immediately.
+   * The toolbar will appear and persist across page reloads.
+   */
+  enable() {
+    StorageManager.setString(CONFIG.storageKeys.enabled, "true");
+    if (!this._toolbar) {
+      this.init();
+    }
+    console.log("FrontendDevtools: Enabled. Toolbar is now visible.");
+  },
+
+  /**
+   * Disable devtools. Clears localStorage and destroys immediately.
+   * The toolbar will not appear on page reload.
+   */
+  disable() {
+    StorageManager.setString(CONFIG.storageKeys.enabled, "false");
+    this.destroy();
+    console.log("FrontendDevtools: Disabled. Toolbar hidden.");
+  },
+
+  /**
+   * Check if devtools is enabled in localStorage.
+   * @returns {boolean}
+   */
+  isEnabled() {
+    return StorageManager.isDevtoolsEnabled();
+  },
+
+  /**
+   * Show the toolbar immediately (without persisting to localStorage).
+   */
+  show() {
+    if (!this._toolbar) {
+      this.init();
+    }
+  },
+
+  /**
+   * Hide the toolbar immediately (without changing localStorage).
+   */
+  hide() {
+    this.destroy();
+  },
 
   /**
    * Initialize the devtools system.
@@ -3233,6 +3292,9 @@ const ScalaDevtools = {
   },
 };
 
+// Expose to global scope for console access
+window.FrontendDevtools = FrontendDevtools;
+
 
 // ============================================================================
 // INITIALIZATION
@@ -3245,7 +3307,7 @@ const ScalaDevtools = {
  */
 function initDevtools() {
   if (StorageManager.isDevtoolsEnabled()) {
-    ScalaDevtools.init();
+    FrontendDevtools.init();
   }
 }
 

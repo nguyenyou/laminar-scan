@@ -133,7 +133,7 @@ function getComponentSourceInfo(element) {
  */
 function openInIDE(sourcePath, sourceLine = null) {
   if (!sourcePath) {
-    console.warn("ScalaDevtools: No source path provided");
+    console.warn("FrontendDevtools: No source path provided");
     return;
   }
 
@@ -142,7 +142,7 @@ function openInIDE(sourcePath, sourceLine = null) {
     uri += `&line=${sourceLine}`;
   }
 
-  console.log("ScalaDevtools: Opening file in IDE:", uri);
+  console.log("FrontendDevtools: Opening file in IDE:", uri);
   window.open(uri, "_blank");
 }
 
