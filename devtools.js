@@ -998,6 +998,7 @@
 
   // Toolbar styles
   const TOOLBAR_WIDTH = 200; // Width in pixels for toolbar and tooltip
+  const TOOLTIP_HEIGHT = 80; // Min height in pixels for tooltip panel
 
   const TOOLBAR_STYLES = `
     .frontend-devtools-toolbar {
@@ -1172,7 +1173,7 @@
       left: 0;
       bottom: calc(100% + 8px);
       width: ${TOOLBAR_WIDTH}px;
-      min-height: 100px;
+      min-height: ${TOOLTIP_HEIGHT}px;
       padding: 12px;
       background: rgba(35, 35, 38, 0.98);
       color: #f0f0f0;
