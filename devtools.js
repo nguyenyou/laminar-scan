@@ -1518,7 +1518,7 @@
             isDraggingToolbar = true; // Pause all scanning/highlighting work
             // Batch class changes - transition disabled via CSS class
             toolbar.classList.add("dragging");
-            self.hideTooltip(); // Hide tooltip during drag
+            this.hideTooltip(); // Hide tooltip during drag
           }
 
           if (hasMoved) {
