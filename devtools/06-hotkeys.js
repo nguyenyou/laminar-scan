@@ -67,7 +67,8 @@ class HotkeyManager {
   #handleKeydown(e) {
     // Build the key combo string
     const parts = [];
-    if (e.ctrlKey || e.metaKey) parts.push("ctrl");
+    if (e.ctrlKey) parts.push("ctrl");
+    if (e.metaKey) parts.push("meta");
     if (e.shiftKey) parts.push("shift");
     if (e.altKey) parts.push("alt");
 
