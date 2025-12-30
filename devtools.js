@@ -708,8 +708,9 @@
 
   // Drag and snap constants
   const SAFE_AREA = 16;
-  const LOCALSTORAGE_KEY = "frontend-devtools-position";
-  const LOCALSTORAGE_COLLAPSED_KEY = "frontend-devtools-collapsed";
+  const LOCALSTORAGE_KEY = "FRONTEND_DEVTOOLS_POSITION";
+  const LOCALSTORAGE_COLLAPSED_KEY = "FRONTEND_DEVTOOLS_COLLAPSED";
+  const LOCALSTORAGE_ENABLED_KEY = "FRONTEND_DEVTOOLS_ENABLED";
   const DRAG_THRESHOLD = 5;
   const SNAP_THRESHOLD = 60;
   const COLLAPSE_THRESHOLD = 0.5; // Collapse when 50% of toolbar is outside viewport
@@ -1732,15 +1733,24 @@
     },
   };
 
-  // Auto-mount toolbar when DOM is ready
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => Toolbar.mount());
-  } else {
-    Toolbar.mount();
+  // Check if devtools is enabled via localStorage
+  function isDevtoolsEnabled() {
+    try {
+      const value = localStorage.getItem(LOCALSTORAGE_ENABLED_KEY);
+      // Default to enabled if not set
+      return value === null || value === "true";
+    } catch (e) {
+      return true; // Default to enabled if localStorage not available
+    }
   }
 
-  // Expose API globally
-  window.ScalaDevtools = ScalaDevtools;
-  window.ScalaDevtoolsToolbar = Toolbar;
+  // Auto-mount toolbar when DOM is ready (only if enabled)
+  if (isDevtoolsEnabled()) {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => Toolbar.mount());
+    } else {
+      Toolbar.mount();
+    }
+  }
 })();
 
