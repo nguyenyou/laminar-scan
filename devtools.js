@@ -663,12 +663,22 @@
   // Drag and snap constants
   const SAFE_AREA = 16;
   const LOCALSTORAGE_KEY = "frontend-devtools-position";
+  const LOCALSTORAGE_COLLAPSED_KEY = "frontend-devtools-collapsed";
   const DRAG_THRESHOLD = 5;
   const SNAP_THRESHOLD = 60;
+  const COLLAPSE_THRESHOLD = 0.5; // Collapse when 50% of toolbar is outside viewport
+  const EXPAND_DRAG_THRESHOLD = 50; // Pixels to drag to expand from collapsed state
+
+  // Collapsed state dimensions
+  const COLLAPSED_SIZE = {
+    horizontal: { width: 20, height: 48 },
+    vertical: { width: 48, height: 20 },
+  };
 
   // Drag and snap state
   let toolbarPosition = { x: 0, y: 0 };
   let toolbarCorner = "bottom-right"; // 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+  let toolbarCollapsed = null; // null | { corner: Corner, orientation: 'horizontal' | 'vertical' }
 
   // Calculate position for a given corner
   function calculatePosition(corner, width, height) {
@@ -739,6 +749,29 @@
     }
   }
 
+  // Save collapsed state to localStorage
+  function saveCollapsedState() {
+    try {
+      localStorage.setItem(LOCALSTORAGE_COLLAPSED_KEY, JSON.stringify(toolbarCollapsed));
+    } catch (e) {
+      // Ignore localStorage errors
+    }
+  }
+
+  // Load collapsed state from localStorage
+  function loadCollapsedState() {
+    try {
+      const saved = localStorage.getItem(LOCALSTORAGE_COLLAPSED_KEY);
+      if (saved) {
+        toolbarCollapsed = JSON.parse(saved);
+        return toolbarCollapsed !== null;
+      }
+    } catch (e) {
+      // Ignore localStorage errors
+    }
+    return false;
+  }
+
   // Load position from localStorage
   function loadToolbarPosition() {
     try {
@@ -753,6 +786,83 @@
       // Ignore localStorage errors
     }
     return false;
+  }
+
+  // Calculate collapsed position (flush against edge)
+  function calculateCollapsedPosition(corner, orientation) {
+    const size = COLLAPSED_SIZE[orientation];
+    switch (corner) {
+      case "top-left":
+        return orientation === "horizontal"
+          ? { x: -1, y: SAFE_AREA }
+          : { x: SAFE_AREA, y: -1 };
+      case "bottom-left":
+        return orientation === "horizontal"
+          ? { x: -1, y: window.innerHeight - size.height - SAFE_AREA }
+          : { x: SAFE_AREA, y: window.innerHeight - size.height + 1 };
+      case "top-right":
+        return orientation === "horizontal"
+          ? { x: window.innerWidth - size.width + 1, y: SAFE_AREA }
+          : { x: window.innerWidth - size.width - SAFE_AREA, y: -1 };
+      case "bottom-right":
+      default:
+        return orientation === "horizontal"
+          ? { x: window.innerWidth - size.width + 1, y: window.innerHeight - size.height - SAFE_AREA }
+          : { x: window.innerWidth - size.width - SAFE_AREA, y: window.innerHeight - size.height + 1 };
+    }
+  }
+
+  // Determine if toolbar should collapse based on how much is outside viewport
+  function shouldCollapseToolbar(currentX, currentY, width, height) {
+    const widgetRight = currentX + width;
+    const widgetBottom = currentY + height;
+
+    const outsideLeft = Math.max(0, -currentX);
+    const outsideRight = Math.max(0, widgetRight - window.innerWidth);
+    const outsideTop = Math.max(0, -currentY);
+    const outsideBottom = Math.max(0, widgetBottom - window.innerHeight);
+
+    const horizontalOutside = Math.min(width, outsideLeft + outsideRight);
+    const verticalOutside = Math.min(height, outsideTop + outsideBottom);
+    const areaOutside = horizontalOutside * height + verticalOutside * width - horizontalOutside * verticalOutside;
+    const totalArea = width * height;
+
+    return areaOutside > totalArea * COLLAPSE_THRESHOLD;
+  }
+
+  // Determine which edge and orientation for collapse
+  function getCollapseTarget(currentX, currentY, width, height) {
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    // Calculate how far outside each edge
+    const outsideLeft = -currentX;
+    const outsideRight = (currentX + width) - windowWidth;
+    const outsideTop = -currentY;
+    const outsideBottom = (currentY + height) - windowHeight;
+
+    // Find the most dominant edge
+    const maxOutside = Math.max(outsideLeft, outsideRight, outsideTop, outsideBottom);
+
+    if (maxOutside < 0) return null; // Not outside any edge
+
+    let orientation, corner;
+
+    if (outsideLeft === maxOutside) {
+      orientation = "horizontal";
+      corner = currentY < windowHeight / 2 ? "top-left" : "bottom-left";
+    } else if (outsideRight === maxOutside) {
+      orientation = "horizontal";
+      corner = currentY < windowHeight / 2 ? "top-right" : "bottom-right";
+    } else if (outsideTop === maxOutside) {
+      orientation = "vertical";
+      corner = currentX < windowWidth / 2 ? "top-left" : "top-right";
+    } else {
+      orientation = "vertical";
+      corner = currentX < windowWidth / 2 ? "bottom-left" : "bottom-right";
+    }
+
+    return { corner, orientation };
   }
 
   // Toolbar styles
@@ -918,13 +1028,79 @@
       bottom: auto;
       top: calc(100% + 8px);
     }
+    /* Collapsed toolbar styles */
+    .frontend-devtools-toolbar.collapsed {
+      width: auto;
+      height: auto;
+      padding: 0;
+      cursor: pointer;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .frontend-devtools-toolbar.collapsed.collapsed-horizontal {
+      width: 20px;
+      height: 48px;
+    }
+    .frontend-devtools-toolbar.collapsed.collapsed-vertical {
+      width: 48px;
+      height: 20px;
+    }
+    /* Rounded corners based on edge position */
+    .frontend-devtools-toolbar.collapsed.edge-left {
+      border-radius: 0 8px 8px 0;
+    }
+    .frontend-devtools-toolbar.collapsed.edge-right {
+      border-radius: 8px 0 0 8px;
+    }
+    .frontend-devtools-toolbar.collapsed.edge-top {
+      border-radius: 0 0 8px 8px;
+    }
+    .frontend-devtools-toolbar.collapsed.edge-bottom {
+      border-radius: 8px 8px 0 0;
+    }
+    .frontend-devtools-expand-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: #fff;
+      padding: 0;
+    }
+    .frontend-devtools-expand-btn svg {
+      width: 16px;
+      height: 16px;
+      transition: transform 0.15s ease;
+    }
+    /* Arrow rotation based on edge */
+    .frontend-devtools-toolbar.collapsed.edge-right .frontend-devtools-expand-btn svg {
+      transform: rotate(180deg);
+    }
+    .frontend-devtools-toolbar.collapsed.edge-top .frontend-devtools-expand-btn svg {
+      transform: rotate(90deg);
+    }
+    .frontend-devtools-toolbar.collapsed.edge-bottom .frontend-devtools-expand-btn svg {
+      transform: rotate(-90deg);
+    }
+    .frontend-devtools-toolbar.collapsed::before {
+      display: none;
+    }
   `;
+
+  // Chevron arrow SVG for collapsed state
+  const CHEVRON_RIGHT_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 18l6-6-6-6"/>
+  </svg>`;
 
   // Toolbar
   const Toolbar = {
     rootContainer: null,
     shadowRoot: null,
     toolbarElement: null,
+    toolbarContent: null,  // Container for toolbar content (hidden when collapsed)
+    expandButton: null,    // Button shown when collapsed
     fpsValueElement: null,
     fpsIntervalId: null,
     inspectButton: null,
@@ -934,6 +1110,15 @@
     // Initialize toolbar position
     initPosition() {
       if (!this.toolbarElement) return;
+
+      // Load collapsed state first
+      loadCollapsedState();
+
+      if (toolbarCollapsed) {
+        // If collapsed, apply collapsed state
+        this.applyCollapsedState();
+        return;
+      }
 
       const rect = this.toolbarElement.getBoundingClientRect();
       const width = rect.width;
@@ -950,6 +1135,70 @@
       }
 
       this.applyPosition(false);
+    },
+
+    // Apply collapsed state to toolbar
+    applyCollapsedState() {
+      if (!this.toolbarElement || !toolbarCollapsed) return;
+
+      const { corner, orientation } = toolbarCollapsed;
+
+      // Hide toolbar content, show expand button
+      if (this.toolbarContent) this.toolbarContent.style.display = "none";
+      if (this.expandButton) this.expandButton.style.display = "flex";
+
+      // Add collapsed classes
+      this.toolbarElement.classList.add("collapsed");
+      this.toolbarElement.classList.add(`collapsed-${orientation}`);
+      this.toolbarElement.classList.remove("edge-left", "edge-right", "edge-top", "edge-bottom");
+
+      // Add edge class based on corner and orientation
+      if (orientation === "horizontal") {
+        this.toolbarElement.classList.add(corner.endsWith("left") ? "edge-left" : "edge-right");
+      } else {
+        this.toolbarElement.classList.add(corner.startsWith("top") ? "edge-top" : "edge-bottom");
+      }
+
+      // Calculate and apply collapsed position
+      toolbarPosition = calculateCollapsedPosition(corner, orientation);
+      this.toolbarElement.style.transform = `translate3d(${toolbarPosition.x}px, ${toolbarPosition.y}px, 0)`;
+      this.toolbarElement.style.left = "0";
+      this.toolbarElement.style.top = "0";
+    },
+
+    // Expand from collapsed state
+    expandToolbar() {
+      if (!toolbarCollapsed) return;
+
+      const savedCorner = toolbarCollapsed.corner;
+      toolbarCollapsed = null;
+      saveCollapsedState();
+
+      // Remove collapsed classes
+      this.toolbarElement.classList.remove("collapsed", "collapsed-horizontal", "collapsed-vertical");
+      this.toolbarElement.classList.remove("edge-left", "edge-right", "edge-top", "edge-bottom");
+
+      // Show toolbar content, hide expand button
+      if (this.toolbarContent) this.toolbarContent.style.display = "flex";
+      if (this.expandButton) this.expandButton.style.display = "none";
+
+      // Calculate new position for the saved corner
+      requestAnimationFrame(() => {
+        const rect = this.toolbarElement.getBoundingClientRect();
+        toolbarCorner = savedCorner;
+        toolbarPosition = calculatePosition(savedCorner, TOOLBAR_WIDTH, rect.height || 40);
+        this.applyPosition(true);
+        saveToolbarPosition();
+      });
+    },
+
+    // Collapse toolbar to an edge
+    collapseToolbar(corner, orientation) {
+      toolbarCollapsed = { corner, orientation };
+      toolbarCorner = corner;
+      saveCollapsedState();
+      saveToolbarPosition();
+      this.applyCollapsedState();
     },
 
     // Apply current position to toolbar
@@ -1079,6 +1328,17 @@
           return;
         }
 
+        // Check if toolbar should collapse (dragged outside viewport)
+        const toolbarWidth = TOOLBAR_WIDTH;
+        const toolbarHeight = toolbar.offsetHeight || 40;
+        if (shouldCollapseToolbar(currentX, currentY, toolbarWidth, toolbarHeight)) {
+          const collapseTarget = getCollapseTarget(currentX, currentY, toolbarWidth, toolbarHeight);
+          if (collapseTarget) {
+            this.collapseToolbar(collapseTarget.corner, collapseTarget.orientation);
+            return;
+          }
+        }
+
         // Determine new corner based on drag direction and position
         const newCorner = getBestCorner(lastMouseX, lastMouseY, initialMouseX, initialMouseY, 40);
 
@@ -1102,9 +1362,14 @@
     handleResize() {
       if (!this.toolbarElement) return;
 
-      const rect = this.toolbarElement.getBoundingClientRect();
-      toolbarPosition = calculatePosition(toolbarCorner, rect.width, rect.height);
-      this.applyPosition(false);
+      if (toolbarCollapsed) {
+        // Recalculate collapsed position for new window size
+        this.applyCollapsedState();
+      } else {
+        const rect = this.toolbarElement.getBoundingClientRect();
+        toolbarPosition = calculatePosition(toolbarCorner, rect.width, rect.height);
+        this.applyPosition(false);
+      }
     },
 
     createFPSMeter() {
@@ -1185,16 +1450,103 @@
       });
     },
 
+    createExpandButton() {
+      const btn = document.createElement("button");
+      btn.className = "frontend-devtools-expand-btn";
+      btn.title = "Expand toolbar";
+      btn.innerHTML = CHEVRON_RIGHT_SVG;
+      btn.style.display = "none"; // Hidden by default
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.expandToolbar();
+      });
+      this.expandButton = btn;
+      return btn;
+    },
+
+    // Handle drag on collapsed toolbar
+    handleCollapsedDrag(e) {
+      e.preventDefault();
+
+      if (!this.toolbarElement || !toolbarCollapsed) return;
+
+      const { corner, orientation } = toolbarCollapsed;
+      const initialMouseX = e.clientX;
+      const initialMouseY = e.clientY;
+
+      let hasExpanded = false;
+
+      const handlePointerMove = (moveEvent) => {
+        if (hasExpanded) return;
+
+        const deltaX = moveEvent.clientX - initialMouseX;
+        const deltaY = moveEvent.clientY - initialMouseY;
+
+        let shouldExpand = false;
+
+        if (orientation === "horizontal") {
+          // Left edge: drag right to expand
+          if (corner.endsWith("left") && deltaX > EXPAND_DRAG_THRESHOLD) {
+            shouldExpand = true;
+          }
+          // Right edge: drag left to expand
+          else if (corner.endsWith("right") && deltaX < -EXPAND_DRAG_THRESHOLD) {
+            shouldExpand = true;
+          }
+        } else {
+          // Top edge: drag down to expand
+          if (corner.startsWith("top") && deltaY > EXPAND_DRAG_THRESHOLD) {
+            shouldExpand = true;
+          }
+          // Bottom edge: drag up to expand
+          else if (corner.startsWith("bottom") && deltaY < -EXPAND_DRAG_THRESHOLD) {
+            shouldExpand = true;
+          }
+        }
+
+        if (shouldExpand) {
+          hasExpanded = true;
+          document.removeEventListener("pointermove", handlePointerMove);
+          document.removeEventListener("pointerup", handlePointerEnd);
+          this.expandToolbar();
+        }
+      };
+
+      const handlePointerEnd = () => {
+        document.removeEventListener("pointermove", handlePointerMove);
+        document.removeEventListener("pointerup", handlePointerEnd);
+      };
+
+      document.addEventListener("pointermove", handlePointerMove, { passive: true });
+      document.addEventListener("pointerup", handlePointerEnd);
+    },
+
     createToolbar() {
       const toolbar = document.createElement("div");
       toolbar.className = "frontend-devtools-toolbar";
 
-      // Add drag handler
-      toolbar.addEventListener("pointerdown", (e) => this.handleDragStart(e));
+      // Add drag handler - will dispatch to collapsed or normal drag
+      toolbar.addEventListener("pointerdown", (e) => {
+        if (toolbarCollapsed) {
+          this.handleCollapsedDrag(e);
+        } else {
+          this.handleDragStart(e);
+        }
+      });
+
+      // Create expand button for collapsed state (hidden by default)
+      const expandBtn = this.createExpandButton();
+      toolbar.appendChild(expandBtn);
+
+      // Create content container for normal toolbar state
+      const content = document.createElement("div");
+      content.className = "frontend-devtools-content";
+      content.style.cssText = "display: flex; align-items: center; gap: 8px;";
+      this.toolbarContent = content;
 
       // Add inspect button first
       const inspectBtn = this.createInspectButton();
-      toolbar.appendChild(inspectBtn);
+      content.appendChild(inspectBtn);
 
       const toggle = document.createElement("label");
       toggle.className = "frontend-devtools-toggle";
@@ -1216,11 +1568,13 @@
       track.appendChild(thumb);
       toggle.appendChild(track);
 
-      toolbar.appendChild(toggle);
+      content.appendChild(toggle);
 
       // Add FPS meter
       const fpsMeter = this.createFPSMeter();
-      toolbar.appendChild(fpsMeter);
+      content.appendChild(fpsMeter);
+
+      toolbar.appendChild(content);
 
       // Setup tooltip events
       this.setupTooltipEvents(toolbar);
