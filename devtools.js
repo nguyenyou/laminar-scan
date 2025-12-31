@@ -1663,6 +1663,7 @@ class InspectOverlay {
     if (componentName) {
       const pillHeight = 24;
       const pillPadding = 8;
+      const pillGap = 4; // Gap between pill and rectangle
 
       this.#ctx.font = "12px system-ui, -apple-system, sans-serif";
       
@@ -1670,8 +1671,46 @@ class InspectOverlay {
       const displayName = isReact ? `⚛ ${componentName}` : componentName;
       const textWidth = this.#ctx.measureText(displayName).width;
       const pillWidth = textWidth + pillPadding * 2;
-      const pillX = rect.left;
-      const pillY = rect.top - pillHeight - 4;
+
+      // Get viewport dimensions
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      // Calculate available space in each direction
+      const spaceAbove = rect.top;
+      const spaceBelow = viewportHeight - (rect.top + rect.height);
+      const spaceInside = rect.height;
+
+      // Determine best vertical position
+      let pillY;
+      const requiredHeight = pillHeight + pillGap;
+
+      if (spaceAbove >= requiredHeight) {
+        // Prefer above the rectangle
+        pillY = rect.top - pillHeight - pillGap;
+      } else if (spaceBelow >= requiredHeight) {
+        // Fall back to below the rectangle
+        pillY = rect.top + rect.height + pillGap;
+      } else if (spaceInside >= pillHeight + pillGap * 2) {
+        // Place inside at top with padding
+        pillY = rect.top + pillGap;
+      } else {
+        // Last resort: place at top of viewport or inside whichever fits better
+        pillY = Math.max(pillGap, Math.min(rect.top + pillGap, viewportHeight - pillHeight - pillGap));
+      }
+
+      // Determine horizontal position (keep within viewport)
+      let pillX = rect.left;
+      
+      // Ensure pill doesn't go off the right edge
+      if (pillX + pillWidth > viewportWidth - pillGap) {
+        pillX = viewportWidth - pillWidth - pillGap;
+      }
+      
+      // Ensure pill doesn't go off the left edge
+      if (pillX < pillGap) {
+        pillX = pillGap;
+      }
 
       // Pill background
       this.#ctx.fillStyle = pillBg;
