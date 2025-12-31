@@ -31,6 +31,15 @@ class HighlightCanvas {
   create() {
     if (this.#canvas) return this.#canvas;
 
+    // Safety check: prevent duplicate highlight canvases in DOM
+    const existing = document.querySelector(`[${CONFIG.attributes.devtools}="highlight-canvas"]`);
+    if (existing) {
+      console.warn("Devtools: Highlight canvas already exists in DOM, reusing");
+      this.#canvas = existing;
+      this.#ctx = existing.getContext("2d");
+      return existing;
+    }
+
     const canvas = document.createElement("canvas");
     canvas.setAttribute(CONFIG.attributes.devtools, "highlight-canvas");
 
@@ -337,6 +346,15 @@ class InspectOverlay {
    */
   create() {
     if (this.#canvas) return this.#canvas;
+
+    // Safety check: prevent duplicate inspect canvases in DOM
+    const existing = document.querySelector(`[${CONFIG.attributes.devtools}="inspect-canvas"]`);
+    if (existing) {
+      console.warn("Devtools: Inspect canvas already exists in DOM, reusing");
+      this.#canvas = existing;
+      this.#ctx = existing.getContext("2d");
+      return existing;
+    }
 
     const canvas = document.createElement("canvas");
     canvas.setAttribute(CONFIG.attributes.devtools, "inspect-canvas");

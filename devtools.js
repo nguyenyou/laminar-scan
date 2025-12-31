@@ -1176,6 +1176,15 @@ class HighlightCanvas {
   create() {
     if (this.#canvas) return this.#canvas;
 
+    // Safety check: prevent duplicate highlight canvases in DOM
+    const existing = document.querySelector(`[${CONFIG.attributes.devtools}="highlight-canvas"]`);
+    if (existing) {
+      console.warn("Devtools: Highlight canvas already exists in DOM, reusing");
+      this.#canvas = existing;
+      this.#ctx = existing.getContext("2d");
+      return existing;
+    }
+
     const canvas = document.createElement("canvas");
     canvas.setAttribute(CONFIG.attributes.devtools, "highlight-canvas");
 
@@ -1482,6 +1491,15 @@ class InspectOverlay {
    */
   create() {
     if (this.#canvas) return this.#canvas;
+
+    // Safety check: prevent duplicate inspect canvases in DOM
+    const existing = document.querySelector(`[${CONFIG.attributes.devtools}="inspect-canvas"]`);
+    if (existing) {
+      console.warn("Devtools: Inspect canvas already exists in DOM, reusing");
+      this.#canvas = existing;
+      this.#ctx = existing.getContext("2d");
+      return existing;
+    }
 
     const canvas = document.createElement("canvas");
     canvas.setAttribute(CONFIG.attributes.devtools, "inspect-canvas");
@@ -2017,6 +2035,13 @@ class ComponentInspector {
    * @returns {HTMLDivElement} Event catcher element
    */
   #createEventCatcher() {
+    // Safety check: prevent duplicate event catchers in DOM
+    const existing = document.querySelector(`[${CONFIG.attributes.devtools}="event-catcher"]`);
+    if (existing) {
+      console.warn("Devtools: Event catcher already exists in DOM, reusing");
+      return existing;
+    }
+
     const div = document.createElement("div");
     div.setAttribute(CONFIG.attributes.devtools, "event-catcher");
     Object.assign(div.style, {
@@ -3029,6 +3054,13 @@ class Toolbar {
    */
   mount() {
     if (this.#root) return;
+
+    // Safety check: prevent duplicate toolbars in DOM
+    const existing = document.getElementById("devtools-root");
+    if (existing) {
+      console.warn("Devtools: Toolbar already exists in DOM, skipping mount");
+      return;
+    }
 
     // Create root container
     this.#root = document.createElement("div");

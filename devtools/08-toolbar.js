@@ -114,6 +114,13 @@ class Toolbar {
   mount() {
     if (this.#root) return;
 
+    // Safety check: prevent duplicate toolbars in DOM
+    const existing = document.getElementById("devtools-root");
+    if (existing) {
+      console.warn("Devtools: Toolbar already exists in DOM, skipping mount");
+      return;
+    }
+
     // Create root container
     this.#root = document.createElement("div");
     this.#root.id = "devtools-root";

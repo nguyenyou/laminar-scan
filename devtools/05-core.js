@@ -288,6 +288,13 @@ class ComponentInspector {
    * @returns {HTMLDivElement} Event catcher element
    */
   #createEventCatcher() {
+    // Safety check: prevent duplicate event catchers in DOM
+    const existing = document.querySelector(`[${CONFIG.attributes.devtools}="event-catcher"]`);
+    if (existing) {
+      console.warn("Devtools: Event catcher already exists in DOM, reusing");
+      return existing;
+    }
+
     const div = document.createElement("div");
     div.setAttribute(CONFIG.attributes.devtools, "event-catcher");
     Object.assign(div.style, {
