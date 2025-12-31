@@ -16,15 +16,19 @@
  * @returns {object | null} React fiber or null
  */
 function getReactFiber(domNode) {
-  if (!domNode) return null;
-  
-  // React attaches fiber with: '__reactFiber$' + randomKey
-  // Container roots use: '__reactContainer$' + randomKey
-  const key = Object.keys(domNode).find(
-    k => k.startsWith('__reactFiber$') || k.startsWith('__reactContainer$')
-  );
-  
-  return key ? domNode[key] : null;
+  try {
+    if (!domNode) return null;
+    
+    // React attaches fiber with: '__reactFiber$' + randomKey
+    // Container roots use: '__reactContainer$' + randomKey
+    const key = Object.keys(domNode).find(
+      k => k.startsWith('__reactFiber$') || k.startsWith('__reactContainer$')
+    );
+    
+    return key ? domNode[key] : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -35,10 +39,14 @@ function getReactFiber(domNode) {
  * @returns {object | null} React props or null
  */
 function getReactProps(domNode) {
-  if (!domNode) return null;
-  
-  const key = Object.keys(domNode).find(k => k.startsWith('__reactProps$'));
-  return key ? domNode[key] : null;
+  try {
+    if (!domNode) return null;
+    
+    const key = Object.keys(domNode).find(k => k.startsWith('__reactProps$'));
+    return key ? domNode[key] : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -49,55 +57,59 @@ function getReactProps(domNode) {
  * @returns {string | null} Component name or null
  */
 function getComponentNameFromType(type) {
-  if (type == null) return null;
-  
-  if (typeof type === 'function') {
-    return type.displayName || type.name || null;
-  }
-  
-  if (typeof type === 'string') {
-    return type; // Host component like 'div'
-  }
-  
-  if (typeof type === 'object') {
-    const $$typeof = type.$$typeof;
-    if (!$$typeof) return null;
+  try {
+    if (type == null) return null;
     
-    const typeStr = $$typeof.toString();
-    
-    // ForwardRef
-    if (typeStr === 'Symbol(react.forward_ref)') {
-      const displayName = type.displayName;
-      if (displayName) return displayName;
-      const innerName = type.render?.displayName || type.render?.name || '';
-      return innerName ? `ForwardRef(${innerName})` : 'ForwardRef';
+    if (typeof type === 'function') {
+      return type.displayName || type.name || null;
     }
     
-    // Memo
-    if (typeStr === 'Symbol(react.memo)') {
-      return type.displayName || getComponentNameFromType(type.type) || 'Memo';
+    if (typeof type === 'string') {
+      return type; // Host component like 'div'
     }
     
-    // Lazy
-    if (typeStr === 'Symbol(react.lazy)') {
-      try {
-        return getComponentNameFromType(type._init(type._payload));
-      } catch {
-        return null;
+    if (typeof type === 'object') {
+      const $$typeof = type.$$typeof;
+      if (!$$typeof) return null;
+      
+      const typeStr = $$typeof.toString();
+      
+      // ForwardRef
+      if (typeStr === 'Symbol(react.forward_ref)') {
+        const displayName = type.displayName;
+        if (displayName) return displayName;
+        const innerName = type.render?.displayName || type.render?.name || '';
+        return innerName ? `ForwardRef(${innerName})` : 'ForwardRef';
+      }
+      
+      // Memo
+      if (typeStr === 'Symbol(react.memo)') {
+        return type.displayName || getComponentNameFromType(type.type) || 'Memo';
+      }
+      
+      // Lazy
+      if (typeStr === 'Symbol(react.lazy)') {
+        try {
+          return getComponentNameFromType(type._init(type._payload));
+        } catch {
+          return null;
+        }
+      }
+      
+      // Context
+      if (typeStr === 'Symbol(react.context)') {
+        return (type.displayName || 'Context') + '.Provider';
+      }
+      
+      if (typeStr === 'Symbol(react.consumer)') {
+        return (type._context?.displayName || 'Context') + '.Consumer';
       }
     }
     
-    // Context
-    if (typeStr === 'Symbol(react.context)') {
-      return (type.displayName || 'Context') + '.Provider';
-    }
-    
-    if (typeStr === 'Symbol(react.consumer)') {
-      return (type._context?.displayName || 'Context') + '.Consumer';
-    }
+    return null;
+  } catch {
+    return null;
   }
-  
-  return null;
 }
 
 /**
@@ -108,23 +120,27 @@ function getComponentNameFromType(type) {
  * @returns {string | null} Component name or null
  */
 function getComponentNameFromFiber(fiber) {
-  if (!fiber) return null;
-  
-  const { type } = fiber;
-  
-  if (typeof type === 'function') {
-    return type.displayName || type.name || null;
+  try {
+    if (!fiber) return null;
+    
+    const { type } = fiber;
+    
+    if (typeof type === 'function') {
+      return type.displayName || type.name || null;
+    }
+    
+    if (typeof type === 'string') {
+      return type; // DOM element like 'div'
+    }
+    
+    if (typeof type === 'object' && type !== null) {
+      return getComponentNameFromType(type);
+    }
+    
+    return null;
+  } catch {
+    return null;
   }
-  
-  if (typeof type === 'string') {
-    return type; // DOM element like 'div'
-  }
-  
-  if (typeof type === 'object' && type !== null) {
-    return getComponentNameFromType(type);
-  }
-  
-  return null;
 }
 
 /**
@@ -135,27 +151,35 @@ function getComponentNameFromFiber(fiber) {
  * @returns {{ name: string, fiber: object, props: object, element: Element } | null} Component info or null
  */
 function getReactComponentFromNode(domNode) {
-  const fiber = getReactFiber(domNode);
-  if (!fiber) return null;
-  
-  let current = fiber;
-  while (current) {
-    const name = getComponentNameFromFiber(current);
+  try {
+    const fiber = getReactFiber(domNode);
+    if (!fiber) return null;
     
-    // Skip host components (DOM elements like 'div', 'span')
-    if (name && typeof current.type !== 'string') {
-      return {
-        name,
-        fiber: current,
-        props: current.memoizedProps,
-        element: domNode, // The DOM node we started from
-      };
+    let current = fiber;
+    let iterations = 0;
+    const maxIterations = 500; // Prevent infinite loops
+    
+    while (current && iterations < maxIterations) {
+      iterations++;
+      const name = getComponentNameFromFiber(current);
+      
+      // Skip host components (DOM elements like 'div', 'span')
+      if (name && typeof current.type !== 'string') {
+        return {
+          name,
+          fiber: current,
+          props: current.memoizedProps,
+          element: domNode, // The DOM node we started from
+        };
+      }
+      
+      current = current.return;
     }
     
-    current = current.return;
+    return null;
+  } catch {
+    return null;
   }
-  
-  return null;
 }
 
 /**
@@ -166,27 +190,34 @@ function getReactComponentFromNode(domNode) {
  * @returns {Array<{ name: string, fiber: object, props: object }>} Array of component info
  */
 function getAllReactComponentsFromNode(domNode) {
-  const fiber = getReactFiber(domNode);
-  if (!fiber) return [];
-  
-  const components = [];
-  let current = fiber;
-  
-  while (current) {
-    const name = getComponentNameFromFiber(current);
+  try {
+    const fiber = getReactFiber(domNode);
+    if (!fiber) return [];
     
-    if (name && typeof current.type !== 'string') {
-      components.push({
-        name,
-        fiber: current,
-        props: current.memoizedProps,
-      });
+    const components = [];
+    let current = fiber;
+    let iterations = 0;
+    const maxIterations = 500; // Prevent infinite loops
+    
+    while (current && iterations < maxIterations) {
+      iterations++;
+      const name = getComponentNameFromFiber(current);
+      
+      if (name && typeof current.type !== 'string') {
+        components.push({
+          name,
+          fiber: current,
+          props: current.memoizedProps,
+        });
+      }
+      
+      current = current.return;
     }
     
-    current = current.return;
+    return components;
+  } catch {
+    return [];
   }
-  
-  return components;
 }
 
 /**
@@ -195,40 +226,70 @@ function getAllReactComponentsFromNode(domNode) {
  * @returns {{ element: Element, name: string, isReact: true } | null} Component info or null
  */
 function getReactComponent(element) {
-  if (!element) return null;
-  
-  const reactInfo = getReactComponentFromNode(element);
-  if (!reactInfo) return null;
-  
-  return {
-    element: reactInfo.element,
-    name: reactInfo.name,
-    isReact: true,
-  };
+  try {
+    if (!element) return null;
+    
+    const reactInfo = getReactComponentFromNode(element);
+    if (!reactInfo) return null;
+    
+    return {
+      element: reactInfo.element,
+      name: reactInfo.name,
+      isReact: true,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**
  * Get source info for a React component (limited compared to Scala).
  * React components don't have built-in source mapping in production.
+ * However, if the display name looks like a file path (contains /), treat it as source.
  * 
  * @param {Element} element - DOM element
- * @returns {Object} Source information object
+ * @returns {Object | null} Source information object or null
  */
 function getReactComponentSourceInfo(element) {
-  const reactInfo = getReactComponentFromNode(element);
-  if (!reactInfo) return null;
-  
-  return {
-    sourcePath: null, // React doesn't expose source paths in production
-    sourceLine: null,
-    filename: null,
-    scalaName: null,
-    isMarked: false,
-    isReact: true,
-    displayName: reactInfo.name,
-    props: reactInfo.props,
-    fiber: reactInfo.fiber,
-  };
+  try {
+    const reactInfo = getReactComponentFromNode(element);
+    if (!reactInfo) return null;
+    
+    // Check if the component name looks like a file path (contains /)
+    // This allows components with path-like display names to support jump-to-source
+    let sourcePath = null;
+    let sourceLine = null;
+    let filename = null;
+    const name = reactInfo.name || "";
+    
+    if (name.includes("/")) {
+      // Parse potential line number from format: "path/to/file.tsx:123"
+      const lineMatch = name.match(/^(.+):(\d+)$/);
+      if (lineMatch) {
+        sourcePath = lineMatch[1];
+        sourceLine = lineMatch[2];
+      } else {
+        sourcePath = name;
+      }
+      // Extract filename from path
+      const pathParts = sourcePath.split("/");
+      filename = pathParts[pathParts.length - 1];
+    }
+    
+    return {
+      sourcePath,
+      sourceLine,
+      filename,
+      scalaName: null,
+      isMarked: false,
+      isReact: true,
+      displayName: reactInfo.name,
+      props: reactInfo.props,
+      fiber: reactInfo.fiber,
+    };
+  } catch {
+    return null;
+  }
 }
 
 

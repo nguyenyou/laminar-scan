@@ -402,7 +402,15 @@ class ComponentInspector {
     const reactComponent = getReactComponent(element);
     if (reactComponent) {
       const info = getReactComponentSourceInfo(reactComponent.element);
-      // Log React component info to console (no source path available)
+      
+      // If source path available (component name looks like a file path), jump to source
+      if (info?.sourcePath) {
+        openInIDE(info.sourcePath, info.sourceLine);
+        this.stop();
+        return;
+      }
+      
+      // Otherwise log React component info to console
       console.group(`%c⚛ React Component: ${reactComponent.name}`, 'color: #61dafb; font-weight: bold;');
       console.log('Element:', reactComponent.element);
       if (info?.props) {
