@@ -459,7 +459,7 @@ class InspectOverlay {
    * @private
    * @param {{ left: number, top: number, width: number, height: number }} rect - Rectangle to draw
    * @param {string} componentName - Component name
-   * @param {{ isMarked?: boolean }} info - Component info
+   * @param {{ isMarked?: boolean, isReact?: boolean }} info - Component info
    */
   #drawOverlay(rect, componentName, info) {
     if (!this.#ctx) return;
@@ -468,11 +468,28 @@ class InspectOverlay {
     if (!rect) return;
 
     const isMarked = info?.isMarked || false;
+    const isReact = info?.isReact || false;
     const colors = CONFIG.colors;
 
-    // Select colors based on whether component is marked
-    const strokeColor = isMarked ? colors.inspectMarkedStroke : colors.inspectStroke;
-    const fillColor = isMarked ? colors.inspectMarkedFill : colors.inspectFill;
+    // Select colors based on component type
+    let strokeColor, fillColor, pillBg, pillText;
+    
+    if (isReact) {
+      strokeColor = colors.inspectReactStroke;
+      fillColor = colors.inspectReactFill;
+      pillBg = colors.inspectReactPillBg;
+      pillText = colors.inspectReactPillText;
+    } else if (isMarked) {
+      strokeColor = colors.inspectMarkedStroke;
+      fillColor = colors.inspectMarkedFill;
+      pillBg = colors.inspectMarkedPillBg;
+      pillText = colors.inspectMarkedPillText;
+    } else {
+      strokeColor = colors.inspectStroke;
+      fillColor = colors.inspectFill;
+      pillBg = colors.inspectPillBg;
+      pillText = colors.inspectPillText;
+    }
 
     // Draw rectangle
     this.#ctx.strokeStyle = strokeColor;
@@ -488,21 +505,24 @@ class InspectOverlay {
       const pillPadding = 8;
 
       this.#ctx.font = "12px system-ui, -apple-system, sans-serif";
-      const textWidth = this.#ctx.measureText(componentName).width;
+      
+      // Add React icon prefix for React components
+      const displayName = isReact ? `⚛ ${componentName}` : componentName;
+      const textWidth = this.#ctx.measureText(displayName).width;
       const pillWidth = textWidth + pillPadding * 2;
       const pillX = rect.left;
       const pillY = rect.top - pillHeight - 4;
 
       // Pill background
-      this.#ctx.fillStyle = isMarked ? colors.inspectMarkedPillBg : colors.inspectPillBg;
+      this.#ctx.fillStyle = pillBg;
       this.#ctx.beginPath();
       this.#ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 3);
       this.#ctx.fill();
 
       // Text
-      this.#ctx.fillStyle = isMarked ? colors.inspectMarkedPillText : colors.inspectPillText;
+      this.#ctx.fillStyle = pillText;
       this.#ctx.textBaseline = "middle";
-      this.#ctx.fillText(componentName, pillX + pillPadding, pillY + pillHeight / 2);
+      this.#ctx.fillText(displayName, pillX + pillPadding, pillY + pillHeight / 2);
     }
   }
 }

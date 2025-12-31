@@ -30,6 +30,11 @@ const CONFIG = {
     inspectMarkedFill: "rgba(79, 192, 255, 0.10)",
     inspectMarkedPillBg: "rgba(20, 60, 80, 0.85)",
     inspectMarkedPillText: "#79c0ff",
+    // Inspector colors (React components)
+    inspectReactStroke: "rgba(97, 218, 251, 0.6)",
+    inspectReactFill: "rgba(97, 218, 251, 0.10)",
+    inspectReactPillBg: "rgba(20, 44, 52, 0.90)",
+    inspectReactPillText: "#61dafb",
   },
 
   /** Animation timing and behavior */

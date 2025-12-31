@@ -312,7 +312,20 @@ class ComponentInspector {
 
     if (!element) return;
 
-    const component = getScalaComponent(element);
+    // Try Scala component first, then fall back to React
+    let component = getScalaComponent(element);
+    let info = null;
+    
+    if (component) {
+      info = getComponentSourceInfo(component.element);
+    } else {
+      // Try React component
+      component = getReactComponent(element);
+      if (component) {
+        info = getReactComponentSourceInfo(component.element);
+      }
+    }
+    
     if (!component) {
       if (this.#lastHovered) {
         this.#lastHovered = null;
@@ -325,7 +338,6 @@ class ComponentInspector {
     this.#lastHovered = component.element;
 
     const rect = component.element.getBoundingClientRect();
-    const info = getComponentSourceInfo(component.element);
 
     this.#overlay?.animateTo(
       { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
@@ -355,18 +367,44 @@ class ComponentInspector {
 
     if (!element) return;
 
-    const component = getScalaComponent(element);
-    if (!component) return;
-
-    // Open file in IDE
-    const info = getComponentSourceInfo(component.element);
-    if (info?.sourcePath) {
-      openInIDE(info.sourcePath, info.sourceLine);
-      // Exit inspect mode after jumping to source
-      this.stop();
-    } else {
-      console.warn("Devtools: No source path found for element");
+    // Try Scala component first
+    const scalaComponent = getScalaComponent(element);
+    if (scalaComponent) {
+      const info = getComponentSourceInfo(scalaComponent.element);
+      if (info?.sourcePath) {
+        openInIDE(info.sourcePath, info.sourceLine);
+        // Exit inspect mode after jumping to source
+        this.stop();
+        return;
+      }
     }
+    
+    // Try React component
+    const reactComponent = getReactComponent(element);
+    if (reactComponent) {
+      const info = getReactComponentSourceInfo(reactComponent.element);
+      // Log React component info to console (no source path available)
+      console.group(`%c⚛ React Component: ${reactComponent.name}`, 'color: #61dafb; font-weight: bold;');
+      console.log('Element:', reactComponent.element);
+      if (info?.props) {
+        console.log('Props:', info.props);
+      }
+      if (info?.fiber) {
+        console.log('Fiber:', info.fiber);
+      }
+      // Also log the full component hierarchy
+      const hierarchy = getAllReactComponentsFromNode(reactComponent.element);
+      if (hierarchy.length > 1) {
+        console.log('Component hierarchy:', hierarchy.map(c => c.name).join(' → '));
+      }
+      console.groupEnd();
+      
+      // Exit inspect mode after logging
+      this.stop();
+      return;
+    }
+    
+    console.warn("Devtools: No component found for element");
   }
 
   /**

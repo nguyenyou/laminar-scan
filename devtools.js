@@ -33,6 +33,11 @@ const CONFIG = {
     inspectMarkedFill: "rgba(79, 192, 255, 0.10)",
     inspectMarkedPillBg: "rgba(20, 60, 80, 0.85)",
     inspectMarkedPillText: "#79c0ff",
+    // Inspector colors (React components)
+    inspectReactStroke: "rgba(97, 218, 251, 0.6)",
+    inspectReactFill: "rgba(97, 218, 251, 0.10)",
+    inspectReactPillBg: "rgba(20, 44, 52, 0.90)",
+    inspectReactPillText: "#61dafb",
   },
 
   /** Animation timing and behavior */
@@ -398,6 +403,241 @@ const STYLES = `
     display: none;
   }
 `;
+
+
+// ============================================================================
+// REACT INSPECTOR UTILITIES
+// ============================================================================
+// Utilities for inspecting React components from DOM nodes.
+// Based on React's internal implementation.
+// @see packages/react-dom-bindings/src/client/ReactDOMComponentTree.js
+// @see packages/shared/getComponentNameFromType.js
+// @see packages/react-reconciler/src/getComponentNameFromFiber.js
+// ============================================================================
+
+/**
+ * Get the React fiber attached to a DOM node.
+ * React attaches fibers using '__reactFiber$' + randomKey
+ * 
+ * @param {Element} domNode - DOM node to inspect
+ * @returns {object | null} React fiber or null
+ */
+function getReactFiber(domNode) {
+  if (!domNode) return null;
+  
+  // React attaches fiber with: '__reactFiber$' + randomKey
+  // Container roots use: '__reactContainer$' + randomKey
+  const key = Object.keys(domNode).find(
+    k => k.startsWith('__reactFiber$') || k.startsWith('__reactContainer$')
+  );
+  
+  return key ? domNode[key] : null;
+}
+
+/**
+ * Get the React props attached to a DOM node.
+ * React attaches props using '__reactProps$' + randomKey
+ * 
+ * @param {Element} domNode - DOM node to inspect
+ * @returns {object | null} React props or null
+ */
+function getReactProps(domNode) {
+  if (!domNode) return null;
+  
+  const key = Object.keys(domNode).find(k => k.startsWith('__reactProps$'));
+  return key ? domNode[key] : null;
+}
+
+/**
+ * Get component name from a React type.
+ * Mirrors: packages/shared/getComponentNameFromType.js
+ * 
+ * @param {*} type - React component type
+ * @returns {string | null} Component name or null
+ */
+function getComponentNameFromType(type) {
+  if (type == null) return null;
+  
+  if (typeof type === 'function') {
+    return type.displayName || type.name || null;
+  }
+  
+  if (typeof type === 'string') {
+    return type; // Host component like 'div'
+  }
+  
+  if (typeof type === 'object') {
+    const $$typeof = type.$$typeof;
+    if (!$$typeof) return null;
+    
+    const typeStr = $$typeof.toString();
+    
+    // ForwardRef
+    if (typeStr === 'Symbol(react.forward_ref)') {
+      const displayName = type.displayName;
+      if (displayName) return displayName;
+      const innerName = type.render?.displayName || type.render?.name || '';
+      return innerName ? `ForwardRef(${innerName})` : 'ForwardRef';
+    }
+    
+    // Memo
+    if (typeStr === 'Symbol(react.memo)') {
+      return type.displayName || getComponentNameFromType(type.type) || 'Memo';
+    }
+    
+    // Lazy
+    if (typeStr === 'Symbol(react.lazy)') {
+      try {
+        return getComponentNameFromType(type._init(type._payload));
+      } catch {
+        return null;
+      }
+    }
+    
+    // Context
+    if (typeStr === 'Symbol(react.context)') {
+      return (type.displayName || 'Context') + '.Provider';
+    }
+    
+    if (typeStr === 'Symbol(react.consumer)') {
+      return (type._context?.displayName || 'Context') + '.Consumer';
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Get component name from a React fiber.
+ * Mirrors: packages/react-reconciler/src/getComponentNameFromFiber.js
+ * 
+ * @param {object} fiber - React fiber
+ * @returns {string | null} Component name or null
+ */
+function getComponentNameFromFiber(fiber) {
+  if (!fiber) return null;
+  
+  const { type } = fiber;
+  
+  if (typeof type === 'function') {
+    return type.displayName || type.name || null;
+  }
+  
+  if (typeof type === 'string') {
+    return type; // DOM element like 'div'
+  }
+  
+  if (typeof type === 'object' && type !== null) {
+    return getComponentNameFromType(type);
+  }
+  
+  return null;
+}
+
+/**
+ * Get the nearest React component info for a DOM node.
+ * Traverses up the fiber tree to find actual React components (skipping host components).
+ * 
+ * @param {Element} domNode - DOM node to inspect
+ * @returns {{ name: string, fiber: object, props: object, element: Element } | null} Component info or null
+ */
+function getReactComponentFromNode(domNode) {
+  const fiber = getReactFiber(domNode);
+  if (!fiber) return null;
+  
+  let current = fiber;
+  while (current) {
+    const name = getComponentNameFromFiber(current);
+    
+    // Skip host components (DOM elements like 'div', 'span')
+    if (name && typeof current.type !== 'string') {
+      return {
+        name,
+        fiber: current,
+        props: current.memoizedProps,
+        element: domNode, // The DOM node we started from
+      };
+    }
+    
+    current = current.return;
+  }
+  
+  return null;
+}
+
+/**
+ * Get all React components in the fiber tree for a DOM node.
+ * Useful for getting the full component hierarchy.
+ * 
+ * @param {Element} domNode - DOM node to inspect
+ * @returns {Array<{ name: string, fiber: object, props: object }>} Array of component info
+ */
+function getAllReactComponentsFromNode(domNode) {
+  const fiber = getReactFiber(domNode);
+  if (!fiber) return [];
+  
+  const components = [];
+  let current = fiber;
+  
+  while (current) {
+    const name = getComponentNameFromFiber(current);
+    
+    if (name && typeof current.type !== 'string') {
+      components.push({
+        name,
+        fiber: current,
+        props: current.memoizedProps,
+      });
+    }
+    
+    current = current.return;
+  }
+  
+  return components;
+}
+
+/**
+ * Get React component info in a format compatible with the inspector.
+ * @param {Element} element - DOM element to inspect
+ * @returns {{ element: Element, name: string, isReact: true } | null} Component info or null
+ */
+function getReactComponent(element) {
+  if (!element) return null;
+  
+  const reactInfo = getReactComponentFromNode(element);
+  if (!reactInfo) return null;
+  
+  return {
+    element: reactInfo.element,
+    name: reactInfo.name,
+    isReact: true,
+  };
+}
+
+/**
+ * Get source info for a React component (limited compared to Scala).
+ * React components don't have built-in source mapping in production.
+ * 
+ * @param {Element} element - DOM element
+ * @returns {Object} Source information object
+ */
+function getReactComponentSourceInfo(element) {
+  const reactInfo = getReactComponentFromNode(element);
+  if (!reactInfo) return null;
+  
+  return {
+    sourcePath: null, // React doesn't expose source paths in production
+    sourceLine: null,
+    filename: null,
+    scalaName: null,
+    isMarked: false,
+    isReact: true,
+    displayName: reactInfo.name,
+    props: reactInfo.props,
+    fiber: reactInfo.fiber,
+  };
+}
+
 
 
 // ============================================================================
@@ -1364,7 +1604,7 @@ class InspectOverlay {
    * @private
    * @param {{ left: number, top: number, width: number, height: number }} rect - Rectangle to draw
    * @param {string} componentName - Component name
-   * @param {{ isMarked?: boolean }} info - Component info
+   * @param {{ isMarked?: boolean, isReact?: boolean }} info - Component info
    */
   #drawOverlay(rect, componentName, info) {
     if (!this.#ctx) return;
@@ -1373,11 +1613,28 @@ class InspectOverlay {
     if (!rect) return;
 
     const isMarked = info?.isMarked || false;
+    const isReact = info?.isReact || false;
     const colors = CONFIG.colors;
 
-    // Select colors based on whether component is marked
-    const strokeColor = isMarked ? colors.inspectMarkedStroke : colors.inspectStroke;
-    const fillColor = isMarked ? colors.inspectMarkedFill : colors.inspectFill;
+    // Select colors based on component type
+    let strokeColor, fillColor, pillBg, pillText;
+    
+    if (isReact) {
+      strokeColor = colors.inspectReactStroke;
+      fillColor = colors.inspectReactFill;
+      pillBg = colors.inspectReactPillBg;
+      pillText = colors.inspectReactPillText;
+    } else if (isMarked) {
+      strokeColor = colors.inspectMarkedStroke;
+      fillColor = colors.inspectMarkedFill;
+      pillBg = colors.inspectMarkedPillBg;
+      pillText = colors.inspectMarkedPillText;
+    } else {
+      strokeColor = colors.inspectStroke;
+      fillColor = colors.inspectFill;
+      pillBg = colors.inspectPillBg;
+      pillText = colors.inspectPillText;
+    }
 
     // Draw rectangle
     this.#ctx.strokeStyle = strokeColor;
@@ -1393,21 +1650,24 @@ class InspectOverlay {
       const pillPadding = 8;
 
       this.#ctx.font = "12px system-ui, -apple-system, sans-serif";
-      const textWidth = this.#ctx.measureText(componentName).width;
+      
+      // Add React icon prefix for React components
+      const displayName = isReact ? `⚛ ${componentName}` : componentName;
+      const textWidth = this.#ctx.measureText(displayName).width;
       const pillWidth = textWidth + pillPadding * 2;
       const pillX = rect.left;
       const pillY = rect.top - pillHeight - 4;
 
       // Pill background
-      this.#ctx.fillStyle = isMarked ? colors.inspectMarkedPillBg : colors.inspectPillBg;
+      this.#ctx.fillStyle = pillBg;
       this.#ctx.beginPath();
       this.#ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 3);
       this.#ctx.fill();
 
       // Text
-      this.#ctx.fillStyle = isMarked ? colors.inspectMarkedPillText : colors.inspectPillText;
+      this.#ctx.fillStyle = pillText;
       this.#ctx.textBaseline = "middle";
-      this.#ctx.fillText(componentName, pillX + pillPadding, pillY + pillHeight / 2);
+      this.#ctx.fillText(displayName, pillX + pillPadding, pillY + pillHeight / 2);
     }
   }
 }
@@ -1727,7 +1987,20 @@ class ComponentInspector {
 
     if (!element) return;
 
-    const component = getScalaComponent(element);
+    // Try Scala component first, then fall back to React
+    let component = getScalaComponent(element);
+    let info = null;
+    
+    if (component) {
+      info = getComponentSourceInfo(component.element);
+    } else {
+      // Try React component
+      component = getReactComponent(element);
+      if (component) {
+        info = getReactComponentSourceInfo(component.element);
+      }
+    }
+    
     if (!component) {
       if (this.#lastHovered) {
         this.#lastHovered = null;
@@ -1740,7 +2013,6 @@ class ComponentInspector {
     this.#lastHovered = component.element;
 
     const rect = component.element.getBoundingClientRect();
-    const info = getComponentSourceInfo(component.element);
 
     this.#overlay?.animateTo(
       { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
@@ -1770,18 +2042,44 @@ class ComponentInspector {
 
     if (!element) return;
 
-    const component = getScalaComponent(element);
-    if (!component) return;
-
-    // Open file in IDE
-    const info = getComponentSourceInfo(component.element);
-    if (info?.sourcePath) {
-      openInIDE(info.sourcePath, info.sourceLine);
-      // Exit inspect mode after jumping to source
-      this.stop();
-    } else {
-      console.warn("Devtools: No source path found for element");
+    // Try Scala component first
+    const scalaComponent = getScalaComponent(element);
+    if (scalaComponent) {
+      const info = getComponentSourceInfo(scalaComponent.element);
+      if (info?.sourcePath) {
+        openInIDE(info.sourcePath, info.sourceLine);
+        // Exit inspect mode after jumping to source
+        this.stop();
+        return;
+      }
     }
+    
+    // Try React component
+    const reactComponent = getReactComponent(element);
+    if (reactComponent) {
+      const info = getReactComponentSourceInfo(reactComponent.element);
+      // Log React component info to console (no source path available)
+      console.group(`%c⚛ React Component: ${reactComponent.name}`, 'color: #61dafb; font-weight: bold;');
+      console.log('Element:', reactComponent.element);
+      if (info?.props) {
+        console.log('Props:', info.props);
+      }
+      if (info?.fiber) {
+        console.log('Fiber:', info.fiber);
+      }
+      // Also log the full component hierarchy
+      const hierarchy = getAllReactComponentsFromNode(reactComponent.element);
+      if (hierarchy.length > 1) {
+        console.log('Component hierarchy:', hierarchy.map(c => c.name).join(' → '));
+      }
+      console.groupEnd();
+      
+      // Exit inspect mode after logging
+      this.stop();
+      return;
+    }
+    
+    console.warn("Devtools: No component found for element");
   }
 
   /**
