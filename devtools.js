@@ -1231,12 +1231,15 @@ class HighlightCanvas {
    * Add or update a highlight for an element.
    * @param {Element} element - Element to highlight
    * @param {string} name - Display name for the highlight
+   * @param {{ isReact?: boolean }} [options] - Additional options
    */
-  highlight(element, name) {
+  highlight(element, name, options = {}) {
     if (!this.#canvas || !element.isConnected) return;
 
     const rect = element.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
+
+    const isReact = options.isReact || false;
 
     const existing = this.#highlights.get(element);
     if (existing) {
@@ -1247,6 +1250,7 @@ class HighlightCanvas {
       existing.targetHeight = rect.height;
       existing.frame = 0;
       existing.count++;
+      existing.isReact = isReact;
     } else {
       // Create new highlight
       this.#highlights.set(element, {
@@ -1261,6 +1265,7 @@ class HighlightCanvas {
         targetHeight: rect.height,
         frame: 0,
         count: 1,
+        isReact,
       });
     }
 
@@ -1348,6 +1353,8 @@ class HighlightCanvas {
     const toRemove = [];
     const labelMap = new Map();
     const { r, g, b } = CONFIG.colors.primary;
+    // React color (cyan): rgb(97, 218, 251)
+    const reactColor = { r: 97, g: 218, b: 251 };
     const totalFrames = CONFIG.animation.totalFrames;
 
     // Draw all highlights
@@ -1372,18 +1379,21 @@ class HighlightCanvas {
         continue;
       }
 
+      // Select color based on component type
+      const color = highlight.isReact ? reactColor : { r, g, b };
+
       // Draw outline
-      this.#ctx.strokeStyle = `rgba(${r},${g},${b},${alpha})`;
+      this.#ctx.strokeStyle = `rgba(${color.r},${color.g},${color.b},${alpha})`;
       this.#ctx.lineWidth = 1;
       this.#ctx.beginPath();
       this.#ctx.rect(highlight.x, highlight.y, highlight.width, highlight.height);
       this.#ctx.stroke();
 
       // Draw fill
-      this.#ctx.fillStyle = `rgba(${r},${g},${b},${alpha * 0.1})`;
+      this.#ctx.fillStyle = `rgba(${color.r},${color.g},${color.b},${alpha * 0.1})`;
       this.#ctx.fill();
 
-      // Aggregate labels at same position
+      // Aggregate labels at same position (keep isReact flag)
       const labelKey = `${highlight.x},${highlight.y}`;
       const existing = labelMap.get(labelKey);
       if (!existing) {
@@ -1396,8 +1406,13 @@ class HighlightCanvas {
 
     // Draw labels
     this.#ctx.font = CONFIG.fonts.mono;
-    for (const [, { x, y, name, count, alpha }] of labelMap) {
-      const labelText = count > 1 ? `${name} ×${count}` : name;
+    for (const [, { x, y, name, count, alpha, isReact }] of labelMap) {
+      // Select color based on component type
+      const color = isReact ? reactColor : { r, g, b };
+      
+      // Add React icon prefix for React components
+      const displayName = isReact ? `⚛ ${name}` : name;
+      const labelText = count > 1 ? `${displayName} ×${count}` : displayName;
       const textWidth = this.#ctx.measureText(labelText).width;
       const textHeight = 11;
       const padding = 2;
@@ -1405,7 +1420,7 @@ class HighlightCanvas {
       let labelY = y - textHeight - padding * 2;
       if (labelY < 0) labelY = 0;
 
-      this.#ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+      this.#ctx.fillStyle = `rgba(${color.r},${color.g},${color.b},${alpha})`;
       this.#ctx.fillRect(x, labelY, textWidth + padding * 2, textHeight + padding * 2);
 
       this.#ctx.fillStyle = `rgba(255,255,255,${alpha})`;
@@ -1822,8 +1837,20 @@ class MutationScanner {
     if (!this.#canvas) return;
     if (!element.isConnected) return;
 
-    const name = getScalaSource(element) || element.tagName.toLowerCase();
-    this.#canvas.highlight(element, name);
+    // Try Scala source first, then React component, then fall back to tag name
+    let name = getScalaSource(element);
+    let isReact = false;
+    
+    if (!name) {
+      const reactComponent = getReactComponentFromNode(element);
+      if (reactComponent) {
+        name = reactComponent.name;
+        isReact = true;
+      }
+    }
+    name = name || element.tagName.toLowerCase();
+    
+    this.#canvas.highlight(element, name, { isReact });
   }
 }
 

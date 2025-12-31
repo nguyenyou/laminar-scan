@@ -147,8 +147,20 @@ class MutationScanner {
     if (!this.#canvas) return;
     if (!element.isConnected) return;
 
-    const name = getScalaSource(element) || element.tagName.toLowerCase();
-    this.#canvas.highlight(element, name);
+    // Try Scala source first, then React component, then fall back to tag name
+    let name = getScalaSource(element);
+    let isReact = false;
+    
+    if (!name) {
+      const reactComponent = getReactComponentFromNode(element);
+      if (reactComponent) {
+        name = reactComponent.name;
+        isReact = true;
+      }
+    }
+    name = name || element.tagName.toLowerCase();
+    
+    this.#canvas.highlight(element, name, { isReact });
   }
 }
 
