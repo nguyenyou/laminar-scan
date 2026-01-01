@@ -14,9 +14,10 @@ case class App() extends LaminarComponent {
         h1(cls("text-2xl font-bold text-gray-800"), "DevTools Demo"),
         p(
           cls("text-gray-600"),
-          "Use these components to test the FPS and Memory meters"
+          "Use these components to test the FPS, Memory, and MutationScanner"
         )
       ),
+      MutationDemo(),
       div(
         cls("flex flex-wrap gap-6 justify-center"),
         FPSKiller(),
