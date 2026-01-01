@@ -75,6 +75,8 @@ const CONFIG = {
     fpsDisplay: 200,
     memoryDisplay: 1000,
     resizeDebounce: 100,
+    tooltipShowDelay: 400,
+    tooltipHideDelay: 200,
   },
 
   /** Data attribute names for DOM elements */
@@ -2375,6 +2377,9 @@ class TooltipManager {
   /** @type {number | null} Timeout for hiding tooltip */
   #hideTimeout = null;
 
+  /** @type {number | null} Timeout for showing tooltip (delay to prevent accidental hover) */
+  #showTimeout = null;
+
   /** @type {number | null} Last hovered element's X position */
   #lastElementX = null;
 
@@ -2427,10 +2432,23 @@ class TooltipManager {
         }
         this.#lastElementX = currentX;
 
-        this.show(tooltipText, direction);
+        // If tooltip is already visible (moving between elements), show immediately
+        if (this.#element?.classList.contains("visible")) {
+          this.show(tooltipText, direction);
+        } else {
+          // Delay showing tooltip to prevent accidental hover triggers
+          this.#cancelShowTimeout();
+          this.#showTimeout = setTimeout(() => {
+            this.show(tooltipText, direction);
+            this.#showTimeout = null;
+          }, CONFIG.intervals.tooltipShowDelay || 300);
+        }
       };
 
       const handleMouseLeave = () => {
+        // Cancel any pending show
+        this.#cancelShowTimeout();
+
         // Delay hiding to allow moving between buttons
         this.#hideTimeout = setTimeout(() => {
           this.hide();
@@ -2522,6 +2540,7 @@ class TooltipManager {
    */
   destroy() {
     this.#cancelHideTimeout();
+    this.#cancelShowTimeout();
     for (const cleanup of this.#cleanupFns) {
       cleanup();
     }
@@ -2539,6 +2558,17 @@ class TooltipManager {
     if (this.#hideTimeout) {
       clearTimeout(this.#hideTimeout);
       this.#hideTimeout = null;
+    }
+  }
+
+  /**
+   * Cancel the show timeout.
+   * @private
+   */
+  #cancelShowTimeout() {
+    if (this.#showTimeout) {
+      clearTimeout(this.#showTimeout);
+      this.#showTimeout = null;
     }
   }
 }

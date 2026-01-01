@@ -72,6 +72,8 @@ const CONFIG = {
     fpsDisplay: 200,
     memoryDisplay: 1000,
     resizeDebounce: 100,
+    tooltipShowDelay: 400,
+    tooltipHideDelay: 200,
   },
 
   /** Data attribute names for DOM elements */
