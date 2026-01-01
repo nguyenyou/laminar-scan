@@ -250,7 +250,7 @@ const STYLES = `
 
   .devtools-meter-value.memory {
     min-width: 38px;
-    text-align: right;
+    text-align: center;
   }
 
   .devtools-meter-label {
