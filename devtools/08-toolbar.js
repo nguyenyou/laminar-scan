@@ -363,15 +363,60 @@ class Toolbar {
   }
 
   /**
-   * Create the help button.
+   * Create the DOM tree button.
    * @private
    */
   #createHelpButton() {
     const btn = document.createElement("button");
     btn.className = "devtools-icon-btn";
-    btn.setAttribute("data-tooltip", "Console API:\n• Devtools.enable() / disable()\n\n Drag toolbar to edge to minimize");
-    btn.innerHTML = ICONS.help;
+    btn.innerHTML = ICONS.domTree;
+
+    // Update tooltip with DOM stats on mouseenter
+    btn.addEventListener("mouseenter", () => {
+      const stats = this.#getDOMStats();
+      btn.setAttribute("data-tooltip", stats);
+    });
+
+    // Set initial tooltip
+    btn.setAttribute("data-tooltip", "Hover to see DOM statistics");
     return btn;
+  }
+
+  /**
+   * Get DOM node statistics.
+   * @private
+   * @returns {string} Formatted DOM statistics string
+   */
+  #getDOMStats() {
+    const body = document.body;
+    if (!body) return "DOM not ready";
+
+    // Count all nodes
+    const allNodes = body.querySelectorAll("*");
+    const totalNodes = allNodes.length;
+
+    // Count specific element types
+    const counts = {};
+    const elementsToCount = ["div", "span", "p", "a", "button", "input", "img", "ul", "li", "form", "table", "section", "article", "header", "footer", "nav"];
+
+    for (const el of allNodes) {
+      const tag = el.tagName.toLowerCase();
+      counts[tag] = (counts[tag] || 0) + 1;
+    }
+
+    // Build tooltip string
+    let tooltip = `DOM Nodes: ${totalNodes}\n`;
+
+    // Sort by count descending and show top elements
+    const sorted = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8);
+
+    if (sorted.length > 0) {
+      tooltip += sorted.map(([tag, count]) => `${tag}: ${count}`).join(" | ");
+    }
+
+    return tooltip;
   }
 
   /**

@@ -138,11 +138,14 @@ const ICONS = {
     <path d="M9 18l6-6-6-6"/>
   </svg>`,
 
-  /** Help/question mark icon */
-  help: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="10"/>
-    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-    <path d="M12 17h.01"/>
+  /** DOM tree icon (one root, two leaves) */
+  domTree: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="5" r="2"/>
+    <circle cx="6" cy="17" r="2"/>
+    <circle cx="18" cy="17" r="2"/>
+    <path d="M12 7v4"/>
+    <path d="M12 11L6 15"/>
+    <path d="M12 11l6 4"/>
   </svg>`,
 };
 
@@ -3404,15 +3407,60 @@ class Toolbar {
   }
 
   /**
-   * Create the help button.
+   * Create the DOM tree button.
    * @private
    */
   #createHelpButton() {
     const btn = document.createElement("button");
     btn.className = "devtools-icon-btn";
-    btn.setAttribute("data-tooltip", "Console API:\n• Devtools.enable() / disable()\n\n Drag toolbar to edge to minimize");
-    btn.innerHTML = ICONS.help;
+    btn.innerHTML = ICONS.domTree;
+
+    // Update tooltip with DOM stats on mouseenter
+    btn.addEventListener("mouseenter", () => {
+      const stats = this.#getDOMStats();
+      btn.setAttribute("data-tooltip", stats);
+    });
+
+    // Set initial tooltip
+    btn.setAttribute("data-tooltip", "Hover to see DOM statistics");
     return btn;
+  }
+
+  /**
+   * Get DOM node statistics.
+   * @private
+   * @returns {string} Formatted DOM statistics string
+   */
+  #getDOMStats() {
+    const body = document.body;
+    if (!body) return "DOM not ready";
+
+    // Count all nodes
+    const allNodes = body.querySelectorAll("*");
+    const totalNodes = allNodes.length;
+
+    // Count specific element types
+    const counts = {};
+    const elementsToCount = ["div", "span", "p", "a", "button", "input", "img", "ul", "li", "form", "table", "section", "article", "header", "footer", "nav"];
+
+    for (const el of allNodes) {
+      const tag = el.tagName.toLowerCase();
+      counts[tag] = (counts[tag] || 0) + 1;
+    }
+
+    // Build tooltip string
+    let tooltip = `DOM Nodes: ${totalNodes}\n`;
+
+    // Sort by count descending and show top elements
+    const sorted = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8);
+
+    if (sorted.length > 0) {
+      tooltip += sorted.map(([tag, count]) => `${tag}: ${count}`).join(" | ");
+    }
+
+    return tooltip;
   }
 
   /**
