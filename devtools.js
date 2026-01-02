@@ -1130,7 +1130,7 @@ class StorageManager {
    * @returns {boolean} True if enabled
    */
   static isDevtoolsEnabled() {
-    return this.getString(CONFIG.storageKeys.enabled) !== "false";
+    return this.getString(CONFIG.storageKeys.enabled) === "true";
   }
 
   /**
