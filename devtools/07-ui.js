@@ -189,13 +189,14 @@ class TooltipManager {
   }
 
   /**
-   * Update pinned content if tooltip is pinned.
+   * Update pinned content if tooltip is pinned (without animation).
    * @param {string} text - New tooltip text
    */
   updatePinnedContent(text) {
-    if (this.#pinned) {
+    if (this.#pinned && this.#contentElement) {
       this.#pinnedContent = text;
-      this.show(text);
+      // Update content directly without animation
+      this.#contentElement.textContent = text;
     }
   }
 

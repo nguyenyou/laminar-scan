@@ -56,6 +56,9 @@ class Toolbar {
   /** @type {number | null} */
   #memoryIntervalId = null;
 
+  /** @type {number | null} */
+  #domStatsIntervalId = null;
+
   // Callbacks
   /** @type {((enabled: boolean) => void) | null} */
   #onScanningToggle = null;
@@ -161,6 +164,12 @@ class Toolbar {
     this.#fpsMonitor.stop();
     this.#tooltipManager.destroy();
     this.#dragController?.destroy();
+
+    // Clear DOM stats interval
+    if (this.#domStatsIntervalId) {
+      clearInterval(this.#domStatsIntervalId);
+      this.#domStatsIntervalId = null;
+    }
 
     window.removeEventListener("resize", () => this.#handleResize());
 
@@ -381,13 +390,26 @@ class Toolbar {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       if (this.#tooltipManager.isPinned()) {
+        // Unpin and stop interval
         this.#tooltipManager.unpin();
         btn.classList.remove("active");
+        if (this.#domStatsIntervalId) {
+          clearInterval(this.#domStatsIntervalId);
+          this.#domStatsIntervalId = null;
+        }
       } else {
+        // Pin and start interval update
         const stats = this.#getDOMStats();
         btn.setAttribute("data-tooltip", stats);
         this.#tooltipManager.pin(stats);
         btn.classList.add("active");
+
+        // Update DOM stats every 500ms while pinned
+        this.#domStatsIntervalId = setInterval(() => {
+          const updatedStats = this.#getDOMStats();
+          btn.setAttribute("data-tooltip", updatedStats);
+          this.#tooltipManager.updatePinnedContent(updatedStats);
+        }, 500);
       }
     });
 
