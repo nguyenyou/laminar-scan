@@ -400,14 +400,14 @@ const STYLES = `
     animation: odometerRollDown 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   }
 
-  /* Color pulse for increases */
+  /* Color pulse for increases (more nodes = warning/red) */
   .odometer.increasing {
-    animation: pulseGreen 0.5s ease-out;
+    animation: pulseRed 0.5s ease-out;
   }
 
-  /* Color pulse for decreases */
+  /* Color pulse for decreases (fewer nodes = good/green) */
   .odometer.decreasing {
-    animation: pulseRed 0.5s ease-out;
+    animation: pulseGreen 0.5s ease-out;
   }
 
   @keyframes odometerRollUp {
