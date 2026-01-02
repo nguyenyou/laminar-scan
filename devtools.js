@@ -100,6 +100,7 @@ const CONFIG = {
     collapsed: "FRONTEND_DEVTOOLS_COLLAPSED",
     enabled: "FRONTEND_DEVTOOLS_ENABLED",
     scanning: "FRONTEND_DEVTOOLS_SCANNING",
+    domStatsPinned: "FRONTEND_DEVTOOLS_DOM_STATS_PINNED",
   },
 
   /** Font settings */
@@ -1022,6 +1023,22 @@ class StorageManager {
    */
   static setCollapsedState(state) {
     this.set(CONFIG.storageKeys.collapsed, state);
+  }
+
+  /**
+   * Check if DOM stats is pinned.
+   * @returns {boolean} True if pinned
+   */
+  static isDomStatsPinned() {
+    return this.getString(CONFIG.storageKeys.domStatsPinned) === "true";
+  }
+
+  /**
+   * Save DOM stats pinned state.
+   * @param {boolean} pinned - Whether DOM stats is pinned
+   */
+  static setDomStatsPinned(pinned) {
+    this.setString(CONFIG.storageKeys.domStatsPinned, pinned ? "true" : "false");
   }
 }
 
@@ -3525,33 +3542,69 @@ class Toolbar {
     // Toggle pin on click
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      if (this.#tooltipManager.isPinned()) {
-        // Unpin and stop interval
-        this.#tooltipManager.unpin();
-        btn.classList.remove("active");
-        if (this.#domStatsIntervalId) {
-          clearInterval(this.#domStatsIntervalId);
-          this.#domStatsIntervalId = null;
-        }
-      } else {
-        // Pin and start interval update
-        const stats = this.#getDOMStats();
-        btn.setAttribute("data-tooltip", stats);
-        this.#tooltipManager.pin(stats);
-        btn.classList.add("active");
-
-        // Update DOM stats every 500ms while pinned
-        this.#domStatsIntervalId = setInterval(() => {
-          const updatedStats = this.#getDOMStats();
-          btn.setAttribute("data-tooltip", updatedStats);
-          this.#tooltipManager.updatePinnedContent(updatedStats);
-        }, 500);
-      }
+      this.#toggleDomStatsPin(btn);
     });
 
     // Set initial tooltip
     btn.setAttribute("data-tooltip", "Click to pin DOM statistics");
+
+    // Restore pinned state from storage
+    if (StorageManager.isDomStatsPinned()) {
+      // Delay to ensure tooltip is ready
+      requestAnimationFrame(() => {
+        this.#pinDomStats(btn);
+      });
+    }
+
     return btn;
+  }
+
+  /**
+   * Pin DOM stats tooltip.
+   * @private
+   * @param {HTMLButtonElement} btn - The DOM stats button
+   */
+  #pinDomStats(btn) {
+    const stats = this.#getDOMStats();
+    btn.setAttribute("data-tooltip", stats);
+    this.#tooltipManager.pin(stats);
+    btn.classList.add("active");
+    StorageManager.setDomStatsPinned(true);
+
+    // Update DOM stats every 500ms while pinned
+    this.#domStatsIntervalId = setInterval(() => {
+      const updatedStats = this.#getDOMStats();
+      btn.setAttribute("data-tooltip", updatedStats);
+      this.#tooltipManager.updatePinnedContent(updatedStats);
+    }, 500);
+  }
+
+  /**
+   * Unpin DOM stats tooltip.
+   * @private
+   * @param {HTMLButtonElement} btn - The DOM stats button
+   */
+  #unpinDomStats(btn) {
+    this.#tooltipManager.unpin();
+    btn.classList.remove("active");
+    StorageManager.setDomStatsPinned(false);
+    if (this.#domStatsIntervalId) {
+      clearInterval(this.#domStatsIntervalId);
+      this.#domStatsIntervalId = null;
+    }
+  }
+
+  /**
+   * Toggle DOM stats pin state.
+   * @private
+   * @param {HTMLButtonElement} btn - The DOM stats button
+   */
+  #toggleDomStatsPin(btn) {
+    if (this.#tooltipManager.isPinned()) {
+      this.#unpinDomStats(btn);
+    } else {
+      this.#pinDomStats(btn);
+    }
   }
 
   /**

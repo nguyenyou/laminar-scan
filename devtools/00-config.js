@@ -97,6 +97,7 @@ const CONFIG = {
     collapsed: "FRONTEND_DEVTOOLS_COLLAPSED",
     enabled: "FRONTEND_DEVTOOLS_ENABLED",
     scanning: "FRONTEND_DEVTOOLS_SCANNING",
+    domStatsPinned: "FRONTEND_DEVTOOLS_DOM_STATS_PINNED",
   },
 
   /** Font settings */

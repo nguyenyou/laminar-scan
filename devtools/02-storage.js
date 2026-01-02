@@ -139,5 +139,21 @@ class StorageManager {
   static setCollapsedState(state) {
     this.set(CONFIG.storageKeys.collapsed, state);
   }
+
+  /**
+   * Check if DOM stats is pinned.
+   * @returns {boolean} True if pinned
+   */
+  static isDomStatsPinned() {
+    return this.getString(CONFIG.storageKeys.domStatsPinned) === "true";
+  }
+
+  /**
+   * Save DOM stats pinned state.
+   * @param {boolean} pinned - Whether DOM stats is pinned
+   */
+  static setDomStatsPinned(pinned) {
+    this.setString(CONFIG.storageKeys.domStatsPinned, pinned ? "true" : "false");
+  }
 }
 
