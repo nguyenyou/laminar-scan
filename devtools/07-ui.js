@@ -176,7 +176,16 @@ class TooltipManager {
   pin(text) {
     this.#pinned = true;
     this.#pinnedContent = text;
-    this.show(text);
+
+    // If tooltip is already visible, just update content without animation
+    if (this.#element?.classList.contains("visible")) {
+      if (this.#contentElement) {
+        this.#contentElement.textContent = text;
+      }
+    } else {
+      // If not visible, show it
+      this.show(text);
+    }
   }
 
   /**
