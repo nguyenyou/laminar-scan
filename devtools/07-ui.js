@@ -29,6 +29,12 @@ class TooltipManager {
   /** @type {boolean} Whether tooltips are disabled */
   #disabled = false;
 
+  /** @type {boolean} Whether tooltip is pinned (always visible) */
+  #pinned = false;
+
+  /** @type {string | null} Pinned tooltip content */
+  #pinnedContent = null;
+
   /**
    * Create the tooltip DOM elements.
    * @returns {{ container: HTMLDivElement, content: HTMLDivElement }} Tooltip elements
@@ -57,6 +63,9 @@ class TooltipManager {
     for (const el of tooltipElements) {
       const handleMouseEnter = () => {
         if (this.#disabled) return;
+
+        // If pinned, don't change the tooltip content
+        if (this.#pinned) return;
 
         // Cancel any pending hide
         this.#cancelHideTimeout();
@@ -155,9 +164,47 @@ class TooltipManager {
    * Hide the tooltip.
    */
   hide() {
-    if (!this.#element) return;
+    if (!this.#element || this.#pinned) return;
     this.#element.classList.remove("visible");
     this.#lastElementX = null;
+  }
+
+  /**
+   * Pin the tooltip to always show.
+   * @param {string} text - Tooltip text to display
+   */
+  pin(text) {
+    this.#pinned = true;
+    this.#pinnedContent = text;
+    this.show(text);
+  }
+
+  /**
+   * Unpin the tooltip and hide it.
+   */
+  unpin() {
+    this.#pinned = false;
+    this.#pinnedContent = null;
+    this.hide();
+  }
+
+  /**
+   * Update pinned content if tooltip is pinned.
+   * @param {string} text - New tooltip text
+   */
+  updatePinnedContent(text) {
+    if (this.#pinned) {
+      this.#pinnedContent = text;
+      this.show(text);
+    }
+  }
+
+  /**
+   * Check if tooltip is pinned.
+   * @returns {boolean}
+   */
+  isPinned() {
+    return this.#pinned;
   }
 
   /**

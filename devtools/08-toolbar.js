@@ -377,8 +377,22 @@ class Toolbar {
       btn.setAttribute("data-tooltip", stats);
     });
 
+    // Toggle pin on click
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (this.#tooltipManager.isPinned()) {
+        this.#tooltipManager.unpin();
+        btn.classList.remove("active");
+      } else {
+        const stats = this.#getDOMStats();
+        btn.setAttribute("data-tooltip", stats);
+        this.#tooltipManager.pin(stats);
+        btn.classList.add("active");
+      }
+    });
+
     // Set initial tooltip
-    btn.setAttribute("data-tooltip", "Hover to see DOM statistics");
+    btn.setAttribute("data-tooltip", "Click to pin DOM statistics");
     return btn;
   }
 
@@ -397,7 +411,6 @@ class Toolbar {
 
     // Count specific element types
     const counts = {};
-    const elementsToCount = ["div", "span", "p", "a", "button", "input", "img", "ul", "li", "form", "table", "section", "article", "header", "footer", "nav"];
 
     for (const el of allNodes) {
       const tag = el.tagName.toLowerCase();

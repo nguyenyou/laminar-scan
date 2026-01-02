@@ -138,14 +138,13 @@ const ICONS = {
     <path d="M9 18l6-6-6-6"/>
   </svg>`,
 
-  /** DOM tree icon (one root, two leaves) */
+  /** DOM tree icon (network/tree structure) */
   domTree: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="5" r="2"/>
-    <circle cx="6" cy="17" r="2"/>
-    <circle cx="18" cy="17" r="2"/>
-    <path d="M12 7v4"/>
-    <path d="M12 11L6 15"/>
-    <path d="M12 11l6 4"/>
+    <rect x="16" y="16" width="6" height="6" rx="1"/>
+    <rect x="2" y="16" width="6" height="6" rx="1"/>
+    <rect x="9" y="2" width="6" height="6" rx="1"/>
+    <path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/>
+    <path d="M12 12V8"/>
   </svg>`,
 };
 
@@ -2393,6 +2392,12 @@ class TooltipManager {
   /** @type {boolean} Whether tooltips are disabled */
   #disabled = false;
 
+  /** @type {boolean} Whether tooltip is pinned (always visible) */
+  #pinned = false;
+
+  /** @type {string | null} Pinned tooltip content */
+  #pinnedContent = null;
+
   /**
    * Create the tooltip DOM elements.
    * @returns {{ container: HTMLDivElement, content: HTMLDivElement }} Tooltip elements
@@ -2421,6 +2426,9 @@ class TooltipManager {
     for (const el of tooltipElements) {
       const handleMouseEnter = () => {
         if (this.#disabled) return;
+
+        // If pinned, don't change the tooltip content
+        if (this.#pinned) return;
 
         // Cancel any pending hide
         this.#cancelHideTimeout();
@@ -2519,9 +2527,47 @@ class TooltipManager {
    * Hide the tooltip.
    */
   hide() {
-    if (!this.#element) return;
+    if (!this.#element || this.#pinned) return;
     this.#element.classList.remove("visible");
     this.#lastElementX = null;
+  }
+
+  /**
+   * Pin the tooltip to always show.
+   * @param {string} text - Tooltip text to display
+   */
+  pin(text) {
+    this.#pinned = true;
+    this.#pinnedContent = text;
+    this.show(text);
+  }
+
+  /**
+   * Unpin the tooltip and hide it.
+   */
+  unpin() {
+    this.#pinned = false;
+    this.#pinnedContent = null;
+    this.hide();
+  }
+
+  /**
+   * Update pinned content if tooltip is pinned.
+   * @param {string} text - New tooltip text
+   */
+  updatePinnedContent(text) {
+    if (this.#pinned) {
+      this.#pinnedContent = text;
+      this.show(text);
+    }
+  }
+
+  /**
+   * Check if tooltip is pinned.
+   * @returns {boolean}
+   */
+  isPinned() {
+    return this.#pinned;
   }
 
   /**
@@ -3421,8 +3467,22 @@ class Toolbar {
       btn.setAttribute("data-tooltip", stats);
     });
 
+    // Toggle pin on click
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (this.#tooltipManager.isPinned()) {
+        this.#tooltipManager.unpin();
+        btn.classList.remove("active");
+      } else {
+        const stats = this.#getDOMStats();
+        btn.setAttribute("data-tooltip", stats);
+        this.#tooltipManager.pin(stats);
+        btn.classList.add("active");
+      }
+    });
+
     // Set initial tooltip
-    btn.setAttribute("data-tooltip", "Hover to see DOM statistics");
+    btn.setAttribute("data-tooltip", "Click to pin DOM statistics");
     return btn;
   }
 
@@ -3441,7 +3501,6 @@ class Toolbar {
 
     // Count specific element types
     const counts = {};
-    const elementsToCount = ["div", "span", "p", "a", "button", "input", "img", "ul", "li", "form", "table", "section", "article", "header", "footer", "nav"];
 
     for (const el of allNodes) {
       const tag = el.tagName.toLowerCase();
