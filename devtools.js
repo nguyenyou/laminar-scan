@@ -3335,9 +3335,9 @@ class Toolbar {
       this.#content.appendChild(memoryMeter);
     }
 
-    // Add help button
-    const helpBtn = this.#createHelpButton();
-    this.#content.appendChild(helpBtn);
+    // Add dom stats button
+    const domStatsBtn = this.#createDomStatsButton();
+    this.#content.appendChild(domStatsBtn);
 
     toolbar.appendChild(this.#content);
 
@@ -3466,7 +3466,7 @@ class Toolbar {
    * Create the DOM tree button.
    * @private
    */
-  #createHelpButton() {
+  #createDomStatsButton() {
     const btn = document.createElement("button");
     btn.className = "devtools-icon-btn";
     btn.innerHTML = ICONS.domTree;
