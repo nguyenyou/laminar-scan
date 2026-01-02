@@ -564,7 +564,7 @@ class Toolbar {
         const countHtml = createOdometer(count, prevCount);
         return `${tag}: ${countHtml}`;
       });
-      tooltip += parts.join(" | ");
+      tooltip += parts.join(" ");
     }
 
     // Store current counts for next comparison
