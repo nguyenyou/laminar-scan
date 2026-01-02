@@ -328,6 +328,33 @@ const STYLES = `
     visibility: visible;
   }
 
+  .devtools-tooltip .live-indicator {
+    display: none;
+    width: 6px;
+    height: 6px;
+    background: #22c55e;
+    border-radius: 50%;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    animation: pulse-green 1.5s ease-in-out infinite;
+  }
+
+  .devtools-tooltip.pinned .live-indicator {
+    display: block;
+  }
+
+  @keyframes pulse-green {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(0.85);
+    }
+  }
+
   .devtools-tooltip-content {
     white-space: pre-line;
     will-change: transform, opacity;
@@ -2406,6 +2433,11 @@ class TooltipManager {
     const container = document.createElement("div");
     container.className = "devtools-tooltip";
 
+    // Add live indicator (hidden by default, shown when pinned)
+    const liveIndicator = document.createElement("div");
+    liveIndicator.className = "live-indicator";
+    container.appendChild(liveIndicator);
+
     const content = document.createElement("div");
     content.className = "devtools-tooltip-content";
     container.appendChild(content);
@@ -2540,6 +2572,9 @@ class TooltipManager {
     this.#pinned = true;
     this.#pinnedContent = text;
 
+    // Add pinned class for styling
+    this.#element?.classList.add("pinned");
+
     // If tooltip is already visible, just update content without animation
     if (this.#element?.classList.contains("visible")) {
       if (this.#contentElement) {
@@ -2557,6 +2592,7 @@ class TooltipManager {
   unpin() {
     this.#pinned = false;
     this.#pinnedContent = null;
+    this.#element?.classList.remove("pinned");
     this.hide();
   }
 

@@ -43,6 +43,11 @@ class TooltipManager {
     const container = document.createElement("div");
     container.className = "devtools-tooltip";
 
+    // Add live indicator (hidden by default, shown when pinned)
+    const liveIndicator = document.createElement("div");
+    liveIndicator.className = "live-indicator";
+    container.appendChild(liveIndicator);
+
     const content = document.createElement("div");
     content.className = "devtools-tooltip-content";
     container.appendChild(content);
@@ -177,6 +182,9 @@ class TooltipManager {
     this.#pinned = true;
     this.#pinnedContent = text;
 
+    // Add pinned class for styling
+    this.#element?.classList.add("pinned");
+
     // If tooltip is already visible, just update content without animation
     if (this.#element?.classList.contains("visible")) {
       if (this.#contentElement) {
@@ -194,6 +202,7 @@ class TooltipManager {
   unpin() {
     this.#pinned = false;
     this.#pinnedContent = null;
+    this.#element?.classList.remove("pinned");
     this.hide();
   }
 
