@@ -2595,7 +2595,7 @@ class TooltipManager {
     // If tooltip is already visible, just update content without animation
     if (this.#element?.classList.contains("visible")) {
       if (this.#contentElement) {
-        this.#contentElement.textContent = text;
+        this.#contentElement.innerHTML = text;
       }
     } else {
       // If not visible, show it
@@ -2615,13 +2615,13 @@ class TooltipManager {
 
   /**
    * Update pinned content if tooltip is pinned (without animation).
-   * @param {string} text - New tooltip text
+   * @param {string} text - New tooltip text (can contain HTML)
    */
   updatePinnedContent(text) {
     if (this.#pinned && this.#contentElement) {
       this.#pinnedContent = text;
-      // Update content directly without animation
-      this.#contentElement.textContent = text;
+      // Update content directly without animation (supports HTML)
+      this.#contentElement.innerHTML = text;
     }
   }
 
@@ -3212,6 +3212,12 @@ class Toolbar {
   /** @type {number | null} */
   #domStatsIntervalId = null;
 
+  /** @type {Object<string, number> | null} Previous DOM node counts for comparison */
+  #prevDomCounts = null;
+
+  /** @type {number | null} Previous total DOM node count */
+  #prevTotalNodes = null;
+
   // Callbacks
   /** @type {((enabled: boolean) => void) | null} */
   #onScanningToggle = null;
@@ -3608,9 +3614,9 @@ class Toolbar {
   }
 
   /**
-   * Get DOM node statistics.
+   * Get DOM node statistics with color coding for changes.
    * @private
-   * @returns {string} Formatted DOM statistics string
+   * @returns {string} Formatted DOM statistics HTML string
    */
   #getDOMStats() {
     const body = document.body;
@@ -3628,8 +3634,25 @@ class Toolbar {
       counts[tag] = (counts[tag] || 0) + 1;
     }
 
-    // Build tooltip string
-    let tooltip = `DOM Nodes: ${totalNodes}\n`;
+    // Colors for changes
+    const COLOR_ADDED = "#ef4444";   // Red - more nodes added
+    const COLOR_REMOVED = "#22c55e"; // Green - nodes removed
+    const COLOR_NEW = "#3b82f6";     // Blue - new node type
+
+    // Build total nodes line with color
+    let totalColor = "";
+    if (this.#prevTotalNodes !== null) {
+      if (totalNodes > this.#prevTotalNodes) {
+        totalColor = COLOR_ADDED;
+      } else if (totalNodes < this.#prevTotalNodes) {
+        totalColor = COLOR_REMOVED;
+      }
+    }
+    this.#prevTotalNodes = totalNodes;
+
+    let tooltip = totalColor
+      ? `<span style="color:${totalColor}">DOM Nodes: ${totalNodes}</span>\n`
+      : `DOM Nodes: ${totalNodes}\n`;
 
     // Sort by count descending and show top elements
     const sorted = Object.entries(counts)
@@ -3637,8 +3660,27 @@ class Toolbar {
       .slice(0, 8);
 
     if (sorted.length > 0) {
-      tooltip += sorted.map(([tag, count]) => `${tag}: ${count}`).join(" | ");
+      const parts = sorted.map(([tag, count]) => {
+        let color = "";
+        if (this.#prevDomCounts !== null) {
+          const prevCount = this.#prevDomCounts[tag];
+          if (prevCount === undefined) {
+            color = COLOR_NEW; // New node type
+          } else if (count > prevCount) {
+            color = COLOR_ADDED; // More nodes
+          } else if (count < prevCount) {
+            color = COLOR_REMOVED; // Fewer nodes
+          }
+        }
+        return color
+          ? `<span style="color:${color}">${tag}: ${count}</span>`
+          : `${tag}: ${count}`;
+      });
+      tooltip += parts.join(" | ");
     }
+
+    // Store current counts for next comparison
+    this.#prevDomCounts = counts;
 
     return tooltip;
   }

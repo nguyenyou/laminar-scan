@@ -188,7 +188,7 @@ class TooltipManager {
     // If tooltip is already visible, just update content without animation
     if (this.#element?.classList.contains("visible")) {
       if (this.#contentElement) {
-        this.#contentElement.textContent = text;
+        this.#contentElement.innerHTML = text;
       }
     } else {
       // If not visible, show it
@@ -208,13 +208,13 @@ class TooltipManager {
 
   /**
    * Update pinned content if tooltip is pinned (without animation).
-   * @param {string} text - New tooltip text
+   * @param {string} text - New tooltip text (can contain HTML)
    */
   updatePinnedContent(text) {
     if (this.#pinned && this.#contentElement) {
       this.#pinnedContent = text;
-      // Update content directly without animation
-      this.#contentElement.textContent = text;
+      // Update content directly without animation (supports HTML)
+      this.#contentElement.innerHTML = text;
     }
   }
 
