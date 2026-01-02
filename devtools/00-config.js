@@ -358,32 +358,142 @@ const STYLES = `
     will-change: transform, opacity;
   }
 
-  /* Rolling number animation */
+  /* ===== Odometer Animation ===== */
+  .odometer {
+    display: inline-flex;
+    position: relative;
+    overflow: hidden;
+    vertical-align: bottom;
+    height: 1.3em;
+    line-height: 1.3em;
+  }
+
+  /* Container for each digit */
+  .odometer-digit {
+    display: inline-block;
+    position: relative;
+    overflow: hidden;
+    height: 1.3em;
+  }
+
+  /* Stack old and new values */
+  .odometer-digit-inner {
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .odometer-digit-old,
+  .odometer-digit-new {
+    display: block;
+    height: 1.3em;
+    line-height: 1.3em;
+    text-align: center;
+  }
+
+  /* Animation states */
+  .odometer-digit-inner.roll-up {
+    animation: odometerRollUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  .odometer-digit-inner.roll-down {
+    animation: odometerRollDown 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  /* Color pulse for increases */
+  .odometer.increasing {
+    animation: pulseGreen 0.5s ease-out;
+  }
+
+  /* Color pulse for decreases */
+  .odometer.decreasing {
+    animation: pulseRed 0.5s ease-out;
+  }
+
+  @keyframes odometerRollUp {
+    0% {
+      transform: translateY(0);
+    }
+    100% {
+      transform: translateY(-50%);
+    }
+  }
+
+  @keyframes odometerRollDown {
+    0% {
+      transform: translateY(-50%);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes pulseGreen {
+    0% {
+      color: inherit;
+      text-shadow: none;
+    }
+    30% {
+      color: #4ade80;
+      text-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
+    }
+    100% {
+      color: inherit;
+      text-shadow: none;
+    }
+  }
+
+  @keyframes pulseRed {
+    0% {
+      color: inherit;
+      text-shadow: none;
+    }
+    30% {
+      color: #f87171;
+      text-shadow: 0 0 8px rgba(248, 113, 113, 0.5);
+    }
+    100% {
+      color: inherit;
+      text-shadow: none;
+    }
+  }
+
+  /* Stagger animation delay for digits */
+  .odometer-digit:nth-child(1) .odometer-digit-inner { animation-delay: 0ms; }
+  .odometer-digit:nth-child(2) .odometer-digit-inner { animation-delay: 30ms; }
+  .odometer-digit:nth-child(3) .odometer-digit-inner { animation-delay: 60ms; }
+  .odometer-digit:nth-child(4) .odometer-digit-inner { animation-delay: 90ms; }
+  .odometer-digit:nth-child(5) .odometer-digit-inner { animation-delay: 120ms; }
+  .odometer-digit:nth-child(6) .odometer-digit-inner { animation-delay: 150ms; }
+
+  /* Legacy support for simple rolling (non-digit) */
   .num-roll {
     display: inline-block;
     overflow: hidden;
     vertical-align: bottom;
-    height: 1.2em;
-    line-height: 1.2em;
+    height: 1.3em;
+    line-height: 1.3em;
   }
 
   .num-roll-inner {
     display: inline-block;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .num-roll-inner.roll-up {
-    animation: rollUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: legacyRollUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   .num-roll-inner.roll-down {
-    animation: rollDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: legacyRollDown 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
-  @keyframes rollUp {
+  @keyframes legacyRollUp {
     0% {
       transform: translateY(100%);
       opacity: 0;
+    }
+    60% {
+      opacity: 1;
     }
     100% {
       transform: translateY(0);
@@ -391,10 +501,13 @@ const STYLES = `
     }
   }
 
-  @keyframes rollDown {
+  @keyframes legacyRollDown {
     0% {
       transform: translateY(-100%);
       opacity: 0;
+    }
+    60% {
+      opacity: 1;
     }
     100% {
       transform: translateY(0);

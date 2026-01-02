@@ -361,32 +361,142 @@ const STYLES = `
     will-change: transform, opacity;
   }
 
-  /* Rolling number animation */
+  /* ===== Odometer Animation ===== */
+  .odometer {
+    display: inline-flex;
+    position: relative;
+    overflow: hidden;
+    vertical-align: bottom;
+    height: 1.3em;
+    line-height: 1.3em;
+  }
+
+  /* Container for each digit */
+  .odometer-digit {
+    display: inline-block;
+    position: relative;
+    overflow: hidden;
+    height: 1.3em;
+  }
+
+  /* Stack old and new values */
+  .odometer-digit-inner {
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .odometer-digit-old,
+  .odometer-digit-new {
+    display: block;
+    height: 1.3em;
+    line-height: 1.3em;
+    text-align: center;
+  }
+
+  /* Animation states */
+  .odometer-digit-inner.roll-up {
+    animation: odometerRollUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  .odometer-digit-inner.roll-down {
+    animation: odometerRollDown 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  /* Color pulse for increases */
+  .odometer.increasing {
+    animation: pulseGreen 0.5s ease-out;
+  }
+
+  /* Color pulse for decreases */
+  .odometer.decreasing {
+    animation: pulseRed 0.5s ease-out;
+  }
+
+  @keyframes odometerRollUp {
+    0% {
+      transform: translateY(0);
+    }
+    100% {
+      transform: translateY(-50%);
+    }
+  }
+
+  @keyframes odometerRollDown {
+    0% {
+      transform: translateY(-50%);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes pulseGreen {
+    0% {
+      color: inherit;
+      text-shadow: none;
+    }
+    30% {
+      color: #4ade80;
+      text-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
+    }
+    100% {
+      color: inherit;
+      text-shadow: none;
+    }
+  }
+
+  @keyframes pulseRed {
+    0% {
+      color: inherit;
+      text-shadow: none;
+    }
+    30% {
+      color: #f87171;
+      text-shadow: 0 0 8px rgba(248, 113, 113, 0.5);
+    }
+    100% {
+      color: inherit;
+      text-shadow: none;
+    }
+  }
+
+  /* Stagger animation delay for digits */
+  .odometer-digit:nth-child(1) .odometer-digit-inner { animation-delay: 0ms; }
+  .odometer-digit:nth-child(2) .odometer-digit-inner { animation-delay: 30ms; }
+  .odometer-digit:nth-child(3) .odometer-digit-inner { animation-delay: 60ms; }
+  .odometer-digit:nth-child(4) .odometer-digit-inner { animation-delay: 90ms; }
+  .odometer-digit:nth-child(5) .odometer-digit-inner { animation-delay: 120ms; }
+  .odometer-digit:nth-child(6) .odometer-digit-inner { animation-delay: 150ms; }
+
+  /* Legacy support for simple rolling (non-digit) */
   .num-roll {
     display: inline-block;
     overflow: hidden;
     vertical-align: bottom;
-    height: 1.2em;
-    line-height: 1.2em;
+    height: 1.3em;
+    line-height: 1.3em;
   }
 
   .num-roll-inner {
     display: inline-block;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .num-roll-inner.roll-up {
-    animation: rollUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: legacyRollUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   .num-roll-inner.roll-down {
-    animation: rollDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: legacyRollDown 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
-  @keyframes rollUp {
+  @keyframes legacyRollUp {
     0% {
       transform: translateY(100%);
       opacity: 0;
+    }
+    60% {
+      opacity: 1;
     }
     100% {
       transform: translateY(0);
@@ -394,10 +504,13 @@ const STYLES = `
     }
   }
 
-  @keyframes rollDown {
+  @keyframes legacyRollDown {
     0% {
       transform: translateY(-100%);
       opacity: 0;
+    }
+    60% {
+      opacity: 1;
     }
     100% {
       transform: translateY(0);
@@ -1017,7 +1130,7 @@ class StorageManager {
    * @returns {boolean} True if enabled
    */
   static isDevtoolsEnabled() {
-    return this.getString(CONFIG.storageKeys.enabled) === "true";
+    return this.getString(CONFIG.storageKeys.enabled) !== "false";
   }
 
   /**
@@ -3663,7 +3776,7 @@ class Toolbar {
   }
 
   /**
-   * Get DOM node statistics with rolling animation for changes.
+   * Get DOM node statistics with smooth odometer animation for changes.
    * @private
    * @returns {string} Formatted DOM statistics HTML string
    */
@@ -3683,25 +3796,77 @@ class Toolbar {
       counts[tag] = (counts[tag] || 0) + 1;
     }
 
-    // Helper to create rolling number HTML
-    const createRollingNumber = (num, direction) => {
-      const animClass = direction === "up" ? "roll-up" : direction === "down" ? "roll-down" : "";
-      return `<span class="num-roll"><span class="num-roll-inner ${animClass}">${num}</span></span>`;
+    /**
+     * Create odometer HTML for a number with digit-by-digit animation.
+     * Shows old value sliding out while new value slides in.
+     * @param {number} newVal - Current value
+     * @param {number|null} oldVal - Previous value (null if first render)
+     * @returns {string} HTML string for odometer display
+     */
+    const createOdometer = (newVal, oldVal) => {
+      const newStr = String(newVal);
+      const oldStr = oldVal !== null ? String(oldVal) : newStr;
+      
+      // Determine overall direction for color pulse
+      let direction = "";
+      if (oldVal !== null) {
+        if (newVal > oldVal) direction = "increasing";
+        else if (newVal < oldVal) direction = "decreasing";
+      }
+
+      // Pad shorter string with leading spaces to match lengths
+      const maxLen = Math.max(newStr.length, oldStr.length);
+      const paddedNew = newStr.padStart(maxLen, " ");
+      const paddedOld = oldStr.padStart(maxLen, " ");
+
+      let digits = "";
+      for (let i = 0; i < maxLen; i++) {
+        const oldDigit = paddedOld[i];
+        const newDigit = paddedNew[i];
+        
+        // Determine if this digit changed and in which direction
+        let digitAnim = "";
+        if (oldDigit !== newDigit && oldVal !== null) {
+          // Compare numeric values of digits for animation direction
+          const oldNum = oldDigit === " " ? -1 : parseInt(oldDigit, 10);
+          const newNum = newDigit === " " ? -1 : parseInt(newDigit, 10);
+          
+          if (newNum > oldNum || (oldDigit === " " && newDigit !== " ")) {
+            digitAnim = "roll-up";
+          } else {
+            digitAnim = "roll-down";
+          }
+        }
+
+        if (digitAnim) {
+          // Animated digit: show old sliding out, new sliding in
+          const displayOld = oldDigit === " " ? "&nbsp;" : oldDigit;
+          const displayNew = newDigit === " " ? "&nbsp;" : newDigit;
+          
+          if (digitAnim === "roll-up") {
+            // Old on top, new below - animate up (old exits top, new enters from bottom)
+            digits += `<span class="odometer-digit"><span class="odometer-digit-inner ${digitAnim}"><span class="odometer-digit-old">${displayOld}</span><span class="odometer-digit-new">${displayNew}</span></span></span>`;
+          } else {
+            // New on top, old below - animate down (old exits bottom, new enters from top)
+            digits += `<span class="odometer-digit"><span class="odometer-digit-inner ${digitAnim}"><span class="odometer-digit-new">${displayNew}</span><span class="odometer-digit-old">${displayOld}</span></span></span>`;
+          }
+        } else {
+          // Static digit
+          const displayDigit = newDigit === " " ? "" : newDigit;
+          digits += `<span class="odometer-digit"><span class="odometer-digit-inner"><span class="odometer-digit-new">${displayDigit}</span></span></span>`;
+        }
+      }
+
+      return `<span class="odometer ${direction}">${digits}</span>`;
     };
 
-    // Build total nodes line with animation
-    let totalDirection = "";
-    if (this.#prevTotalNodes !== null) {
-      if (totalNodes > this.#prevTotalNodes) {
-        totalDirection = "up";
-      } else if (totalNodes < this.#prevTotalNodes) {
-        totalDirection = "down";
-      }
-    }
-    this.#prevTotalNodes = totalNodes;
-
-    const totalNumHtml = createRollingNumber(totalNodes, totalDirection);
+    // Build total nodes line with odometer animation
+    const totalNumHtml = createOdometer(totalNodes, this.#prevTotalNodes);
     let tooltip = `DOM Nodes: ${totalNumHtml}\n`;
+
+    // Store current total for next comparison
+    const prevTotal = this.#prevTotalNodes;
+    this.#prevTotalNodes = totalNodes;
 
     // Sort by count descending and show top elements
     const sorted = Object.entries(counts)
@@ -3710,18 +3875,8 @@ class Toolbar {
 
     if (sorted.length > 0) {
       const parts = sorted.map(([tag, count]) => {
-        let direction = "";
-        if (this.#prevDomCounts !== null) {
-          const prevCount = this.#prevDomCounts[tag];
-          if (prevCount === undefined) {
-            direction = "up"; // New node type
-          } else if (count > prevCount) {
-            direction = "up"; // More nodes
-          } else if (count < prevCount) {
-            direction = "down"; // Fewer nodes
-          }
-        }
-        const countHtml = createRollingNumber(count, direction);
+        const prevCount = this.#prevDomCounts?.[tag] ?? null;
+        const countHtml = createOdometer(count, prevCount);
         return `${tag}: ${countHtml}`;
       });
       tooltip += parts.join(" | ");
