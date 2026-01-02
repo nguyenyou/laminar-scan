@@ -361,6 +361,50 @@ const STYLES = `
     will-change: transform, opacity;
   }
 
+  /* Rolling number animation */
+  .num-roll {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: bottom;
+    height: 1.2em;
+    line-height: 1.2em;
+  }
+
+  .num-roll-inner {
+    display: inline-block;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .num-roll-inner.roll-up {
+    animation: rollUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .num-roll-inner.roll-down {
+    animation: rollDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @keyframes rollUp {
+    0% {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes rollDown {
+    0% {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
   .devtools-toolbar.corner-top .devtools-tooltip {
     bottom: auto;
     top: calc(100% + 8px);
@@ -2528,8 +2572,8 @@ class TooltipManager {
   }
 
   /**
-   * Show the tooltip with the given text.
-   * @param {string} text - Tooltip text
+   * Show the tooltip with text or HTML content.
+   * @param {string} text - Tooltip text or HTML
    * @param {'left' | 'right'} [direction='left'] - Animation direction
    */
   show(text, direction = "left") {
@@ -2538,9 +2582,14 @@ class TooltipManager {
     const content = this.#contentElement;
     const tooltip = this.#element;
 
+    // Use innerHTML to support HTML content (e.g., rolling numbers)
+    const setContent = (t) => {
+      content.innerHTML = t;
+    };
+
     // If not visible, just set content and show
     if (!tooltip.classList.contains("visible")) {
-      content.textContent = text;
+      setContent(text);
       content.style.transform = "translateX(0)";
       content.style.opacity = "1";
       tooltip.classList.add("visible");
@@ -2559,7 +2608,7 @@ class TooltipManager {
 
     // After slide out, update content and slide in
     setTimeout(() => {
-      content.textContent = text;
+      setContent(text);
       content.style.transition = "none";
       content.style.transform = `translateX(${slideInX})`;
 
@@ -3614,7 +3663,7 @@ class Toolbar {
   }
 
   /**
-   * Get DOM node statistics with color coding for changes.
+   * Get DOM node statistics with rolling animation for changes.
    * @private
    * @returns {string} Formatted DOM statistics HTML string
    */
@@ -3634,25 +3683,25 @@ class Toolbar {
       counts[tag] = (counts[tag] || 0) + 1;
     }
 
-    // Colors for changes
-    const COLOR_ADDED = "#ef4444";   // Red - more nodes added
-    const COLOR_REMOVED = "#22c55e"; // Green - nodes removed
-    const COLOR_NEW = "#3b82f6";     // Blue - new node type
+    // Helper to create rolling number HTML
+    const createRollingNumber = (num, direction) => {
+      const animClass = direction === "up" ? "roll-up" : direction === "down" ? "roll-down" : "";
+      return `<span class="num-roll"><span class="num-roll-inner ${animClass}">${num}</span></span>`;
+    };
 
-    // Build total nodes line with color
-    let totalColor = "";
+    // Build total nodes line with animation
+    let totalDirection = "";
     if (this.#prevTotalNodes !== null) {
       if (totalNodes > this.#prevTotalNodes) {
-        totalColor = COLOR_ADDED;
+        totalDirection = "up";
       } else if (totalNodes < this.#prevTotalNodes) {
-        totalColor = COLOR_REMOVED;
+        totalDirection = "down";
       }
     }
     this.#prevTotalNodes = totalNodes;
 
-    let tooltip = totalColor
-      ? `<span style="color:${totalColor}">DOM Nodes: ${totalNodes}</span>\n`
-      : `DOM Nodes: ${totalNodes}\n`;
+    const totalNumHtml = createRollingNumber(totalNodes, totalDirection);
+    let tooltip = `DOM Nodes: ${totalNumHtml}\n`;
 
     // Sort by count descending and show top elements
     const sorted = Object.entries(counts)
@@ -3661,20 +3710,19 @@ class Toolbar {
 
     if (sorted.length > 0) {
       const parts = sorted.map(([tag, count]) => {
-        let color = "";
+        let direction = "";
         if (this.#prevDomCounts !== null) {
           const prevCount = this.#prevDomCounts[tag];
           if (prevCount === undefined) {
-            color = COLOR_NEW; // New node type
+            direction = "up"; // New node type
           } else if (count > prevCount) {
-            color = COLOR_ADDED; // More nodes
+            direction = "up"; // More nodes
           } else if (count < prevCount) {
-            color = COLOR_REMOVED; // Fewer nodes
+            direction = "down"; // Fewer nodes
           }
         }
-        return color
-          ? `<span style="color:${color}">${tag}: ${count}</span>`
-          : `${tag}: ${count}`;
+        const countHtml = createRollingNumber(count, direction);
+        return `${tag}: ${countHtml}`;
       });
       tooltip += parts.join(" | ");
     }

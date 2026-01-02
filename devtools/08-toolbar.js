@@ -461,7 +461,7 @@ class Toolbar {
   }
 
   /**
-   * Get DOM node statistics with color coding for changes.
+   * Get DOM node statistics with rolling animation for changes.
    * @private
    * @returns {string} Formatted DOM statistics HTML string
    */
@@ -481,25 +481,25 @@ class Toolbar {
       counts[tag] = (counts[tag] || 0) + 1;
     }
 
-    // Colors for changes
-    const COLOR_ADDED = "#ef4444";   // Red - more nodes added
-    const COLOR_REMOVED = "#22c55e"; // Green - nodes removed
-    const COLOR_NEW = "#3b82f6";     // Blue - new node type
+    // Helper to create rolling number HTML
+    const createRollingNumber = (num, direction) => {
+      const animClass = direction === "up" ? "roll-up" : direction === "down" ? "roll-down" : "";
+      return `<span class="num-roll"><span class="num-roll-inner ${animClass}">${num}</span></span>`;
+    };
 
-    // Build total nodes line with color
-    let totalColor = "";
+    // Build total nodes line with animation
+    let totalDirection = "";
     if (this.#prevTotalNodes !== null) {
       if (totalNodes > this.#prevTotalNodes) {
-        totalColor = COLOR_ADDED;
+        totalDirection = "up";
       } else if (totalNodes < this.#prevTotalNodes) {
-        totalColor = COLOR_REMOVED;
+        totalDirection = "down";
       }
     }
     this.#prevTotalNodes = totalNodes;
 
-    let tooltip = totalColor
-      ? `<span style="color:${totalColor}">DOM Nodes: ${totalNodes}</span>\n`
-      : `DOM Nodes: ${totalNodes}\n`;
+    const totalNumHtml = createRollingNumber(totalNodes, totalDirection);
+    let tooltip = `DOM Nodes: ${totalNumHtml}\n`;
 
     // Sort by count descending and show top elements
     const sorted = Object.entries(counts)
@@ -508,20 +508,19 @@ class Toolbar {
 
     if (sorted.length > 0) {
       const parts = sorted.map(([tag, count]) => {
-        let color = "";
+        let direction = "";
         if (this.#prevDomCounts !== null) {
           const prevCount = this.#prevDomCounts[tag];
           if (prevCount === undefined) {
-            color = COLOR_NEW; // New node type
+            direction = "up"; // New node type
           } else if (count > prevCount) {
-            color = COLOR_ADDED; // More nodes
+            direction = "up"; // More nodes
           } else if (count < prevCount) {
-            color = COLOR_REMOVED; // Fewer nodes
+            direction = "down"; // Fewer nodes
           }
         }
-        return color
-          ? `<span style="color:${color}">${tag}: ${count}</span>`
-          : `${tag}: ${count}`;
+        const countHtml = createRollingNumber(count, direction);
+        return `${tag}: ${countHtml}`;
       });
       tooltip += parts.join(" | ");
     }

@@ -358,6 +358,50 @@ const STYLES = `
     will-change: transform, opacity;
   }
 
+  /* Rolling number animation */
+  .num-roll {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: bottom;
+    height: 1.2em;
+    line-height: 1.2em;
+  }
+
+  .num-roll-inner {
+    display: inline-block;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .num-roll-inner.roll-up {
+    animation: rollUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .num-roll-inner.roll-down {
+    animation: rollDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @keyframes rollUp {
+    0% {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes rollDown {
+    0% {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
   .devtools-toolbar.corner-top .devtools-tooltip {
     bottom: auto;
     top: calc(100% + 8px);

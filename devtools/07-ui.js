@@ -121,8 +121,8 @@ class TooltipManager {
   }
 
   /**
-   * Show the tooltip with the given text.
-   * @param {string} text - Tooltip text
+   * Show the tooltip with text or HTML content.
+   * @param {string} text - Tooltip text or HTML
    * @param {'left' | 'right'} [direction='left'] - Animation direction
    */
   show(text, direction = "left") {
@@ -131,9 +131,14 @@ class TooltipManager {
     const content = this.#contentElement;
     const tooltip = this.#element;
 
+    // Use innerHTML to support HTML content (e.g., rolling numbers)
+    const setContent = (t) => {
+      content.innerHTML = t;
+    };
+
     // If not visible, just set content and show
     if (!tooltip.classList.contains("visible")) {
-      content.textContent = text;
+      setContent(text);
       content.style.transform = "translateX(0)";
       content.style.opacity = "1";
       tooltip.classList.add("visible");
@@ -152,7 +157,7 @@ class TooltipManager {
 
     // After slide out, update content and slide in
     setTimeout(() => {
-      content.textContent = text;
+      setContent(text);
       content.style.transition = "none";
       content.style.transform = `translateX(${slideInX})`;
 
