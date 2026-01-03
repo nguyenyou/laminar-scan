@@ -268,8 +268,11 @@ class LagRadar {
       }
       .lagRadar-face {
         fill: transparent;
+        stroke: rgba(255, 255, 255, 0.85);
+        stroke-width: 4px;
       }
       .lagRadar-hand {
+        stroke: rgba(255, 255, 255, 0.85);
         stroke-width: 4px;
         stroke-linecap: round;
       }
@@ -383,7 +386,6 @@ class LagRadar {
     this.#arcs[this.#framePtr % frames].setAttribute("d", path);
     this.#arcs[this.#framePtr % frames].setAttribute("fill", `hsl(${hue}, 80%, 40%)`);
     this.#hand.setAttribute("d", `M${middle} ${middle}L${tx} ${ty}`);
-    this.#hand.setAttribute("stroke", `hsl(${hue}, 80%, 60%)`);
 
     for (let i = 0; i < frames; i++) {
       this.#arcs[(frames + this.#framePtr - i) % frames].style.fillOpacity = 1 - i / frames;
