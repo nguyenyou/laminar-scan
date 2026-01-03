@@ -1,21 +1,25 @@
 // ============================================================================
-// DEVTOOLS ENTRY POINT
+// INITIALIZATION
 // ============================================================================
-// Main entry point that imports all modules and initializes the devtools.
-// This file is bundled by Bun to create the final devtools.js output.
+// Auto-mount logic when DOM is ready.
 // ============================================================================
 
-// Import all modules in dependency order
-import "./config";
-import "./utilities";
-import "./react-inspector";
-import "./storage";
-import "./monitors";
-import "./canvas";
-import "./core";
-import "./hotkeys";
-import "./ui";
-import "./toolbar";
-import "./api";
-import "./init";
+import { StorageManager } from "./storage";
+import { Devtools } from "./api";
+
+/**
+ * Initialize devtools when the DOM is ready (if enabled).
+ */
+function initDevtools() {
+  if (StorageManager.isDevtoolsEnabled()) {
+    Devtools.init();
+  }
+}
+
+// Auto-mount when DOM is ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initDevtools);
+} else {
+  initDevtools();
+}
 

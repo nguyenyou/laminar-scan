@@ -738,6 +738,84 @@
   }
 `;
 
+  // devtools/storage.ts
+  class StorageManager {
+    static get(key, defaultValue = null) {
+      try {
+        const value = localStorage.getItem(key);
+        if (value === null)
+          return defaultValue;
+        return JSON.parse(value);
+      } catch {
+        return defaultValue;
+      }
+    }
+    static getString(key, defaultValue = "") {
+      try {
+        return localStorage.getItem(key) ?? defaultValue;
+      } catch {
+        return defaultValue;
+      }
+    }
+    static set(key, value) {
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    static setString(key, value) {
+      try {
+        localStorage.setItem(key, value);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    static remove(key) {
+      try {
+        localStorage.removeItem(key);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    static isDevtoolsEnabled() {
+      return this.getString(CONFIG.storageKeys.enabled) !== "false";
+    }
+    static isScanningEnabled() {
+      return this.getString(CONFIG.storageKeys.scanning) === "true";
+    }
+    static setScanningEnabled(enabled) {
+      this.setString(CONFIG.storageKeys.scanning, enabled ? "true" : "false");
+    }
+    static getToolbarPosition() {
+      return this.get(CONFIG.storageKeys.position, null);
+    }
+    static setToolbarPosition(corner, position) {
+      this.set(CONFIG.storageKeys.position, { corner, position });
+    }
+    static getCollapsedState() {
+      return this.get(CONFIG.storageKeys.collapsed, null);
+    }
+    static setCollapsedState(state) {
+      this.set(CONFIG.storageKeys.collapsed, state);
+    }
+    static isDomStatsPinned() {
+      return this.getString(CONFIG.storageKeys.domStatsPinned) === "true";
+    }
+    static setDomStatsPinned(pinned) {
+      this.setString(CONFIG.storageKeys.domStatsPinned, pinned ? "true" : "false");
+    }
+    static isLagRadarPinned() {
+      return this.getString(CONFIG.storageKeys.lagRadarPinned) === "true";
+    }
+    static setLagRadarPinned(pinned) {
+      this.setString(CONFIG.storageKeys.lagRadarPinned, pinned ? "true" : "false");
+    }
+  }
+
   // devtools/utilities.ts
   function lerp(start, end, speed = CONFIG.animation.interpolationSpeed) {
     return start + (end - start) * speed;
@@ -817,492 +895,6 @@
     }
     console.log("Devtools: Opening file in IDE:", uri);
     window.open(uri, "_blank");
-  }
-
-  // devtools/react-inspector.ts
-  function getReactFiber(domNode) {
-    try {
-      if (!domNode)
-        return null;
-      const key = Object.keys(domNode).find((k) => k.startsWith("__reactFiber$") || k.startsWith("__reactContainer$"));
-      return key ? domNode[key] : null;
-    } catch {
-      return null;
-    }
-  }
-  function getComponentNameFromType(type) {
-    try {
-      if (type == null)
-        return null;
-      if (typeof type === "function") {
-        return type.displayName || type.name || null;
-      }
-      if (typeof type === "string") {
-        return type;
-      }
-      if (typeof type === "object") {
-        const $$typeof = type.$$typeof;
-        if (!$$typeof)
-          return null;
-        const typeStr = $$typeof.toString();
-        if (typeStr === "Symbol(react.forward_ref)") {
-          const displayName = type.displayName;
-          if (displayName)
-            return displayName;
-          const innerName = type.render?.displayName || type.render?.name || "";
-          return innerName ? `ForwardRef(${innerName})` : "ForwardRef";
-        }
-        if (typeStr === "Symbol(react.memo)") {
-          return type.displayName || getComponentNameFromType(type.type) || "Memo";
-        }
-        if (typeStr === "Symbol(react.lazy)") {
-          try {
-            return getComponentNameFromType(type._init(type._payload));
-          } catch {
-            return null;
-          }
-        }
-        if (typeStr === "Symbol(react.context)") {
-          return (type.displayName || "Context") + ".Provider";
-        }
-        if (typeStr === "Symbol(react.consumer)") {
-          return (type._context?.displayName || "Context") + ".Consumer";
-        }
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  }
-  function getComponentNameFromFiber(fiber) {
-    try {
-      if (!fiber)
-        return null;
-      const { type } = fiber;
-      if (typeof type === "function") {
-        return type.displayName || type.name || null;
-      }
-      if (typeof type === "string") {
-        return type;
-      }
-      if (typeof type === "object" && type !== null) {
-        return getComponentNameFromType(type);
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  }
-  function getReactComponentFromNode(domNode) {
-    try {
-      const fiber = getReactFiber(domNode);
-      if (!fiber)
-        return null;
-      let current = fiber;
-      let iterations = 0;
-      const maxIterations = 500;
-      while (current && iterations < maxIterations) {
-        iterations++;
-        const name = getComponentNameFromFiber(current);
-        if (name && typeof current.type !== "string") {
-          return {
-            name,
-            fiber: current,
-            props: current.memoizedProps,
-            element: domNode
-          };
-        }
-        current = current.return;
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  }
-  function getAllReactComponentsFromNode(domNode) {
-    try {
-      const fiber = getReactFiber(domNode);
-      if (!fiber)
-        return [];
-      const components = [];
-      let current = fiber;
-      let iterations = 0;
-      const maxIterations = 500;
-      while (current && iterations < maxIterations) {
-        iterations++;
-        const name = getComponentNameFromFiber(current);
-        if (name && typeof current.type !== "string") {
-          components.push({
-            name,
-            fiber: current,
-            props: current.memoizedProps
-          });
-        }
-        current = current.return;
-      }
-      return components;
-    } catch {
-      return [];
-    }
-  }
-  function getReactComponent(element) {
-    try {
-      if (!element)
-        return null;
-      const reactInfo = getReactComponentFromNode(element);
-      if (!reactInfo)
-        return null;
-      return {
-        element: reactInfo.element,
-        name: reactInfo.name,
-        isReact: true
-      };
-    } catch {
-      return null;
-    }
-  }
-  function getReactComponentSourceInfo(element) {
-    try {
-      const reactInfo = getReactComponentFromNode(element);
-      if (!reactInfo)
-        return null;
-      let sourcePath = null;
-      let sourceLine = null;
-      let filename = null;
-      const name = reactInfo.name || "";
-      if (name.includes("/")) {
-        const lineMatch = name.match(/^(.+):(\d+)$/);
-        if (lineMatch) {
-          sourcePath = lineMatch[1] ?? null;
-          sourceLine = lineMatch[2] ?? null;
-        } else {
-          sourcePath = name;
-        }
-        if (sourcePath) {
-          const pathParts = sourcePath.split("/");
-          filename = pathParts[pathParts.length - 1] ?? null;
-        }
-      }
-      return {
-        sourcePath,
-        sourceLine,
-        filename,
-        scalaName: null,
-        isMarked: false,
-        isReact: true,
-        displayName: reactInfo.name,
-        props: reactInfo.props,
-        fiber: reactInfo.fiber
-      };
-    } catch {
-      return null;
-    }
-  }
-
-  // devtools/storage.ts
-  class StorageManager {
-    static get(key, defaultValue = null) {
-      try {
-        const value = localStorage.getItem(key);
-        if (value === null)
-          return defaultValue;
-        return JSON.parse(value);
-      } catch {
-        return defaultValue;
-      }
-    }
-    static getString(key, defaultValue = "") {
-      try {
-        return localStorage.getItem(key) ?? defaultValue;
-      } catch {
-        return defaultValue;
-      }
-    }
-    static set(key, value) {
-      try {
-        localStorage.setItem(key, JSON.stringify(value));
-        return true;
-      } catch {
-        return false;
-      }
-    }
-    static setString(key, value) {
-      try {
-        localStorage.setItem(key, value);
-        return true;
-      } catch {
-        return false;
-      }
-    }
-    static remove(key) {
-      try {
-        localStorage.removeItem(key);
-        return true;
-      } catch {
-        return false;
-      }
-    }
-    static isDevtoolsEnabled() {
-      return this.getString(CONFIG.storageKeys.enabled) !== "false";
-    }
-    static isScanningEnabled() {
-      return this.getString(CONFIG.storageKeys.scanning) === "true";
-    }
-    static setScanningEnabled(enabled) {
-      this.setString(CONFIG.storageKeys.scanning, enabled ? "true" : "false");
-    }
-    static getToolbarPosition() {
-      return this.get(CONFIG.storageKeys.position, null);
-    }
-    static setToolbarPosition(corner, position) {
-      this.set(CONFIG.storageKeys.position, { corner, position });
-    }
-    static getCollapsedState() {
-      return this.get(CONFIG.storageKeys.collapsed, null);
-    }
-    static setCollapsedState(state) {
-      this.set(CONFIG.storageKeys.collapsed, state);
-    }
-    static isDomStatsPinned() {
-      return this.getString(CONFIG.storageKeys.domStatsPinned) === "true";
-    }
-    static setDomStatsPinned(pinned) {
-      this.setString(CONFIG.storageKeys.domStatsPinned, pinned ? "true" : "false");
-    }
-    static isLagRadarPinned() {
-      return this.getString(CONFIG.storageKeys.lagRadarPinned) === "true";
-    }
-    static setLagRadarPinned(pinned) {
-      this.setString(CONFIG.storageKeys.lagRadarPinned, pinned ? "true" : "false");
-    }
-  }
-
-  // devtools/monitors.ts
-  var FPS_HISTORY_SIZE = 360;
-
-  class FPSMonitor {
-    #fps = 0;
-    #frameCount = 0;
-    #lastTime = 0;
-    #animationId = null;
-    #paused = false;
-    #initialized = false;
-    #history = new Array(FPS_HISTORY_SIZE).fill(-1);
-    #historyIndex = 0;
-    #lastHistorySample = 0;
-    #totalSamples = 0;
-    start() {
-      if (this.#initialized && !this.#paused)
-        return;
-      this.#initialized = true;
-      this.#paused = false;
-      this.#lastTime = performance.now();
-      this.#frameCount = 0;
-      if (!this.#animationId) {
-        this.#animationId = requestAnimationFrame(() => this.#tick());
-      }
-    }
-    stop() {
-      this.#cancelAnimation();
-      this.#fps = 0;
-      this.#frameCount = 0;
-      this.#lastTime = 0;
-      this.#initialized = false;
-      this.#paused = false;
-    }
-    pause() {
-      this.#paused = true;
-      this.#cancelAnimation();
-    }
-    resume() {
-      if (!this.#paused || !this.#initialized)
-        return;
-      this.#paused = false;
-      this.#lastTime = performance.now();
-      this.#frameCount = 0;
-      if (!this.#animationId) {
-        this.#animationId = requestAnimationFrame(() => this.#tick());
-      }
-    }
-    getFPS() {
-      if (!this.#initialized) {
-        this.start();
-        return 60;
-      }
-      return this.#fps;
-    }
-    getColor() {
-      return this.#getColorForFPS(this.#fps);
-    }
-    #getColorForFPS(fps) {
-      const { fpsCritical, fpsWarning } = CONFIG.thresholds;
-      const { fpsCritical: criticalColor, fpsWarning: warningColor, fpsGood: goodColor } = CONFIG.colors;
-      if (fps < fpsCritical)
-        return criticalColor;
-      if (fps < fpsWarning)
-        return warningColor;
-      return goodColor;
-    }
-    getHistory() {
-      return {
-        history: this.#history,
-        index: this.#historyIndex,
-        totalSamples: this.#totalSamples
-      };
-    }
-    #tick() {
-      if (this.#paused) {
-        this.#animationId = null;
-        return;
-      }
-      this.#frameCount++;
-      const now = performance.now();
-      if (now - this.#lastTime >= 1000) {
-        this.#fps = this.#frameCount;
-        this.#frameCount = 0;
-        this.#lastTime = now;
-      }
-      if (now - this.#lastHistorySample >= 16.67) {
-        this.#history[this.#historyIndex] = this.#fps;
-        this.#historyIndex = (this.#historyIndex + 1) % FPS_HISTORY_SIZE;
-        this.#lastHistorySample = now;
-        this.#totalSamples++;
-      }
-      this.#animationId = requestAnimationFrame(() => this.#tick());
-    }
-    #cancelAnimation() {
-      if (this.#animationId) {
-        cancelAnimationFrame(this.#animationId);
-        this.#animationId = null;
-      }
-    }
-  }
-
-  class LagRadar {
-    #root = null;
-    #hand = null;
-    #arcs = [];
-    #animationId = null;
-    #size = 200;
-    #running = false;
-    #frames = 50;
-    #speed = 0.0017;
-    #inset = 3;
-    #last = null;
-    #framePtr = 0;
-    #middle = 0;
-    #radius = 0;
-    constructor(_fpsMonitor, options = {}) {
-      this.#size = options.size || 200;
-      this.#frames = options.frames || 50;
-      this.#speed = options.speed || 0.0017;
-      this.#inset = options.inset || 3;
-      this.#middle = this.#size / 2;
-      this.#radius = this.#middle - this.#inset;
-    }
-    #svg(tag, props = {}, children = []) {
-      const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
-      Object.entries(props).forEach(([prop, value]) => el.setAttribute(prop, value));
-      children.forEach((child) => el.appendChild(child));
-      return el;
-    }
-    create() {
-      if (this.#root)
-        return this.#root;
-      const styles = document.createTextNode(`
-      .lagRadar-sweep > * { shape-rendering: crispEdges; }
-      .lagRadar-face { fill: transparent; stroke: rgba(255, 255, 255, 0.85); stroke-width: 4px; }
-      .lagRadar-hand { stroke: rgba(255, 255, 255, 0.85); stroke-width: 4px; stroke-linecap: round; }
-    `);
-      this.#hand = this.#svg("path", { class: "lagRadar-hand" });
-      this.#arcs = new Array(this.#frames).fill("path").map(() => this.#svg("path"));
-      this.#root = this.#svg("svg", { class: "lagRadar", height: String(this.#size), width: String(this.#size), style: "display: block; margin: 0 auto;" }, [
-        this.#svg("style", { type: "text/css" }, [styles]),
-        this.#svg("g", { class: "lagRadar-sweep" }, this.#arcs),
-        this.#hand,
-        this.#svg("circle", { class: "lagRadar-face", cx: String(this.#middle), cy: String(this.#middle), r: String(this.#radius) })
-      ]);
-      return this.#root;
-    }
-    start() {
-      if (this.#running)
-        return;
-      this.#running = true;
-      this.#last = { rotation: 0, now: Date.now(), tx: this.#middle + this.#radius, ty: this.#middle };
-      this.#framePtr = 0;
-      this.#animate();
-    }
-    stop() {
-      this.#running = false;
-      if (this.#animationId) {
-        cancelAnimationFrame(this.#animationId);
-        this.#animationId = null;
-      }
-    }
-    destroy() {
-      this.stop();
-      if (this.#root)
-        this.#root.remove();
-      this.#root = null;
-      this.#hand = null;
-      this.#arcs = [];
-    }
-    #calcHue(msDelta) {
-      const maxHue = 120, maxMs = 1000, logF = 10;
-      const mult = maxHue / Math.log(maxMs / logF);
-      return maxHue - Math.max(0, Math.min(mult * Math.log(msDelta / logF), maxHue));
-    }
-    #animate() {
-      if (!this.#running || !this.#last)
-        return;
-      const PI2 = Math.PI * 2, middle = this.#middle, radius = this.#radius, frames = this.#frames;
-      const now = Date.now();
-      const rdelta = Math.min(PI2 - this.#speed, this.#speed * (now - this.#last.now));
-      const rotation = (this.#last.rotation + rdelta) % PI2;
-      const tx = middle + radius * Math.cos(rotation);
-      const ty = middle + radius * Math.sin(rotation);
-      const bigArc = rdelta < Math.PI ? "0" : "1";
-      const path = `M${tx} ${ty}A${radius} ${radius} 0 ${bigArc} 0 ${this.#last.tx} ${this.#last.ty}L${middle} ${middle}`;
-      const hue = this.#calcHue(rdelta / this.#speed);
-      this.#arcs[this.#framePtr % frames]?.setAttribute("d", path);
-      this.#arcs[this.#framePtr % frames]?.setAttribute("fill", `hsl(${hue}, 80%, 40%)`);
-      if (this.#hand)
-        this.#hand.setAttribute("d", `M${middle} ${middle}L${tx} ${ty}`);
-      for (let i = 0;i < frames; i++) {
-        const arc = this.#arcs[(frames + this.#framePtr - i) % frames];
-        if (arc)
-          arc.style.fillOpacity = String(1 - i / frames);
-      }
-      this.#framePtr++;
-      this.#last = { now, rotation, tx, ty };
-      this.#animationId = requestAnimationFrame(() => this.#animate());
-    }
-  }
-
-  class MemoryMonitor {
-    static isSupported() {
-      return !!(performance.memory && typeof performance.memory.usedJSHeapSize === "number");
-    }
-    getInfo() {
-      const memory = performance.memory;
-      if (!memory || typeof memory.usedJSHeapSize !== "number")
-        return null;
-      const bytesToMB = (bytes) => Math.round(bytes / (1024 * 1024));
-      const usedMB = bytesToMB(memory.usedJSHeapSize);
-      const totalMB = bytesToMB(memory.totalJSHeapSize);
-      const limitMB = bytesToMB(memory.jsHeapSizeLimit);
-      const percent = Math.round(memory.usedJSHeapSize / memory.jsHeapSizeLimit * 100);
-      return { usedMB, totalMB, limitMB, percent };
-    }
-    getColor(percent) {
-      const { memoryCritical, memoryWarning } = CONFIG.thresholds;
-      const { memoryCritical: criticalColor, memoryWarning: warningColor, memoryHealthy: healthyColor } = CONFIG.colors;
-      if (percent > memoryCritical)
-        return criticalColor;
-      if (percent > memoryWarning)
-        return warningColor;
-      return healthyColor;
-    }
   }
 
   // devtools/canvas.ts
@@ -1685,6 +1277,186 @@
     }
   }
 
+  // devtools/react-inspector.ts
+  function getReactFiber(domNode) {
+    try {
+      if (!domNode)
+        return null;
+      const key = Object.keys(domNode).find((k) => k.startsWith("__reactFiber$") || k.startsWith("__reactContainer$"));
+      return key ? domNode[key] : null;
+    } catch {
+      return null;
+    }
+  }
+  function getComponentNameFromType(type) {
+    try {
+      if (type == null)
+        return null;
+      if (typeof type === "function") {
+        return type.displayName || type.name || null;
+      }
+      if (typeof type === "string") {
+        return type;
+      }
+      if (typeof type === "object") {
+        const $$typeof = type.$$typeof;
+        if (!$$typeof)
+          return null;
+        const typeStr = $$typeof.toString();
+        if (typeStr === "Symbol(react.forward_ref)") {
+          const displayName = type.displayName;
+          if (displayName)
+            return displayName;
+          const innerName = type.render?.displayName || type.render?.name || "";
+          return innerName ? `ForwardRef(${innerName})` : "ForwardRef";
+        }
+        if (typeStr === "Symbol(react.memo)") {
+          return type.displayName || getComponentNameFromType(type.type) || "Memo";
+        }
+        if (typeStr === "Symbol(react.lazy)") {
+          try {
+            return getComponentNameFromType(type._init(type._payload));
+          } catch {
+            return null;
+          }
+        }
+        if (typeStr === "Symbol(react.context)") {
+          return (type.displayName || "Context") + ".Provider";
+        }
+        if (typeStr === "Symbol(react.consumer)") {
+          return (type._context?.displayName || "Context") + ".Consumer";
+        }
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+  function getComponentNameFromFiber(fiber) {
+    try {
+      if (!fiber)
+        return null;
+      const { type } = fiber;
+      if (typeof type === "function") {
+        return type.displayName || type.name || null;
+      }
+      if (typeof type === "string") {
+        return type;
+      }
+      if (typeof type === "object" && type !== null) {
+        return getComponentNameFromType(type);
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+  function getReactComponentFromNode(domNode) {
+    try {
+      const fiber = getReactFiber(domNode);
+      if (!fiber)
+        return null;
+      let current = fiber;
+      let iterations = 0;
+      const maxIterations = 500;
+      while (current && iterations < maxIterations) {
+        iterations++;
+        const name = getComponentNameFromFiber(current);
+        if (name && typeof current.type !== "string") {
+          return {
+            name,
+            fiber: current,
+            props: current.memoizedProps,
+            element: domNode
+          };
+        }
+        current = current.return;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+  function getAllReactComponentsFromNode(domNode) {
+    try {
+      const fiber = getReactFiber(domNode);
+      if (!fiber)
+        return [];
+      const components = [];
+      let current = fiber;
+      let iterations = 0;
+      const maxIterations = 500;
+      while (current && iterations < maxIterations) {
+        iterations++;
+        const name = getComponentNameFromFiber(current);
+        if (name && typeof current.type !== "string") {
+          components.push({
+            name,
+            fiber: current,
+            props: current.memoizedProps
+          });
+        }
+        current = current.return;
+      }
+      return components;
+    } catch {
+      return [];
+    }
+  }
+  function getReactComponent(element) {
+    try {
+      if (!element)
+        return null;
+      const reactInfo = getReactComponentFromNode(element);
+      if (!reactInfo)
+        return null;
+      return {
+        element: reactInfo.element,
+        name: reactInfo.name,
+        isReact: true
+      };
+    } catch {
+      return null;
+    }
+  }
+  function getReactComponentSourceInfo(element) {
+    try {
+      const reactInfo = getReactComponentFromNode(element);
+      if (!reactInfo)
+        return null;
+      let sourcePath = null;
+      let sourceLine = null;
+      let filename = null;
+      const name = reactInfo.name || "";
+      if (name.includes("/")) {
+        const lineMatch = name.match(/^(.+):(\d+)$/);
+        if (lineMatch) {
+          sourcePath = lineMatch[1] ?? null;
+          sourceLine = lineMatch[2] ?? null;
+        } else {
+          sourcePath = name;
+        }
+        if (sourcePath) {
+          const pathParts = sourcePath.split("/");
+          filename = pathParts[pathParts.length - 1] ?? null;
+        }
+      }
+      return {
+        sourcePath,
+        sourceLine,
+        filename,
+        scalaName: null,
+        isMarked: false,
+        isReact: true,
+        displayName: reactInfo.name,
+        props: reactInfo.props,
+        fiber: reactInfo.fiber
+      };
+    } catch {
+      return null;
+    }
+  }
+
   // devtools/core.ts
   class MutationScanner {
     #observer = null;
@@ -1957,57 +1729,231 @@
     }
   }
 
-  // devtools/hotkeys.ts
-  class HotkeyManager {
-    #handlers = new Map;
-    #active = false;
-    #boundKeydown;
-    constructor() {
-      this.#boundKeydown = this.#handleKeydown.bind(this);
-    }
+  // devtools/monitors.ts
+  var FPS_HISTORY_SIZE = 360;
+
+  class FPSMonitor {
+    #fps = 0;
+    #frameCount = 0;
+    #lastTime = 0;
+    #animationId = null;
+    #paused = false;
+    #initialized = false;
+    #history = new Array(FPS_HISTORY_SIZE).fill(-1);
+    #historyIndex = 0;
+    #lastHistorySample = 0;
+    #totalSamples = 0;
     start() {
-      if (this.#active)
+      if (this.#initialized && !this.#paused)
         return;
-      this.#active = true;
-      document.addEventListener("keydown", this.#boundKeydown, { capture: true });
+      this.#initialized = true;
+      this.#paused = false;
+      this.#lastTime = performance.now();
+      this.#frameCount = 0;
+      if (!this.#animationId) {
+        this.#animationId = requestAnimationFrame(() => this.#tick());
+      }
     }
     stop() {
-      if (!this.#active)
+      this.#cancelAnimation();
+      this.#fps = 0;
+      this.#frameCount = 0;
+      this.#lastTime = 0;
+      this.#initialized = false;
+      this.#paused = false;
+    }
+    pause() {
+      this.#paused = true;
+      this.#cancelAnimation();
+    }
+    resume() {
+      if (!this.#paused || !this.#initialized)
         return;
-      this.#active = false;
-      document.removeEventListener("keydown", this.#boundKeydown, { capture: true });
-    }
-    register(combo, handler) {
-      this.#handlers.set(combo.toLowerCase(), handler);
-    }
-    unregister(combo) {
-      this.#handlers.delete(combo.toLowerCase());
-    }
-    #handleKeydown(e) {
-      const parts = [];
-      if (e.ctrlKey)
-        parts.push("ctrl");
-      if (e.metaKey)
-        parts.push("meta");
-      if (e.shiftKey)
-        parts.push("shift");
-      if (e.altKey)
-        parts.push("alt");
-      const key = e.key.toLowerCase();
-      if (!["control", "shift", "alt", "meta"].includes(key)) {
-        parts.push(key);
+      this.#paused = false;
+      this.#lastTime = performance.now();
+      this.#frameCount = 0;
+      if (!this.#animationId) {
+        this.#animationId = requestAnimationFrame(() => this.#tick());
       }
-      const combo = parts.join("+");
-      const handler = this.#handlers.get(combo);
-      if (handler) {
-        e.preventDefault();
-        e.stopPropagation();
-        handler();
+    }
+    getFPS() {
+      if (!this.#initialized) {
+        this.start();
+        return 60;
+      }
+      return this.#fps;
+    }
+    getColor() {
+      return this.#getColorForFPS(this.#fps);
+    }
+    #getColorForFPS(fps) {
+      const { fpsCritical, fpsWarning } = CONFIG.thresholds;
+      const { fpsCritical: criticalColor, fpsWarning: warningColor, fpsGood: goodColor } = CONFIG.colors;
+      if (fps < fpsCritical)
+        return criticalColor;
+      if (fps < fpsWarning)
+        return warningColor;
+      return goodColor;
+    }
+    getHistory() {
+      return {
+        history: this.#history,
+        index: this.#historyIndex,
+        totalSamples: this.#totalSamples
+      };
+    }
+    #tick() {
+      if (this.#paused) {
+        this.#animationId = null;
+        return;
+      }
+      this.#frameCount++;
+      const now = performance.now();
+      if (now - this.#lastTime >= 1000) {
+        this.#fps = this.#frameCount;
+        this.#frameCount = 0;
+        this.#lastTime = now;
+      }
+      if (now - this.#lastHistorySample >= 16.67) {
+        this.#history[this.#historyIndex] = this.#fps;
+        this.#historyIndex = (this.#historyIndex + 1) % FPS_HISTORY_SIZE;
+        this.#lastHistorySample = now;
+        this.#totalSamples++;
+      }
+      this.#animationId = requestAnimationFrame(() => this.#tick());
+    }
+    #cancelAnimation() {
+      if (this.#animationId) {
+        cancelAnimationFrame(this.#animationId);
+        this.#animationId = null;
+      }
+    }
+  }
+
+  class LagRadar {
+    #root = null;
+    #hand = null;
+    #arcs = [];
+    #animationId = null;
+    #size = 200;
+    #running = false;
+    #frames = 50;
+    #speed = 0.0017;
+    #inset = 3;
+    #last = null;
+    #framePtr = 0;
+    #middle = 0;
+    #radius = 0;
+    constructor(_fpsMonitor, options = {}) {
+      this.#size = options.size || 200;
+      this.#frames = options.frames || 50;
+      this.#speed = options.speed || 0.0017;
+      this.#inset = options.inset || 3;
+      this.#middle = this.#size / 2;
+      this.#radius = this.#middle - this.#inset;
+    }
+    #svg(tag, props = {}, children = []) {
+      const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+      Object.entries(props).forEach(([prop, value]) => el.setAttribute(prop, value));
+      children.forEach((child) => el.appendChild(child));
+      return el;
+    }
+    create() {
+      if (this.#root)
+        return this.#root;
+      const styles = document.createTextNode(`
+      .lagRadar-sweep > * { shape-rendering: crispEdges; }
+      .lagRadar-face { fill: transparent; stroke: rgba(255, 255, 255, 0.85); stroke-width: 4px; }
+      .lagRadar-hand { stroke: rgba(255, 255, 255, 0.85); stroke-width: 4px; stroke-linecap: round; }
+    `);
+      this.#hand = this.#svg("path", { class: "lagRadar-hand" });
+      this.#arcs = new Array(this.#frames).fill("path").map(() => this.#svg("path"));
+      this.#root = this.#svg("svg", { class: "lagRadar", height: String(this.#size), width: String(this.#size), style: "display: block; margin: 0 auto;" }, [
+        this.#svg("style", { type: "text/css" }, [styles]),
+        this.#svg("g", { class: "lagRadar-sweep" }, this.#arcs),
+        this.#hand,
+        this.#svg("circle", { class: "lagRadar-face", cx: String(this.#middle), cy: String(this.#middle), r: String(this.#radius) })
+      ]);
+      return this.#root;
+    }
+    start() {
+      if (this.#running)
+        return;
+      this.#running = true;
+      this.#last = { rotation: 0, now: Date.now(), tx: this.#middle + this.#radius, ty: this.#middle };
+      this.#framePtr = 0;
+      this.#animate();
+    }
+    stop() {
+      this.#running = false;
+      if (this.#animationId) {
+        cancelAnimationFrame(this.#animationId);
+        this.#animationId = null;
       }
     }
     destroy() {
       this.stop();
-      this.#handlers.clear();
+      if (this.#root)
+        this.#root.remove();
+      this.#root = null;
+      this.#hand = null;
+      this.#arcs = [];
+    }
+    #calcHue(msDelta) {
+      const maxHue = 120, maxMs = 1000, logF = 10;
+      const mult = maxHue / Math.log(maxMs / logF);
+      return maxHue - Math.max(0, Math.min(mult * Math.log(msDelta / logF), maxHue));
+    }
+    #animate() {
+      if (!this.#running || !this.#last)
+        return;
+      const PI2 = Math.PI * 2, middle = this.#middle, radius = this.#radius, frames = this.#frames;
+      const now = Date.now();
+      const rdelta = Math.min(PI2 - this.#speed, this.#speed * (now - this.#last.now));
+      const rotation = (this.#last.rotation + rdelta) % PI2;
+      const tx = middle + radius * Math.cos(rotation);
+      const ty = middle + radius * Math.sin(rotation);
+      const bigArc = rdelta < Math.PI ? "0" : "1";
+      const path = `M${tx} ${ty}A${radius} ${radius} 0 ${bigArc} 0 ${this.#last.tx} ${this.#last.ty}L${middle} ${middle}`;
+      const hue = this.#calcHue(rdelta / this.#speed);
+      this.#arcs[this.#framePtr % frames]?.setAttribute("d", path);
+      this.#arcs[this.#framePtr % frames]?.setAttribute("fill", `hsl(${hue}, 80%, 40%)`);
+      if (this.#hand)
+        this.#hand.setAttribute("d", `M${middle} ${middle}L${tx} ${ty}`);
+      for (let i = 0;i < frames; i++) {
+        const arc = this.#arcs[(frames + this.#framePtr - i) % frames];
+        if (arc)
+          arc.style.fillOpacity = String(1 - i / frames);
+      }
+      this.#framePtr++;
+      this.#last = { now, rotation, tx, ty };
+      this.#animationId = requestAnimationFrame(() => this.#animate());
+    }
+  }
+
+  class MemoryMonitor {
+    static isSupported() {
+      return !!(performance.memory && typeof performance.memory.usedJSHeapSize === "number");
+    }
+    getInfo() {
+      const memory = performance.memory;
+      if (!memory || typeof memory.usedJSHeapSize !== "number")
+        return null;
+      const bytesToMB = (bytes) => Math.round(bytes / (1024 * 1024));
+      const usedMB = bytesToMB(memory.usedJSHeapSize);
+      const totalMB = bytesToMB(memory.totalJSHeapSize);
+      const limitMB = bytesToMB(memory.jsHeapSizeLimit);
+      const percent = Math.round(memory.usedJSHeapSize / memory.jsHeapSizeLimit * 100);
+      return { usedMB, totalMB, limitMB, percent };
+    }
+    getColor(percent) {
+      const { memoryCritical, memoryWarning } = CONFIG.thresholds;
+      const { memoryCritical: criticalColor, memoryWarning: warningColor, memoryHealthy: healthyColor } = CONFIG.colors;
+      if (percent > memoryCritical)
+        return criticalColor;
+      if (percent > memoryWarning)
+        return warningColor;
+      return healthyColor;
     }
   }
 
@@ -3211,6 +3157,60 @@
     }
   }
 
+  // devtools/hotkeys.ts
+  class HotkeyManager {
+    #handlers = new Map;
+    #active = false;
+    #boundKeydown;
+    constructor() {
+      this.#boundKeydown = this.#handleKeydown.bind(this);
+    }
+    start() {
+      if (this.#active)
+        return;
+      this.#active = true;
+      document.addEventListener("keydown", this.#boundKeydown, { capture: true });
+    }
+    stop() {
+      if (!this.#active)
+        return;
+      this.#active = false;
+      document.removeEventListener("keydown", this.#boundKeydown, { capture: true });
+    }
+    register(combo, handler) {
+      this.#handlers.set(combo.toLowerCase(), handler);
+    }
+    unregister(combo) {
+      this.#handlers.delete(combo.toLowerCase());
+    }
+    #handleKeydown(e) {
+      const parts = [];
+      if (e.ctrlKey)
+        parts.push("ctrl");
+      if (e.metaKey)
+        parts.push("meta");
+      if (e.shiftKey)
+        parts.push("shift");
+      if (e.altKey)
+        parts.push("alt");
+      const key = e.key.toLowerCase();
+      if (!["control", "shift", "alt", "meta"].includes(key)) {
+        parts.push(key);
+      }
+      const combo = parts.join("+");
+      const handler = this.#handlers.get(combo);
+      if (handler) {
+        e.preventDefault();
+        e.stopPropagation();
+        handler();
+      }
+    }
+    destroy() {
+      this.stop();
+      this.#handlers.clear();
+    }
+  }
+
   // devtools/api.ts
   var Devtools = {
     _scanner: null,
@@ -3308,7 +3308,7 @@
   };
   window.Devtools = Devtools;
 
-  // devtools/init.ts
+  // devtools/index.ts
   function initDevtools() {
     if (StorageManager.isDevtoolsEnabled()) {
       Devtools.init();
