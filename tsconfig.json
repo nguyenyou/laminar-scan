@@ -5,6 +5,11 @@
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
 
+    // Lit
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    
+
     // Module Resolution
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -28,17 +33,20 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
+    "noImplicitOverride": false,
     "noPropertyAccessFromIndexSignature": true,
     "exactOptionalPropertyTypes": true,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
+    "erasableSyntaxOnly": true,
+    "noUncheckedSideEffectImports": true,
 
     // Completeness
-    "skipLibCheck": true
+    "skipLibCheck": true,
   },
   "include": [
     "devtools/**/*",
+    "devtools-lit/**/*",
     "*.js",
     "*.ts"
   ],
