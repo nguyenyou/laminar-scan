@@ -46,7 +46,7 @@
   },
   "include": [
     "devtools/**/*",
-    "devtools-lit/**/*",
+    "frontend-devtools/**/*",
     "*.js",
     "*.ts"
   ],
