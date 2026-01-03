@@ -3974,6 +3974,8 @@ class Toolbar {
       onPositionChange: (position, corner) => {
         StorageManager.setToolbarPosition(corner, position);
         this.#updateCornerClasses();
+        // Recalculate pinned tooltip positions for new corner
+        this.#updateTooltipStacking();
         // Resume tooltips after position change
         setTimeout(() => {
           this.#tooltipManager.resume();
@@ -4027,6 +4029,10 @@ class Toolbar {
     // Initialize position after in DOM
     requestAnimationFrame(() => {
       this.#initPosition();
+
+      // Update tooltip stacking after corner classes are set
+      // This ensures pinned tooltips from storage are positioned correctly
+      this.#updateTooltipStacking();
     });
 
     // Setup resize handler
