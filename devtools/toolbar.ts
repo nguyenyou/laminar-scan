@@ -4,10 +4,10 @@
 // Main toolbar UI that composes all other components.
 // ============================================================================
 
-import { CONFIG, ICONS, STYLES } from "./00-config";
-import { StorageManager } from "./02-storage";
-import { FPSMonitor, MemoryMonitor, LagRadar } from "./03-monitors";
-import { TooltipManager, DragController } from "./07-ui";
+import { CONFIG, ICONS, STYLES } from "./config";
+import { StorageManager } from "./storage";
+import { FPSMonitor, MemoryMonitor, LagRadar } from "./monitors";
+import { TooltipManager, DragController } from "./ui";
 
 interface ToolbarOptions {
   onScanningToggle?: (enabled: boolean) => void;

@@ -4,8 +4,8 @@
 // Canvas management for mutation highlights and component inspection overlays.
 // ============================================================================
 
-import { CONFIG } from "./00-config";
-import { debounce, getDevicePixelRatio, lerp, type DebouncedFunction } from "./01-utilities";
+import { CONFIG } from "./config";
+import { debounce, getDevicePixelRatio, lerp, type DebouncedFunction } from "./utilities";
 
 interface HighlightData {
   name: string;

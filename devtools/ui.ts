@@ -4,7 +4,7 @@
 // Reusable UI components for the toolbar: tooltips and drag handling.
 // ============================================================================
 
-import { CONFIG } from "./00-config";
+import { CONFIG } from "./config";
 
 /**
  * Tooltip state enum.

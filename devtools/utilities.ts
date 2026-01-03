@@ -4,7 +4,7 @@
 // Pure helper functions with no side effects or dependencies.
 // ============================================================================
 
-import { CONFIG } from "./00-config";
+import { CONFIG } from "./config";
 
 /**
  * Linear interpolation between two values.

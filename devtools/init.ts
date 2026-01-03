@@ -4,8 +4,8 @@
 // Auto-mount logic when DOM is ready.
 // ============================================================================
 
-import { StorageManager } from "./02-storage";
-import { Devtools } from "./09-api";
+import { StorageManager } from "./storage";
+import { Devtools } from "./api";
 
 /**
  * Initialize devtools when the DOM is ready (if enabled).

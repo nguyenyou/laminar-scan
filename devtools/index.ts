@@ -6,16 +6,16 @@
 // ============================================================================
 
 // Import all modules in dependency order
-import "./00-config";
-import "./01-utilities";
-import "./01-react-inspector";
-import "./02-storage";
-import "./03-monitors";
-import "./04-canvas";
-import "./05-core";
-import "./06-hotkeys";
-import "./07-ui";
-import "./08-toolbar";
-import "./09-api";
-import "./10-init";
+import "./config";
+import "./utilities";
+import "./react-inspector";
+import "./storage";
+import "./monitors";
+import "./canvas";
+import "./core";
+import "./hotkeys";
+import "./ui";
+import "./toolbar";
+import "./api";
+import "./init";
 

@@ -4,11 +4,11 @@
 // Clean facade exposing the public devtools API.
 // ============================================================================
 
-import { CONFIG } from "./00-config";
-import { StorageManager } from "./02-storage";
-import { MutationScanner, ComponentInspector } from "./05-core";
-import { Toolbar } from "./08-toolbar";
-import { HotkeyManager } from "./06-hotkeys";
+import { CONFIG } from "./config";
+import { StorageManager } from "./storage";
+import { MutationScanner, ComponentInspector } from "./core";
+import { Toolbar } from "./toolbar";
+import { HotkeyManager } from "./hotkeys";
 
 /**
  * Devtools - Public API facade.

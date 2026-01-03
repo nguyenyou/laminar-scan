@@ -4,7 +4,7 @@
 // FPS and Memory monitoring with encapsulated state.
 // ============================================================================
 
-import { CONFIG } from "./00-config";
+import { CONFIG } from "./config";
 
 /** Number of FPS samples to keep for radar history (one full rotation) */
 const FPS_HISTORY_SIZE = 360;

@@ -1,5 +1,5 @@
 (() => {
-  // devtools/00-config.ts
+  // devtools/config.ts
   var CONFIG = {
     colors: {
       primary: { r: 115, g: 97, b: 230 },
@@ -738,7 +738,7 @@
   }
 `;
 
-  // devtools/01-utilities.ts
+  // devtools/utilities.ts
   function lerp(start, end, speed = CONFIG.animation.interpolationSpeed) {
     return start + (end - start) * speed;
   }
@@ -819,7 +819,7 @@
     window.open(uri, "_blank");
   }
 
-  // devtools/01-react-inspector.ts
+  // devtools/react-inspector.ts
   function getReactFiber(domNode) {
     try {
       if (!domNode)
@@ -999,7 +999,7 @@
     }
   }
 
-  // devtools/02-storage.ts
+  // devtools/storage.ts
   class StorageManager {
     static get(key, defaultValue = null) {
       try {
@@ -1077,7 +1077,7 @@
     }
   }
 
-  // devtools/03-monitors.ts
+  // devtools/monitors.ts
   var FPS_HISTORY_SIZE = 360;
 
   class FPSMonitor {
@@ -1305,7 +1305,7 @@
     }
   }
 
-  // devtools/04-canvas.ts
+  // devtools/canvas.ts
   class HighlightCanvas {
     #canvas = null;
     #ctx = null;
@@ -1685,7 +1685,7 @@
     }
   }
 
-  // devtools/05-core.ts
+  // devtools/core.ts
   class MutationScanner {
     #observer = null;
     #canvas = null;
@@ -1957,7 +1957,7 @@
     }
   }
 
-  // devtools/06-hotkeys.ts
+  // devtools/hotkeys.ts
   class HotkeyManager {
     #handlers = new Map;
     #active = false;
@@ -2011,7 +2011,7 @@
     }
   }
 
-  // devtools/07-ui.ts
+  // devtools/ui.ts
   var TooltipState = {
     IDLE: "idle",
     PINNED: "pinned",
@@ -2497,7 +2497,7 @@
     }
   }
 
-  // devtools/08-toolbar.ts
+  // devtools/toolbar.ts
   class Toolbar {
     #root = null;
     #shadowRoot = null;
@@ -3211,7 +3211,7 @@
     }
   }
 
-  // devtools/09-api.ts
+  // devtools/api.ts
   var Devtools = {
     _scanner: null,
     _inspector: null,
@@ -3308,7 +3308,7 @@
   };
   window.Devtools = Devtools;
 
-  // devtools/10-init.ts
+  // devtools/init.ts
   function initDevtools() {
     if (StorageManager.isDevtoolsEnabled()) {
       Devtools.init();

@@ -4,7 +4,7 @@
 // Centralized localStorage operations with error handling.
 // ============================================================================
 
-import { CONFIG } from "./00-config";
+import { CONFIG } from "./config";
 
 interface ToolbarPosition {
   corner: string;

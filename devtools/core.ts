@@ -4,10 +4,10 @@
 // Main devtools functionality: mutation scanning and component inspection.
 // ============================================================================
 
-import { CONFIG } from "./00-config";
-import { getScalaComponent, getComponentSourceInfo, openInIDE, isDevtoolsElement, getScalaSource } from "./01-utilities";
-import { HighlightCanvas, InspectOverlay } from "./04-canvas";
-import { getReactComponentFromNode, getReactComponent, getReactComponentSourceInfo, getAllReactComponentsFromNode } from "./01-react-inspector";
+import { CONFIG } from "./config";
+import { getScalaComponent, getComponentSourceInfo, openInIDE, isDevtoolsElement, getScalaSource } from "./utilities";
+import { HighlightCanvas, InspectOverlay } from "./canvas";
+import { getReactComponentFromNode, getReactComponent, getReactComponentSourceInfo, getAllReactComponentsFromNode } from "./react-inspector";
 
 interface ScannerOptions {
   onStateChange?: (running: boolean) => void;
