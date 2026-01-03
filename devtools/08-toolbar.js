@@ -624,9 +624,11 @@ class Toolbar {
 
     // Restore pinned state from storage
     if (StorageManager.isDomStatsPinned()) {
-      // Delay to ensure tooltip is ready
+      // Delay to ensure tooltip is ready and DOM is fully rendered
       requestAnimationFrame(() => {
-        this.#pinDomStats(btn);
+        requestAnimationFrame(() => {
+          this.#pinDomStats(btn);
+        });
       });
     }
 
