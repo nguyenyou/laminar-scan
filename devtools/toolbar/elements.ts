@@ -8,7 +8,7 @@ import { ICONS } from "../config";
 import { StorageManager } from "../storage";
 
 // Tooltip messages
-const INSPECT_TOOLTIP = "Inspect component (Ctrl+Shift+C) \n Click to jump to source code in your IDE";
+const INSPECT_TOOLTIP = "Inspect mode (Ctrl+Shift+C) \n Click any element to jump to its source code";
 
 /**
  * Create the expand button for collapsed state.

@@ -2410,6 +2410,7 @@
     }
     pin() {
       this.#pinned = true;
+      StorageManager.setDomStatsPinned(true);
       const statsElement = this.#createDomStatsElement();
       this.#tooltipManager.pinElement(statsElement);
       this.#intervalId = setInterval(() => {
@@ -2418,6 +2419,7 @@
     }
     unpin() {
       this.#pinned = false;
+      StorageManager.setDomStatsPinned(false);
       this.#tooltipManager.unpin();
       if (this.#intervalId) {
         clearInterval(this.#intervalId);
@@ -2765,6 +2767,8 @@
   }
 
   // devtools/toolbar/elements.ts
+  var INSPECT_TOOLTIP = `Inspect mode (Ctrl+Shift+C) 
+ Click any element to jump to its source code`;
   function createExpandButton(onExpand) {
     const btn = document.createElement("button");
     btn.className = "devtools-expand-btn";
@@ -2779,8 +2783,7 @@
   function createInspectButton(onInspect) {
     const btn = document.createElement("button");
     btn.className = "devtools-icon-btn";
-    btn.setAttribute("data-tooltip", `Inspect component (Ctrl+Shift+C) 
- Click to jump to source code in your IDE`);
+    btn.setAttribute("data-tooltip", INSPECT_TOOLTIP);
     btn.innerHTML = ICONS["inspect"] ?? "";
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -2843,7 +2846,7 @@
   function updateInspectButton(btn, isInspecting) {
     btn.classList.toggle("active", isInspecting);
     btn.innerHTML = isInspecting ? ICONS["close"] ?? "" : ICONS["inspect"] ?? "";
-    btn.setAttribute("data-tooltip", isInspecting ? "Exit inspect mode — or press Esc" : "Inspect component (Ctrl+Shift+C) — click to jump to source code in your IDE");
+    btn.setAttribute("data-tooltip", isInspecting ? "Exit inspect mode — or press Esc" : INSPECT_TOOLTIP);
   }
 
   // devtools/toolbar.ts
