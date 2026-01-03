@@ -101,20 +101,20 @@ class Toolbar {
     // Initialize drag controller with callbacks
     this.#dragController = new DragController({
       onDragStart: () => {
-        this.#tooltipManager.disable();
+        this.#tooltipManager.suspend();
         this.#fpsMonitor.pause();
         this.#stopDisplayUpdates();
       },
       onDragEnd: () => {
         this.#fpsMonitor.resume();
         this.#startDisplayUpdates();
-        // Don't re-enable tooltips yet - wait for snap animation
+        // Don't resume tooltips yet - wait for snap animation
       },
       onPositionChange: (position, corner) => {
         StorageManager.setToolbarPosition(corner, position);
         this.#updateCornerClasses();
-        // Re-enable tooltips after position change
-        setTimeout(() => this.#tooltipManager.enable(), 50);
+        // Resume tooltips after position change
+        setTimeout(() => this.#tooltipManager.resume(), 50);
       },
       onCollapse: (corner, orientation) => {
         this.#applyCollapsedState(corner, orientation);
@@ -818,7 +818,7 @@ class Toolbar {
     if (!this.#toolbar) return;
 
     this.#isExpanding = true;
-    this.#tooltipManager.disable();
+    this.#tooltipManager.suspend();
 
     // Remove collapsed classes
     this.#toolbar.classList.remove("collapsed", "collapsed-horizontal", "collapsed-vertical");
@@ -836,10 +836,10 @@ class Toolbar {
       StorageManager.setCollapsedState(null);
       this.#updateCornerClasses();
 
-      // Re-enable tooltips after animation
+      // Resume tooltips after animation
       setTimeout(() => {
         this.#isExpanding = false;
-        this.#tooltipManager.enable();
+        this.#tooltipManager.resume();
       }, 400);
     });
   }

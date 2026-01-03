@@ -5,7 +5,26 @@
 // ============================================================================
 
 /**
+ * Tooltip state enum.
+ * @readonly
+ * @enum {string}
+ */
+const TooltipState = Object.freeze({
+  /** Hover shows tooltips normally */
+  IDLE: "idle",
+  /** Click-pinned content, hover completely ignored */
+  PINNED: "pinned",
+  /** Temporarily disabled (during drag), will return to previous state */
+  SUSPENDED: "suspended",
+});
+
+/**
  * Manages tooltip display with animated content transitions.
+ *
+ * State machine:
+ * - IDLE: Hover triggers show/hide with delays. Click can transition to PINNED.
+ * - PINNED: Tooltip stays visible with pinned content. Hover is ignored. Click unpins → IDLE.
+ * - SUSPENDED: All interactions ignored (used during drag). Returns to previous state.
  */
 class TooltipManager {
   /** @type {HTMLDivElement | null} Tooltip container element */
@@ -26,14 +45,11 @@ class TooltipManager {
   /** @type {Array<Function>} Cleanup functions for event listeners */
   #cleanupFns = [];
 
-  /** @type {boolean} Whether tooltips are disabled */
-  #disabled = false;
+  /** @type {TooltipState} Current tooltip state */
+  #state = TooltipState.IDLE;
 
-  /** @type {boolean} Whether tooltip is pinned (always visible) */
-  #pinned = false;
-
-  /** @type {string | null} Pinned tooltip content */
-  #pinnedContent = null;
+  /** @type {TooltipState} State to restore after SUSPENDED */
+  #stateBeforeSuspend = TooltipState.IDLE;
 
   /**
    * Create the tooltip DOM elements.
@@ -60,6 +76,7 @@ class TooltipManager {
 
   /**
    * Setup tooltip event handlers for elements with data-tooltip attribute.
+   * Hover events only work in IDLE state.
    * @param {HTMLElement} container - Container to search for tooltip elements
    */
   setupEvents(container) {
@@ -67,10 +84,8 @@ class TooltipManager {
 
     for (const el of tooltipElements) {
       const handleMouseEnter = () => {
-        if (this.#disabled) return;
-
-        // If pinned, don't change the tooltip content
-        if (this.#pinned) return;
+        // Only respond to hover in IDLE state
+        if (this.#state !== TooltipState.IDLE) return;
 
         // Cancel any pending hide
         this.#cancelHideTimeout();
@@ -88,24 +103,27 @@ class TooltipManager {
 
         // If tooltip is already visible (moving between elements), show immediately
         if (this.#element?.classList.contains("visible")) {
-          this.show(tooltipText, direction);
+          this.#showContent(tooltipText, direction);
         } else {
           // Delay showing tooltip to prevent accidental hover triggers
           this.#cancelShowTimeout();
           this.#showTimeout = setTimeout(() => {
-            this.show(tooltipText, direction);
+            this.#showContent(tooltipText, direction);
             this.#showTimeout = null;
           }, CONFIG.intervals.tooltipShowDelay || 300);
         }
       };
 
       const handleMouseLeave = () => {
+        // Only respond to hover in IDLE state
+        if (this.#state !== TooltipState.IDLE) return;
+
         // Cancel any pending show
         this.#cancelShowTimeout();
 
         // Delay hiding to allow moving between buttons
         this.#hideTimeout = setTimeout(() => {
-          this.hide();
+          this.#hideTooltip();
           this.#hideTimeout = null;
         }, CONFIG.intervals.tooltipHideDelay || 200);
       };
@@ -120,25 +138,139 @@ class TooltipManager {
     }
   }
 
+  // ===========================================================================
+  // State Transitions (Public API for click handlers)
+  // ===========================================================================
+
   /**
-   * Show the tooltip with text or HTML content.
+   * Pin the tooltip with text content. Transitions to PINNED state.
+   * @param {string} text - Tooltip text to display
+   */
+  pin(text) {
+    this.#cancelAllTimeouts();
+    this.#state = TooltipState.PINNED;
+
+    // Add pinned class for styling
+    this.#element?.classList.add("pinned");
+
+    // Set content directly (bypasses state check since we just set PINNED)
+    if (this.#contentElement) {
+      this.#contentElement.innerHTML = text;
+      this.#contentElement.style.transform = "translateX(0)";
+      this.#contentElement.style.opacity = "1";
+    }
+
+    // Make sure tooltip is visible
+    this.#element?.classList.add("visible");
+  }
+
+  /**
+   * Pin the tooltip with a DOM element. Transitions to PINNED state.
+   * @param {HTMLElement} element - DOM element to display
+   */
+  pinElement(element) {
+    this.#cancelAllTimeouts();
+    this.#state = TooltipState.PINNED;
+
+    // Add pinned class for styling
+    this.#element?.classList.add("pinned");
+
+    if (this.#contentElement) {
+      // Clear existing content and append the element
+      this.#contentElement.innerHTML = "";
+      this.#contentElement.appendChild(element);
+
+      // Set content visibility
+      this.#contentElement.style.transform = "translateX(0)";
+      this.#contentElement.style.opacity = "1";
+    }
+
+    // Make sure tooltip is visible
+    this.#element?.classList.add("visible");
+  }
+
+  /**
+   * Unpin the tooltip and hide it. Transitions to IDLE state.
+   */
+  unpin() {
+    this.#state = TooltipState.IDLE;
+    this.#element?.classList.remove("pinned");
+    this.#hideTooltip();
+  }
+
+  /**
+   * Update pinned content if tooltip is in PINNED state (without animation).
+   * @param {string} text - New tooltip text (can contain HTML)
+   */
+  updatePinnedContent(text) {
+    if (this.#state === TooltipState.PINNED && this.#contentElement) {
+      this.#contentElement.innerHTML = text;
+    }
+  }
+
+  /**
+   * Check if tooltip is in PINNED state.
+   * @returns {boolean}
+   */
+  isPinned() {
+    return this.#state === TooltipState.PINNED;
+  }
+
+  /**
+   * Temporarily suspend tooltips (e.g., during drag). Transitions to SUSPENDED state.
+   */
+  suspend() {
+    if (this.#state === TooltipState.SUSPENDED) return;
+    this.#stateBeforeSuspend = this.#state;
+    this.#state = TooltipState.SUSPENDED;
+    this.#cancelAllTimeouts();
+    // Don't hide if pinned content was showing
+    if (this.#stateBeforeSuspend !== TooltipState.PINNED) {
+      this.#hideTooltip();
+    }
+  }
+
+  /**
+   * Resume tooltips after suspension. Returns to previous state.
+   */
+  resume() {
+    if (this.#state !== TooltipState.SUSPENDED) return;
+    this.#state = this.#stateBeforeSuspend;
+  }
+
+  /**
+   * Cleanup all event handlers.
+   */
+  destroy() {
+    this.#cancelAllTimeouts();
+    for (const cleanup of this.#cleanupFns) {
+      cleanup();
+    }
+    this.#cleanupFns = [];
+    this.#element = null;
+    this.#contentElement = null;
+    this.#lastElementX = null;
+  }
+
+  // ===========================================================================
+  // Internal Methods (Private)
+  // ===========================================================================
+
+  /**
+   * Show tooltip content with optional animation.
+   * @private
    * @param {string} text - Tooltip text or HTML
    * @param {'left' | 'right'} [direction='left'] - Animation direction
    */
-  show(text, direction = "left") {
+  #showContent(text, direction = "left") {
     if (!this.#element || !this.#contentElement) return;
 
     const content = this.#contentElement;
     const tooltip = this.#element;
 
-    // Use innerHTML to support HTML content (e.g., rolling numbers)
-    const setContent = (t) => {
-      content.innerHTML = t;
-    };
-
     // If not visible, just set content and show
     if (!tooltip.classList.contains("visible")) {
-      setContent(text);
+      content.innerHTML = text;
       content.style.transform = "translateX(0)";
       content.style.opacity = "1";
       tooltip.classList.add("visible");
@@ -157,7 +289,7 @@ class TooltipManager {
 
     // After slide out, update content and slide in
     setTimeout(() => {
-      setContent(text);
+      content.innerHTML = text;
       content.style.transition = "none";
       content.style.transform = `translateX(${slideInX})`;
 
@@ -171,119 +303,28 @@ class TooltipManager {
   }
 
   /**
-   * Hide the tooltip.
+   * Hide the tooltip (internal, no state check).
+   * @private
    */
-  hide() {
-    if (!this.#element || this.#pinned) return;
+  #hideTooltip() {
+    if (!this.#element) return;
     this.#element.classList.remove("visible");
     this.#lastElementX = null;
   }
 
   /**
-   * Pin the tooltip to always show.
-   * @param {string} text - Tooltip text to display
+   * Cancel all pending timeouts.
+   * @private
    */
-  pin(text) {
-    this.#pinned = true;
-    this.#pinnedContent = text;
-
-    // Add pinned class for styling
-    this.#element?.classList.add("pinned");
-
-    // If tooltip is already visible, just update content without animation
-    if (this.#element?.classList.contains("visible")) {
-      if (this.#contentElement) {
-        this.#contentElement.innerHTML = text;
-      }
-    } else {
-      // If not visible, show it
-      this.show(text);
+  #cancelAllTimeouts() {
+    if (this.#hideTimeout) {
+      clearTimeout(this.#hideTimeout);
+      this.#hideTimeout = null;
     }
-  }
-
-  /**
-   * Pin the tooltip with a DOM element instead of text.
-   * @param {HTMLElement} element - DOM element to display
-   */
-  pinElement(element) {
-    this.#pinned = true;
-    this.#pinnedContent = null;
-
-    // Add pinned class for styling
-    this.#element?.classList.add("pinned");
-
-    if (this.#contentElement) {
-      // Clear existing content and append the element
-      this.#contentElement.innerHTML = "";
-      this.#contentElement.appendChild(element);
-      
-      // Set content visibility (like show() does)
-      this.#contentElement.style.transform = "translateX(0)";
-      this.#contentElement.style.opacity = "1";
+    if (this.#showTimeout) {
+      clearTimeout(this.#showTimeout);
+      this.#showTimeout = null;
     }
-
-    // Make sure tooltip is visible
-    this.#element?.classList.add("visible");
-  }
-
-  /**
-   * Unpin the tooltip and hide it.
-   */
-  unpin() {
-    this.#pinned = false;
-    this.#pinnedContent = null;
-    this.#element?.classList.remove("pinned");
-    this.hide();
-  }
-
-  /**
-   * Update pinned content if tooltip is pinned (without animation).
-   * @param {string} text - New tooltip text (can contain HTML)
-   */
-  updatePinnedContent(text) {
-    if (this.#pinned && this.#contentElement) {
-      this.#pinnedContent = text;
-      // Update content directly without animation (supports HTML)
-      this.#contentElement.innerHTML = text;
-    }
-  }
-
-  /**
-   * Check if tooltip is pinned.
-   * @returns {boolean}
-   */
-  isPinned() {
-    return this.#pinned;
-  }
-
-  /**
-   * Temporarily disable tooltips.
-   */
-  disable() {
-    this.#disabled = true;
-    this.hide();
-  }
-
-  /**
-   * Re-enable tooltips.
-   */
-  enable() {
-    this.#disabled = false;
-  }
-
-  /**
-   * Cleanup all event handlers.
-   */
-  destroy() {
-    this.#cancelHideTimeout();
-    this.#cancelShowTimeout();
-    for (const cleanup of this.#cleanupFns) {
-      cleanup();
-    }
-    this.#cleanupFns = [];
-    this.#element = null;
-    this.#contentElement = null;
-    this.#lastElementX = null;
   }
 
   /**
