@@ -4314,13 +4314,15 @@ class Toolbar {
     const lagRadarTooltip = this.#lagRadarTooltipManager.getElement();
     const domStatsTooltip = this.#domStatsTooltipManager.getElement();
 
-    // Remove all stacking classes and reset inline styles
-    if (lagRadarTooltip) {
+    // Only reset stacking for tooltips that are still pinned
+    // Don't touch unpinned tooltips - they may be fading out and we don't want to
+    // change their position during the fade animation
+    if (lagRadarTooltip && this.#pinnedOrder.includes("lagRadar")) {
       lagRadarTooltip.classList.remove("stacked-1", "stacked-2");
       lagRadarTooltip.style.removeProperty("bottom");
       lagRadarTooltip.style.removeProperty("top");
     }
-    if (domStatsTooltip) {
+    if (domStatsTooltip && this.#pinnedOrder.includes("domStats")) {
       domStatsTooltip.classList.remove("stacked-1", "stacked-2");
       domStatsTooltip.style.removeProperty("bottom");
       domStatsTooltip.style.removeProperty("top");
