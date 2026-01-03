@@ -4,10 +4,14 @@
 // Main toolbar UI that composes all other components.
 // ============================================================================
 
-import { CONFIG, ICONS, STYLES } from "./config";
+import { CONFIG, STYLES } from "./config";
 import { StorageManager } from "./storage";
-import { FPSMonitor, MemoryMonitor, LagRadar } from "./monitors";
+import { FPSMonitor, MemoryMonitor } from "./monitors";
 import { TooltipManager, DragController } from "./ui";
+import { DomStatsPanel } from "./toolbar/dom-stats-panel";
+import { LagRadarPanel } from "./toolbar/lag-radar-panel";
+import { PositionManager } from "./toolbar/position-manager";
+import * as Elements from "./toolbar/elements";
 
 interface ToolbarOptions {
   onScanningToggle?: (enabled: boolean) => void;
@@ -55,32 +59,22 @@ export class Toolbar {
   #domStatsTooltipManager = new TooltipManager();
 
   #dragController: DragController | null = null;
+  #positionManager: PositionManager | null = null;
+  #lagRadarPanel: LagRadarPanel | null = null;
+  #domStatsPanel: DomStatsPanel | null = null;
 
   // Interval IDs for display updates
   #fpsIntervalId: ReturnType<typeof setInterval> | null = null;
   #memoryIntervalId: ReturnType<typeof setInterval> | null = null;
-  #domStatsIntervalId: ReturnType<typeof setInterval> | null = null;
-
-  /** Previous DOM node counts for comparison */
-  #prevDomCounts: Record<string, number> | null = null;
-
-  /** Bound resize handler for cleanup */
-  #resizeHandler: (() => void) | null = null;
-
-  /** Lag radar visualization */
-  #lagRadar: LagRadar | null = null;
 
   /** FPS meter container element */
   #fpsMeterElement: HTMLDivElement | null = null;
 
-  /** Whether lag radar is pinned */
-  #lagRadarPinned = false;
-
-  /** Whether DOM stats is pinned */
-  #domStatsPinned = false;
-
   /** Order of pinned tooltips (first = closest to toolbar) */
   #pinnedOrder: Array<"lagRadar" | "domStats"> = [];
+
+  /** Resize event handler */
+  #resizeHandler: (() => void) | null = null;
 
   // Callbacks
   #onScanningToggle: ((enabled: boolean) => void) | null = null;
@@ -108,14 +102,10 @@ export class Toolbar {
       onDragEnd: () => {
         this.#fpsMonitor.resume();
         this.#startDisplayUpdates();
-        // Don't resume tooltips yet - wait for snap animation
       },
       onPositionChange: (position, corner) => {
         StorageManager.setToolbarPosition(corner, position);
-        this.#updateCornerClasses();
-        // Recalculate pinned tooltip positions for new corner
         this.#updateTooltipStacking();
-        // Resume tooltips after position change
         setTimeout(() => {
           this.#tooltipManager.resume();
           this.#lagRadarTooltipManager.resume();
@@ -123,13 +113,16 @@ export class Toolbar {
         }, 50);
       },
       onCollapse: (corner, orientation) => {
-        this.#applyCollapsedState(corner, orientation);
         StorageManager.setCollapsedState({ corner, orientation });
       },
       onExpand: (corner) => {
         this.#expandFromCollapsed(corner);
       },
     });
+
+    // Initialize panel managers
+    this.#lagRadarPanel = new LagRadarPanel(this.#lagRadarTooltipManager, this.#fpsMonitor);
+    this.#domStatsPanel = new DomStatsPanel(this.#domStatsTooltipManager);
   }
 
   /**
@@ -192,23 +185,9 @@ export class Toolbar {
     this.#lagRadarTooltipManager.destroy();
     this.#domStatsTooltipManager.destroy();
     this.#dragController?.destroy();
-
-    // Cleanup lag radar
-    if (this.#lagRadar) {
-      this.#lagRadar.destroy();
-      this.#lagRadar = null;
-    }
-
-    // Clear DOM stats interval
-    if (this.#domStatsIntervalId) {
-      clearInterval(this.#domStatsIntervalId);
-      this.#domStatsIntervalId = null;
-    }
-
-    if (this.#resizeHandler) {
-      window.removeEventListener("resize", this.#resizeHandler);
-      this.#resizeHandler = null;
-    }
+    this.#positionManager?.destroy();
+    this.#lagRadarPanel?.destroy();
+    this.#domStatsPanel?.destroy();
 
     if (this.#root?.parentNode) {
       this.#root.parentNode.removeChild(this.#root);
@@ -223,6 +202,9 @@ export class Toolbar {
     this.#fpsValueElement = null;
     this.#memoryValueElement = null;
     this.#fpsMeterElement = null;
+    this.#positionManager = null;
+    this.#lagRadarPanel = null;
+    this.#domStatsPanel = null;
   }
 
   /**
@@ -231,15 +213,7 @@ export class Toolbar {
    */
   updateInspectButton(isInspecting: boolean): void {
     if (!this.#inspectButton) return;
-
-    this.#inspectButton.classList.toggle("active", isInspecting);
-    this.#inspectButton.innerHTML = isInspecting ? (ICONS["close"] ?? "") : (ICONS["inspect"] ?? "");
-    this.#inspectButton.setAttribute(
-      "data-tooltip",
-      isInspecting
-        ? "Exit inspect mode — or press Esc"
-        : "Inspect component (Ctrl+Shift+C) — click to jump to source code in your IDE"
-    );
+    Elements.updateInspectButton(this.#inspectButton, isInspecting);
   }
 
   /**
@@ -310,15 +284,9 @@ export class Toolbar {
    * @private
    */
   #createExpandButton(): HTMLButtonElement {
-    const btn = document.createElement("button");
-    btn.className = "devtools-expand-btn";
-    btn.title = "Expand toolbar";
-    btn.innerHTML = ICONS["chevronRight"] ?? "";
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
+    return Elements.createExpandButton(() => {
       this.#dragController?.expand();
     });
-    return btn;
   }
 
   /**
@@ -326,15 +294,9 @@ export class Toolbar {
    * @private
    */
   #createInspectButton(): HTMLButtonElement {
-    const btn = document.createElement("button");
-    btn.className = "devtools-icon-btn";
-    btn.setAttribute("data-tooltip", "Inspect component (Ctrl+Shift+C) \n Click to jump to source code in your IDE");
-    btn.innerHTML = ICONS["inspect"] ?? "";
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
+    return Elements.createInspectButton(() => {
       this.#onInspectToggle?.();
     });
-    return btn;
   }
 
   /**
@@ -342,29 +304,9 @@ export class Toolbar {
    * @private
    */
   #createScanningToggle() {
-    const toggle = document.createElement("label");
-    toggle.className = "devtools-toggle";
-    toggle.setAttribute("data-tooltip", "Highlight DOM mutations \n Detect unexpected re-renders");
-
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.checked = StorageManager.isScanningEnabled();
-    checkbox.addEventListener("change", () => {
-      this.#onScanningToggle?.(checkbox.checked);
-      StorageManager.setScanningEnabled(checkbox.checked);
+    return Elements.createScanningToggle((enabled) => {
+      this.#onScanningToggle?.(enabled);
     });
-
-    const track = document.createElement("div");
-    track.className = "devtools-toggle-track";
-
-    const thumb = document.createElement("div");
-    thumb.className = "devtools-toggle-thumb";
-    track.appendChild(thumb);
-
-    toggle.appendChild(checkbox);
-    toggle.appendChild(track);
-
-    return toggle;
   }
 
   /**
@@ -372,30 +314,12 @@ export class Toolbar {
    * @private
    */
   #createFPSMeter() {
-    const container = document.createElement("div");
-    container.className = "devtools-meter clickable";
-    container.setAttribute("data-tooltip", "Frames per second \n Click to show lag radar");
-
-    const value = document.createElement("span");
-    value.className = "devtools-meter-value";
-    value.textContent = "60";
-    this.#fpsValueElement = value;
-
-    const label = document.createElement("span");
-    label.className = "devtools-meter-label";
-    label.textContent = "FPS";
-
-    container.appendChild(value);
-    container.appendChild(label);
-
-    // Store reference for later use
-    this.#fpsMeterElement = container;
-
-    // Toggle radar on click
-    container.addEventListener("click", (e) => {
-      e.stopPropagation();
+    const { container, valueElement } = Elements.createFPSMeter(() => {
       this.#toggleLagRadarPin();
     });
+
+    this.#fpsValueElement = valueElement;
+    this.#fpsMeterElement = container;
 
     // Restore pinned state from storage
     if (StorageManager.isLagRadarPinned()) {
@@ -407,43 +331,7 @@ export class Toolbar {
     return container;
   }
 
-  /**
-   * Create the lag radar tooltip content.
-   * @private
-   * @returns {HTMLElement} Radar container element
-   */
-  #createLagRadarContent() {
-    const container = document.createElement("div");
-    container.className = "devtools-radar-container";
 
-    // Create radar instance
-    this.#lagRadar = new LagRadar(this.#fpsMonitor, {
-      size: CONFIG.dimensions.radarSize,
-    });
-    const canvas = this.#lagRadar.create();
-    container.appendChild(canvas);
-
-    // Add legend
-    const legend = document.createElement("div");
-    legend.className = "devtools-radar-legend";
-    legend.innerHTML = `
-      <div class="devtools-radar-legend-item">
-        <span class="devtools-radar-legend-dot good"></span>
-        <span>50+</span>
-      </div>
-      <div class="devtools-radar-legend-item">
-        <span class="devtools-radar-legend-dot warning"></span>
-        <span>30-50</span>
-      </div>
-      <div class="devtools-radar-legend-item">
-        <span class="devtools-radar-legend-dot critical"></span>
-        <span>&lt;30</span>
-      </div>
-    `;
-    container.appendChild(legend);
-
-    return container;
-  }
 
   /**
    * Update stacking classes and positions for pinned tooltips.
@@ -510,28 +398,18 @@ export class Toolbar {
    * @private
    */
   #pinLagRadar() {
-    if (!this.#fpsMeterElement) return;
+    if (!this.#fpsMeterElement || !this.#lagRadarPanel) return;
 
-    this.#lagRadarPinned = true;
+    this.#lagRadarPanel.pin();
     this.#fpsMeterElement.classList.add("active");
-    StorageManager.setLagRadarPinned(true);
 
     // Add to pinned order
     if (!this.#pinnedOrder.includes("lagRadar")) {
       this.#pinnedOrder.push("lagRadar");
     }
 
-    // Create radar content
-    const radarContent = this.#createLagRadarContent();
-
-    // Pin with radar DOM element using dedicated tooltip manager
-    this.#lagRadarTooltipManager.pinElement(radarContent);
-
     // Update stacking
     this.#updateTooltipStacking();
-
-    // Start radar animation
-    this.#lagRadar?.start();
   }
 
   /**
@@ -539,30 +417,16 @@ export class Toolbar {
    * @private
    */
   #unpinLagRadar() {
-    if (!this.#fpsMeterElement) return;
+    if (!this.#fpsMeterElement || !this.#lagRadarPanel) return;
 
-    this.#lagRadarPinned = false;
+    this.#lagRadarPanel.unpin();
     this.#fpsMeterElement.classList.remove("active");
-    StorageManager.setLagRadarPinned(false);
 
     // Remove from pinned order
     this.#pinnedOrder = this.#pinnedOrder.filter((id) => id !== "lagRadar");
 
-    // Unpin first to start the fade-out animation
-    this.#lagRadarTooltipManager.unpin();
-
     // Update stacking for remaining pinned tooltips
     this.#updateTooltipStacking();
-
-    // Destroy radar after fade-out animation completes
-    // so the canvas doesn't disappear before the container fades
-    if (this.#lagRadar) {
-      const radar = this.#lagRadar;
-      this.#lagRadar = null;
-      setTimeout(() => {
-        radar.destroy();
-      }, CONFIG.animation.tooltipFadeMs);
-    }
   }
 
   /**
@@ -570,7 +434,7 @@ export class Toolbar {
    * @private
    */
   #toggleLagRadarPin() {
-    if (this.#lagRadarPinned) {
+    if (this.#lagRadarPanel?.isPinned) {
       this.#unpinLagRadar();
     } else {
       this.#pinLagRadar();
@@ -606,20 +470,12 @@ export class Toolbar {
    * @private
    */
   #createDomStatsButton(): HTMLButtonElement {
-    const btn = document.createElement("button");
-    btn.className = "devtools-icon-btn";
-    btn.innerHTML = ICONS["domTree"] ?? "";
-    btn.setAttribute("data-tooltip", "DOM statistics \n Click to pin");
-
-    // Toggle pin on click
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
+    const btn = Elements.createDomStatsButton(() => {
       this.#toggleDomStatsPin(btn);
     });
 
     // Restore pinned state from storage
     if (StorageManager.isDomStatsPinned()) {
-      // Delay to ensure tooltip is ready and DOM is fully rendered
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           this.#pinDomStats(btn);
@@ -636,26 +492,18 @@ export class Toolbar {
    * @param {HTMLButtonElement} btn - The DOM stats button
    */
   #pinDomStats(btn: HTMLButtonElement): void {
-    this.#domStatsPinned = true;
+    if (!this.#domStatsPanel) return;
+
+    this.#domStatsPanel.pin();
     btn.classList.add("active");
-    StorageManager.setDomStatsPinned(true);
 
     // Add to pinned order
     if (!this.#pinnedOrder.includes("domStats")) {
       this.#pinnedOrder.push("domStats");
     }
 
-    // Create initial DOM stats element
-    const statsElement = this.#createDomStatsElement();
-    this.#domStatsTooltipManager.pinElement(statsElement);
-
     // Update stacking
     this.#updateTooltipStacking();
-
-    // Update DOM stats every 500ms while pinned
-    this.#domStatsIntervalId = setInterval(() => {
-      this.#updateDomStatsElement(statsElement);
-    }, 500);
   }
 
   /**
@@ -664,18 +512,13 @@ export class Toolbar {
    * @param {HTMLButtonElement} btn - The DOM stats button
    */
   #unpinDomStats(btn: HTMLButtonElement): void {
-    this.#domStatsPinned = false;
-    this.#domStatsTooltipManager.unpin();
+    if (!this.#domStatsPanel) return;
+
+    this.#domStatsPanel.unpin();
     btn.classList.remove("active");
-    StorageManager.setDomStatsPinned(false);
 
     // Remove from pinned order
     this.#pinnedOrder = this.#pinnedOrder.filter((id) => id !== "domStats");
-
-    if (this.#domStatsIntervalId) {
-      clearInterval(this.#domStatsIntervalId);
-      this.#domStatsIntervalId = null;
-    }
 
     // Update stacking for remaining pinned tooltips
     this.#updateTooltipStacking();
@@ -687,230 +530,14 @@ export class Toolbar {
    * @param {HTMLButtonElement} btn - The DOM stats button
    */
   #toggleDomStatsPin(btn: HTMLButtonElement): void {
-    if (this.#domStatsPinned) {
+    if (this.#domStatsPanel?.isPinned) {
       this.#unpinDomStats(btn);
     } else {
       this.#pinDomStats(btn);
     }
   }
 
-  /**
-   * Get current DOM statistics data.
-   * @private
-   * @returns {{ total: number, counts: Record<string, number>, sorted: [string, number][] }}
-   */
-  #getDOMStatsData(): { total: number; counts: Record<string, number>; sorted: [string, number][] } {
-    const body = document.body;
-    if (!body) return { total: 0, counts: {}, sorted: [] };
 
-    const allNodes = body.querySelectorAll("*");
-    const totalNodes = allNodes.length;
-    const counts: Record<string, number> = {};
-
-    for (const el of allNodes) {
-      const tag = el.tagName.toLowerCase();
-      counts[tag] = (counts[tag] || 0) + 1;
-    }
-
-    const sorted = Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6) as [string, number][];
-
-    return { total: totalNodes, counts, sorted };
-  }
-
-  /**
-   * Create odometer HTML for a number with digit-by-digit animation.
-   * @private
-   * @param {number} newVal - Current value
-   * @param {number|null} oldVal - Previous value (null if first render)
-   * @returns {string} HTML string for odometer display
-   */
-  #createOdometerHtml(newVal: number, oldVal: number | null): string {
-    const newStr = String(newVal);
-    const oldStr = oldVal !== null ? String(oldVal) : newStr;
-
-    // Determine overall direction for color pulse
-    let direction = "";
-    if (oldVal !== null) {
-      if (newVal > oldVal) direction = "increasing";
-      else if (newVal < oldVal) direction = "decreasing";
-    }
-
-    // Pad shorter string with leading spaces to match lengths
-    const maxLen = Math.max(newStr.length, oldStr.length);
-    const paddedNew = newStr.padStart(maxLen, " ");
-    const paddedOld = oldStr.padStart(maxLen, " ");
-
-    let digits = "";
-    for (let i = 0; i < maxLen; i++) {
-      const oldDigit = paddedOld[i] ?? " ";
-      const newDigit = paddedNew[i] ?? " ";
-
-      // Determine if this digit changed and in which direction
-      let digitAnim = "";
-      if (oldDigit !== newDigit && oldVal !== null) {
-        const oldNum = oldDigit === " " ? -1 : parseInt(oldDigit, 10);
-        const newNum = newDigit === " " ? -1 : parseInt(newDigit, 10);
-
-        if (newNum > oldNum || (oldDigit === " " && newDigit !== " ")) {
-          digitAnim = "roll-up";
-        } else {
-          digitAnim = "roll-down";
-        }
-      }
-
-      if (digitAnim) {
-        const displayOld = oldDigit === " " ? "&nbsp;" : oldDigit;
-        const displayNew = newDigit === " " ? "&nbsp;" : newDigit;
-
-        if (digitAnim === "roll-up") {
-          digits += `<span class="odometer-digit"><span class="odometer-digit-inner ${digitAnim}"><span class="odometer-digit-old">${displayOld}</span><span class="odometer-digit-new">${displayNew}</span></span></span>`;
-        } else {
-          digits += `<span class="odometer-digit"><span class="odometer-digit-inner ${digitAnim}"><span class="odometer-digit-new">${displayNew}</span><span class="odometer-digit-old">${displayOld}</span></span></span>`;
-        }
-      } else {
-        const displayDigit = newDigit === " " ? "" : newDigit;
-        digits += `<span class="odometer-digit"><span class="odometer-digit-inner"><span class="odometer-digit-new">${displayDigit}</span></span></span>`;
-      }
-    }
-
-    return `<span class="odometer ${direction}">${digits}</span>`;
-  }
-
-  /**
-   * Create the DOM stats visual element.
-   * @private
-   * @returns {HTMLElement}
-   */
-  #createDomStatsElement(): HTMLElement {
-    const { total, sorted } = this.#getDOMStatsData();
-    const maxCount = sorted.length > 0 ? (sorted[0]?.[1] ?? 1) : 1;
-
-    const container = document.createElement("div");
-    container.className = "devtools-dom-stats";
-
-    // Header with total
-    const header = document.createElement("div");
-    header.className = "devtools-dom-stats-header";
-
-    const totalEl = document.createElement("span");
-    totalEl.className = "devtools-dom-stats-total";
-    totalEl.innerHTML = this.#createOdometerHtml(total, null);
-    totalEl.dataset["value"] = String(total);
-
-    const labelEl = document.createElement("span");
-    labelEl.className = "devtools-dom-stats-label";
-    labelEl.textContent = "DOM Nodes";
-
-    header.appendChild(totalEl);
-    header.appendChild(labelEl);
-    container.appendChild(header);
-
-    // Bar chart
-    const chart = document.createElement("div");
-    chart.className = "devtools-dom-stats-chart";
-
-    for (const [tag, count] of sorted) {
-      const row = document.createElement("div");
-      row.className = "devtools-dom-stats-row";
-      row.dataset["tag"] = tag;
-
-      const tagEl = document.createElement("span");
-      tagEl.className = "devtools-dom-stats-tag";
-      tagEl.textContent = tag;
-
-      const barContainer = document.createElement("div");
-      barContainer.className = "devtools-dom-stats-bar-container";
-
-      const bar = document.createElement("div");
-      bar.className = "devtools-dom-stats-bar";
-      bar.style.width = `${(count / maxCount) * 100}%`;
-      bar.dataset["count"] = String(count);
-
-      const countEl = document.createElement("span");
-      countEl.className = "devtools-dom-stats-count";
-      countEl.textContent = count.toLocaleString();
-
-      barContainer.appendChild(bar);
-      barContainer.appendChild(countEl);
-      row.appendChild(tagEl);
-      row.appendChild(barContainer);
-      chart.appendChild(row);
-    }
-
-    container.appendChild(chart);
-
-    // Store previous values for animation
-    this.#prevDomCounts = Object.fromEntries(sorted);
-
-    return container;
-  }
-
-  /**
-   * Update the DOM stats element with new data.
-   * @private
-   * @param {HTMLElement} container
-   */
-  #updateDomStatsElement(container: HTMLElement): void {
-    const { total, sorted } = this.#getDOMStatsData();
-    const maxCount = sorted.length > 0 ? (sorted[0]?.[1] ?? 1) : 1;
-
-    // Update total with odometer animation
-    const totalEl = container.querySelector(".devtools-dom-stats-total") as HTMLElement | null;
-    if (totalEl) {
-      const prevTotal = parseInt(totalEl.dataset["value"] ?? "0", 10) || 0;
-      if (total !== prevTotal) {
-        totalEl.innerHTML = this.#createOdometerHtml(total, prevTotal);
-        totalEl.dataset["value"] = String(total);
-      }
-    }
-
-    // Update bars
-    const chart = container.querySelector(".devtools-dom-stats-chart");
-    if (!chart) return;
-
-    const rows = chart.querySelectorAll(".devtools-dom-stats-row");
-
-    // Update each row in place
-    sorted.forEach(([tag, count], index) => {
-      const row = rows[index] as HTMLElement | undefined;
-      if (!row) return;
-
-      const prevCount = this.#prevDomCounts?.[tag] ?? count;
-      const hasChanged = count !== prevCount;
-
-      // Update tag name if different
-      const tagEl = row.querySelector(".devtools-dom-stats-tag");
-      if (tagEl && tagEl.textContent !== tag) {
-        tagEl.textContent = tag;
-      }
-      row.dataset["tag"] = tag;
-
-      // Update bar
-      const bar = row.querySelector(".devtools-dom-stats-bar") as HTMLElement | null;
-      if (bar) {
-        bar.style.width = `${(count / maxCount) * 100}%`;
-
-        // Only animate on actual count change
-        if (hasChanged) {
-          bar.classList.remove("increasing", "decreasing");
-          void bar.offsetWidth; // Force reflow
-          bar.classList.add(count > prevCount ? "increasing" : "decreasing");
-        }
-        bar.dataset["count"] = String(count);
-      }
-
-      // Update count text
-      const countEl = row.querySelector(".devtools-dom-stats-count");
-      if (countEl) {
-        countEl.textContent = count.toLocaleString();
-      }
-    });
-
-    // Store for next comparison
-    this.#prevDomCounts = Object.fromEntries(sorted);
-  }
 
   /**
    * Initialize toolbar position.

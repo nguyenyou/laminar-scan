@@ -1,5 +1,5 @@
 (() => {
-  // devtools/config.ts
+  // devtools/config/constants.ts
   var CONFIG = {
     colors: {
       primary: { r: 115, g: 97, b: 230 },
@@ -78,6 +78,7 @@
       ui: "system-ui, -apple-system, sans-serif"
     }
   };
+  // devtools/config/icons.ts
   var ICONS = {
     inspect: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M12.034 12.681a.498.498 0 0 1 .647-.647l9 3.5a.5.5 0 0 1-.033.943l-3.444 1.068a1 1 0 0 0-.66.66l-1.067 3.443a.5.5 0 0 1-.943.033z"/>
@@ -106,6 +107,7 @@
     <path d="M12 12V8"/>
   </svg>`
   };
+  // devtools/config/styles.ts
   var STYLES = `
   /* ===== Toolbar Container ===== */
   .devtools-toolbar {
@@ -297,7 +299,6 @@
     visibility: visible;
   }
 
-  /* Stacked tooltips - stacked-1 is base position, stacked-2 offset is set via JS */
   .devtools-tooltip.stacked-1 {
     bottom: calc(100% + 8px);
   }
@@ -515,7 +516,6 @@
     line-height: 1.3em;
   }
 
-  /* Container for each digit */
   .odometer-digit {
     display: inline-block;
     position: relative;
@@ -523,7 +523,6 @@
     height: 1.3em;
   }
 
-  /* Stack old and new values */
   .odometer-digit-inner {
     display: flex;
     flex-direction: column;
@@ -538,7 +537,6 @@
     text-align: center;
   }
 
-  /* Animation states */
   .odometer-digit-inner.roll-up {
     animation: odometerRollUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   }
@@ -547,65 +545,36 @@
     animation: odometerRollDown 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   }
 
-  /* Color pulse for increases (more nodes = warning/red) */
   .odometer.increasing {
     animation: pulseRed 0.5s ease-out;
   }
 
-  /* Color pulse for decreases (fewer nodes = good/green) */
   .odometer.decreasing {
     animation: pulseGreen 0.5s ease-out;
   }
 
   @keyframes odometerRollUp {
-    0% {
-      transform: translateY(0);
-    }
-    100% {
-      transform: translateY(-50%);
-    }
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-50%); }
   }
 
   @keyframes odometerRollDown {
-    0% {
-      transform: translateY(-50%);
-    }
-    100% {
-      transform: translateY(0);
-    }
+    0% { transform: translateY(-50%); }
+    100% { transform: translateY(0); }
   }
 
   @keyframes pulseGreen {
-    0% {
-      color: inherit;
-      text-shadow: none;
-    }
-    30% {
-      color: #4ade80;
-      text-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
-    }
-    100% {
-      color: inherit;
-      text-shadow: none;
-    }
+    0% { color: inherit; text-shadow: none; }
+    30% { color: #4ade80; text-shadow: 0 0 8px rgba(74, 222, 128, 0.5); }
+    100% { color: inherit; text-shadow: none; }
   }
 
   @keyframes pulseRed {
-    0% {
-      color: inherit;
-      text-shadow: none;
-    }
-    30% {
-      color: #f87171;
-      text-shadow: 0 0 8px rgba(248, 113, 113, 0.5);
-    }
-    100% {
-      color: inherit;
-      text-shadow: none;
-    }
+    0% { color: inherit; text-shadow: none; }
+    30% { color: #f87171; text-shadow: 0 0 8px rgba(248, 113, 113, 0.5); }
+    100% { color: inherit; text-shadow: none; }
   }
 
-  /* Stagger animation delay for digits */
   .odometer-digit:nth-child(1) .odometer-digit-inner { animation-delay: 0ms; }
   .odometer-digit:nth-child(2) .odometer-digit-inner { animation-delay: 30ms; }
   .odometer-digit:nth-child(3) .odometer-digit-inner { animation-delay: 60ms; }
@@ -613,7 +582,6 @@
   .odometer-digit:nth-child(5) .odometer-digit-inner { animation-delay: 120ms; }
   .odometer-digit:nth-child(6) .odometer-digit-inner { animation-delay: 150ms; }
 
-  /* Legacy support for simple rolling (non-digit) */
   .num-roll {
     display: inline-block;
     overflow: hidden;
@@ -635,31 +603,15 @@
   }
 
   @keyframes legacyRollUp {
-    0% {
-      transform: translateY(100%);
-      opacity: 0;
-    }
-    60% {
-      opacity: 1;
-    }
-    100% {
-      transform: translateY(0);
-      opacity: 1;
-    }
+    0% { transform: translateY(100%); opacity: 0; }
+    60% { opacity: 1; }
+    100% { transform: translateY(0); opacity: 1; }
   }
 
   @keyframes legacyRollDown {
-    0% {
-      transform: translateY(-100%);
-      opacity: 0;
-    }
-    60% {
-      opacity: 1;
-    }
-    100% {
-      transform: translateY(0);
-      opacity: 1;
-    }
+    0% { transform: translateY(-100%); opacity: 0; }
+    60% { opacity: 1; }
+    100% { transform: translateY(0); opacity: 1; }
   }
 
   .devtools-toolbar.corner-top .devtools-tooltip {
@@ -737,7 +689,6 @@
     display: none;
   }
 `;
-
   // devtools/storage.ts
   class StorageManager {
     static get(key, defaultValue = null) {
@@ -2443,402 +2394,38 @@
     }
   }
 
-  // devtools/toolbar.ts
-  class Toolbar {
-    #root = null;
-    #shadowRoot = null;
-    #toolbar = null;
-    #content = null;
-    #expandButton = null;
-    #inspectButton = null;
-    #fpsValueElement = null;
-    #memoryValueElement = null;
-    #fpsMonitor = new FPSMonitor;
-    #memoryMonitor = new MemoryMonitor;
-    #tooltipManager = new TooltipManager;
-    #lagRadarTooltipManager = new TooltipManager;
-    #domStatsTooltipManager = new TooltipManager;
-    #dragController = null;
-    #fpsIntervalId = null;
-    #memoryIntervalId = null;
-    #domStatsIntervalId = null;
+  // devtools/toolbar/dom-stats-panel.ts
+  class DomStatsPanel {
+    #tooltipManager;
     #prevDomCounts = null;
-    #resizeHandler = null;
-    #lagRadar = null;
-    #fpsMeterElement = null;
-    #lagRadarPinned = false;
-    #domStatsPinned = false;
-    #pinnedOrder = [];
-    #onScanningToggle = null;
-    #onInspectToggle = null;
-    constructor(options = {}) {
-      this.#onScanningToggle = options.onScanningToggle ?? null;
-      this.#onInspectToggle = options.onInspectToggle ?? null;
-      this.#dragController = new DragController({
-        onDragStart: () => {
-          this.#tooltipManager.suspend();
-          this.#lagRadarTooltipManager.suspend();
-          this.#domStatsTooltipManager.suspend();
-          this.#fpsMonitor.pause();
-          this.#stopDisplayUpdates();
-        },
-        onDragEnd: () => {
-          this.#fpsMonitor.resume();
-          this.#startDisplayUpdates();
-        },
-        onPositionChange: (position, corner) => {
-          StorageManager.setToolbarPosition(corner, position);
-          this.#updateCornerClasses();
-          this.#updateTooltipStacking();
-          setTimeout(() => {
-            this.#tooltipManager.resume();
-            this.#lagRadarTooltipManager.resume();
-            this.#domStatsTooltipManager.resume();
-          }, 50);
-        },
-        onCollapse: (corner, orientation) => {
-          this.#applyCollapsedState(corner, orientation);
-          StorageManager.setCollapsedState({ corner, orientation });
-        },
-        onExpand: (corner) => {
-          this.#expandFromCollapsed(corner);
-        }
-      });
+    #pinned = false;
+    #intervalId = null;
+    constructor(tooltipManager) {
+      this.#tooltipManager = tooltipManager;
     }
-    mount() {
-      if (this.#root)
-        return;
-      const existing = document.getElementById("devtools-root");
-      if (existing) {
-        console.warn("Devtools: Toolbar already exists in DOM, skipping mount");
-        return;
-      }
-      this.#root = document.createElement("div");
-      this.#root.id = "devtools-root";
-      this.#root.setAttribute(CONFIG.attributes.devtools, "toolbar");
-      this.#shadowRoot = this.#root.attachShadow({ mode: "open" });
-      const style = document.createElement("style");
-      style.textContent = STYLES;
-      this.#shadowRoot.appendChild(style);
-      this.#toolbar = this.#createToolbar();
-      this.#shadowRoot.appendChild(this.#toolbar);
-      document.documentElement.appendChild(this.#root);
-      requestAnimationFrame(() => {
-        this.#initPosition();
-        this.#updateTooltipStacking();
-      });
-      this.#resizeHandler = () => this.#handleResize();
-      window.addEventListener("resize", this.#resizeHandler);
-      this.#startDisplayUpdates();
+    get isPinned() {
+      return this.#pinned;
     }
-    unmount() {
-      this.#stopDisplayUpdates();
-      this.#fpsMonitor.stop();
-      this.#tooltipManager.destroy();
-      this.#lagRadarTooltipManager.destroy();
-      this.#domStatsTooltipManager.destroy();
-      this.#dragController?.destroy();
-      if (this.#lagRadar) {
-        this.#lagRadar.destroy();
-        this.#lagRadar = null;
-      }
-      if (this.#domStatsIntervalId) {
-        clearInterval(this.#domStatsIntervalId);
-        this.#domStatsIntervalId = null;
-      }
-      if (this.#resizeHandler) {
-        window.removeEventListener("resize", this.#resizeHandler);
-        this.#resizeHandler = null;
-      }
-      if (this.#root?.parentNode) {
-        this.#root.parentNode.removeChild(this.#root);
-      }
-      this.#root = null;
-      this.#shadowRoot = null;
-      this.#toolbar = null;
-      this.#content = null;
-      this.#expandButton = null;
-      this.#inspectButton = null;
-      this.#fpsValueElement = null;
-      this.#memoryValueElement = null;
-      this.#fpsMeterElement = null;
-    }
-    updateInspectButton(isInspecting) {
-      if (!this.#inspectButton)
-        return;
-      this.#inspectButton.classList.toggle("active", isInspecting);
-      this.#inspectButton.innerHTML = isInspecting ? ICONS["close"] ?? "" : ICONS["inspect"] ?? "";
-      this.#inspectButton.setAttribute("data-tooltip", isInspecting ? "Exit inspect mode — or press Esc" : "Inspect component (Ctrl+Shift+C) — click to jump to source code in your IDE");
-    }
-    #createToolbar() {
-      const toolbar = document.createElement("div");
-      toolbar.className = "devtools-toolbar";
-      this.#dragController?.init(toolbar);
-      this.#expandButton = this.#createExpandButton();
-      this.#expandButton.style.display = "none";
-      toolbar.appendChild(this.#expandButton);
-      this.#content = document.createElement("div");
-      this.#content.style.cssText = "display: flex; align-items: center; gap: 8px;";
-      this.#inspectButton = this.#createInspectButton();
-      this.#content.appendChild(this.#inspectButton);
-      const toggle = this.#createScanningToggle();
-      this.#content.appendChild(toggle);
-      const fpsMeter = this.#createFPSMeter();
-      this.#content.appendChild(fpsMeter);
-      if (MemoryMonitor.isSupported()) {
-        const memoryMeter = this.#createMemoryMeter();
-        this.#content.appendChild(memoryMeter);
-      }
-      const domStatsBtn = this.#createDomStatsButton();
-      this.#content.appendChild(domStatsBtn);
-      toolbar.appendChild(this.#content);
-      const { container: tooltip } = this.#tooltipManager.create();
-      toolbar.appendChild(tooltip);
-      const { container: lagRadarTooltip } = this.#lagRadarTooltipManager.create();
-      toolbar.appendChild(lagRadarTooltip);
-      const { container: domStatsTooltip } = this.#domStatsTooltipManager.create();
-      toolbar.appendChild(domStatsTooltip);
-      this.#tooltipManager.setupEvents(toolbar);
-      return toolbar;
-    }
-    #createExpandButton() {
-      const btn = document.createElement("button");
-      btn.className = "devtools-expand-btn";
-      btn.title = "Expand toolbar";
-      btn.innerHTML = ICONS["chevronRight"] ?? "";
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this.#dragController?.expand();
-      });
-      return btn;
-    }
-    #createInspectButton() {
-      const btn = document.createElement("button");
-      btn.className = "devtools-icon-btn";
-      btn.setAttribute("data-tooltip", `Inspect component (Ctrl+Shift+C) 
- Click to jump to source code in your IDE`);
-      btn.innerHTML = ICONS["inspect"] ?? "";
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this.#onInspectToggle?.();
-      });
-      return btn;
-    }
-    #createScanningToggle() {
-      const toggle = document.createElement("label");
-      toggle.className = "devtools-toggle";
-      toggle.setAttribute("data-tooltip", `Highlight DOM mutations 
- Detect unexpected re-renders`);
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.checked = StorageManager.isScanningEnabled();
-      checkbox.addEventListener("change", () => {
-        this.#onScanningToggle?.(checkbox.checked);
-        StorageManager.setScanningEnabled(checkbox.checked);
-      });
-      const track = document.createElement("div");
-      track.className = "devtools-toggle-track";
-      const thumb = document.createElement("div");
-      thumb.className = "devtools-toggle-thumb";
-      track.appendChild(thumb);
-      toggle.appendChild(checkbox);
-      toggle.appendChild(track);
-      return toggle;
-    }
-    #createFPSMeter() {
-      const container = document.createElement("div");
-      container.className = "devtools-meter clickable";
-      container.setAttribute("data-tooltip", `Frames per second 
- Click to show lag radar`);
-      const value = document.createElement("span");
-      value.className = "devtools-meter-value";
-      value.textContent = "60";
-      this.#fpsValueElement = value;
-      const label = document.createElement("span");
-      label.className = "devtools-meter-label";
-      label.textContent = "FPS";
-      container.appendChild(value);
-      container.appendChild(label);
-      this.#fpsMeterElement = container;
-      container.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this.#toggleLagRadarPin();
-      });
-      if (StorageManager.isLagRadarPinned()) {
-        requestAnimationFrame(() => {
-          this.#pinLagRadar();
-        });
-      }
-      return container;
-    }
-    #createLagRadarContent() {
-      const container = document.createElement("div");
-      container.className = "devtools-radar-container";
-      this.#lagRadar = new LagRadar(this.#fpsMonitor, {
-        size: CONFIG.dimensions.radarSize
-      });
-      const canvas = this.#lagRadar.create();
-      container.appendChild(canvas);
-      const legend = document.createElement("div");
-      legend.className = "devtools-radar-legend";
-      legend.innerHTML = `
-      <div class="devtools-radar-legend-item">
-        <span class="devtools-radar-legend-dot good"></span>
-        <span>50+</span>
-      </div>
-      <div class="devtools-radar-legend-item">
-        <span class="devtools-radar-legend-dot warning"></span>
-        <span>30-50</span>
-      </div>
-      <div class="devtools-radar-legend-item">
-        <span class="devtools-radar-legend-dot critical"></span>
-        <span>&lt;30</span>
-      </div>
-    `;
-      container.appendChild(legend);
-      return container;
-    }
-    #updateTooltipStacking() {
-      const lagRadarTooltip = this.#lagRadarTooltipManager.getElement();
-      const domStatsTooltip = this.#domStatsTooltipManager.getElement();
-      if (lagRadarTooltip && this.#pinnedOrder.includes("lagRadar")) {
-        lagRadarTooltip.classList.remove("stacked-1", "stacked-2");
-        lagRadarTooltip.style.removeProperty("bottom");
-        lagRadarTooltip.style.removeProperty("top");
-      }
-      if (domStatsTooltip && this.#pinnedOrder.includes("domStats")) {
-        domStatsTooltip.classList.remove("stacked-1", "stacked-2");
-        domStatsTooltip.style.removeProperty("bottom");
-        domStatsTooltip.style.removeProperty("top");
-      }
-      const isTop = this.#toolbar?.classList.contains("corner-top") ?? false;
-      const baseGap = 8;
-      const tooltipGap = 8;
-      let accumulatedOffset = baseGap;
-      this.#pinnedOrder.forEach((id, index) => {
-        const stackClass = `stacked-${index + 1}`;
-        let tooltip = null;
-        if (id === "lagRadar" && lagRadarTooltip) {
-          tooltip = lagRadarTooltip;
-        } else if (id === "domStats" && domStatsTooltip) {
-          tooltip = domStatsTooltip;
-        }
-        if (tooltip) {
-          tooltip.classList.add(stackClass);
-          if (isTop) {
-            tooltip.style.top = `calc(100% + ${accumulatedOffset}px)`;
-          } else {
-            tooltip.style.bottom = `calc(100% + ${accumulatedOffset}px)`;
-          }
-          const tooltipHeight = tooltip.offsetHeight || CONFIG.dimensions.tooltipMinHeight;
-          accumulatedOffset += tooltipHeight + tooltipGap;
-        }
-      });
-    }
-    #pinLagRadar() {
-      if (!this.#fpsMeterElement)
-        return;
-      this.#lagRadarPinned = true;
-      this.#fpsMeterElement.classList.add("active");
-      StorageManager.setLagRadarPinned(true);
-      if (!this.#pinnedOrder.includes("lagRadar")) {
-        this.#pinnedOrder.push("lagRadar");
-      }
-      const radarContent = this.#createLagRadarContent();
-      this.#lagRadarTooltipManager.pinElement(radarContent);
-      this.#updateTooltipStacking();
-      this.#lagRadar?.start();
-    }
-    #unpinLagRadar() {
-      if (!this.#fpsMeterElement)
-        return;
-      this.#lagRadarPinned = false;
-      this.#fpsMeterElement.classList.remove("active");
-      StorageManager.setLagRadarPinned(false);
-      this.#pinnedOrder = this.#pinnedOrder.filter((id) => id !== "lagRadar");
-      this.#lagRadarTooltipManager.unpin();
-      this.#updateTooltipStacking();
-      if (this.#lagRadar) {
-        const radar = this.#lagRadar;
-        this.#lagRadar = null;
-        setTimeout(() => {
-          radar.destroy();
-        }, CONFIG.animation.tooltipFadeMs);
-      }
-    }
-    #toggleLagRadarPin() {
-      if (this.#lagRadarPinned) {
-        this.#unpinLagRadar();
-      } else {
-        this.#pinLagRadar();
-      }
-    }
-    #createMemoryMeter() {
-      const container = document.createElement("div");
-      container.className = "devtools-meter";
-      container.setAttribute("data-tooltip", `JS heap memory usage 
- Detect memory leaks and excessive allocations`);
-      const value = document.createElement("span");
-      value.className = "devtools-meter-value memory";
-      value.textContent = "--";
-      this.#memoryValueElement = value;
-      const label = document.createElement("span");
-      label.className = "devtools-meter-label";
-      label.textContent = "MB";
-      container.appendChild(value);
-      container.appendChild(label);
-      return container;
-    }
-    #createDomStatsButton() {
-      const btn = document.createElement("button");
-      btn.className = "devtools-icon-btn";
-      btn.innerHTML = ICONS["domTree"] ?? "";
-      btn.setAttribute("data-tooltip", `DOM statistics 
- Click to pin`);
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this.#toggleDomStatsPin(btn);
-      });
-      if (StorageManager.isDomStatsPinned()) {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            this.#pinDomStats(btn);
-          });
-        });
-      }
-      return btn;
-    }
-    #pinDomStats(btn) {
-      this.#domStatsPinned = true;
-      btn.classList.add("active");
-      StorageManager.setDomStatsPinned(true);
-      if (!this.#pinnedOrder.includes("domStats")) {
-        this.#pinnedOrder.push("domStats");
-      }
+    pin() {
+      this.#pinned = true;
       const statsElement = this.#createDomStatsElement();
-      this.#domStatsTooltipManager.pinElement(statsElement);
-      this.#updateTooltipStacking();
-      this.#domStatsIntervalId = setInterval(() => {
+      this.#tooltipManager.pinElement(statsElement);
+      this.#intervalId = setInterval(() => {
         this.#updateDomStatsElement(statsElement);
       }, 500);
     }
-    #unpinDomStats(btn) {
-      this.#domStatsPinned = false;
-      this.#domStatsTooltipManager.unpin();
-      btn.classList.remove("active");
-      StorageManager.setDomStatsPinned(false);
-      this.#pinnedOrder = this.#pinnedOrder.filter((id) => id !== "domStats");
-      if (this.#domStatsIntervalId) {
-        clearInterval(this.#domStatsIntervalId);
-        this.#domStatsIntervalId = null;
+    unpin() {
+      this.#pinned = false;
+      this.#tooltipManager.unpin();
+      if (this.#intervalId) {
+        clearInterval(this.#intervalId);
+        this.#intervalId = null;
       }
-      this.#updateTooltipStacking();
     }
-    #toggleDomStatsPin(btn) {
-      if (this.#domStatsPinned) {
-        this.#unpinDomStats(btn);
-      } else {
-        this.#pinDomStats(btn);
+    destroy() {
+      if (this.#intervalId) {
+        clearInterval(this.#intervalId);
+        this.#intervalId = null;
       }
     }
     #getDOMStatsData() {
@@ -2984,6 +2571,456 @@
         }
       });
       this.#prevDomCounts = Object.fromEntries(sorted);
+    }
+  }
+
+  // devtools/toolbar/lag-radar-panel.ts
+  class LagRadarPanel {
+    #tooltipManager;
+    #fpsMonitor;
+    #lagRadar = null;
+    #pinned = false;
+    constructor(tooltipManager, fpsMonitor) {
+      this.#tooltipManager = tooltipManager;
+      this.#fpsMonitor = fpsMonitor;
+    }
+    get isPinned() {
+      return this.#pinned;
+    }
+    pin() {
+      this.#pinned = true;
+      StorageManager.setLagRadarPinned(true);
+      const radarContent = this.#createLagRadarContent();
+      this.#tooltipManager.pinElement(radarContent);
+      this.#lagRadar?.start();
+    }
+    unpin() {
+      this.#pinned = false;
+      StorageManager.setLagRadarPinned(false);
+      this.#tooltipManager.unpin();
+      if (this.#lagRadar) {
+        const radar = this.#lagRadar;
+        this.#lagRadar = null;
+        setTimeout(() => {
+          radar.destroy();
+        }, CONFIG.animation.tooltipFadeMs);
+      }
+    }
+    toggle() {
+      if (this.#pinned) {
+        this.unpin();
+      } else {
+        this.pin();
+      }
+    }
+    destroy() {
+      if (this.#lagRadar) {
+        this.#lagRadar.destroy();
+        this.#lagRadar = null;
+      }
+    }
+    #createLagRadarContent() {
+      const container = document.createElement("div");
+      container.className = "devtools-radar-container";
+      this.#lagRadar = new LagRadar(this.#fpsMonitor, {
+        size: CONFIG.dimensions.radarSize
+      });
+      const canvas = this.#lagRadar.create();
+      container.appendChild(canvas);
+      const legend = document.createElement("div");
+      legend.className = "devtools-radar-legend";
+      legend.innerHTML = `
+      <div class="devtools-radar-legend-item">
+        <span class="devtools-radar-legend-dot good"></span>
+        <span>50+</span>
+      </div>
+      <div class="devtools-radar-legend-item">
+        <span class="devtools-radar-legend-dot warning"></span>
+        <span>30-50</span>
+      </div>
+      <div class="devtools-radar-legend-item">
+        <span class="devtools-radar-legend-dot critical"></span>
+        <span>&lt;30</span>
+      </div>
+    `;
+      container.appendChild(legend);
+      return container;
+    }
+  }
+
+  // devtools/toolbar/elements.ts
+  function createExpandButton(onExpand) {
+    const btn = document.createElement("button");
+    btn.className = "devtools-expand-btn";
+    btn.title = "Expand toolbar";
+    btn.innerHTML = ICONS["chevronRight"] ?? "";
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      onExpand();
+    });
+    return btn;
+  }
+  function createInspectButton(onInspect) {
+    const btn = document.createElement("button");
+    btn.className = "devtools-icon-btn";
+    btn.setAttribute("data-tooltip", `Inspect component (Ctrl+Shift+C) 
+ Click to jump to source code in your IDE`);
+    btn.innerHTML = ICONS["inspect"] ?? "";
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      onInspect();
+    });
+    return btn;
+  }
+  function createScanningToggle(onToggle) {
+    const toggle = document.createElement("label");
+    toggle.className = "devtools-toggle";
+    toggle.setAttribute("data-tooltip", `Highlight DOM mutations 
+ Detect unexpected re-renders`);
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = StorageManager.isScanningEnabled();
+    checkbox.addEventListener("change", () => {
+      onToggle(checkbox.checked);
+      StorageManager.setScanningEnabled(checkbox.checked);
+    });
+    const track = document.createElement("div");
+    track.className = "devtools-toggle-track";
+    const thumb = document.createElement("div");
+    thumb.className = "devtools-toggle-thumb";
+    track.appendChild(thumb);
+    toggle.appendChild(checkbox);
+    toggle.appendChild(track);
+    return toggle;
+  }
+  function createFPSMeter(onFPSClick) {
+    const container = document.createElement("div");
+    container.className = "devtools-meter clickable";
+    container.setAttribute("data-tooltip", `Frames per second 
+ Click to show lag radar`);
+    const value = document.createElement("span");
+    value.className = "devtools-meter-value";
+    value.textContent = "60";
+    const label = document.createElement("span");
+    label.className = "devtools-meter-label";
+    label.textContent = "FPS";
+    container.appendChild(value);
+    container.appendChild(label);
+    container.addEventListener("click", (e) => {
+      e.stopPropagation();
+      onFPSClick();
+    });
+    return { container, valueElement: value };
+  }
+  function createDomStatsButton(onDomStatsClick) {
+    const btn = document.createElement("button");
+    btn.className = "devtools-icon-btn";
+    btn.innerHTML = ICONS["domTree"] ?? "";
+    btn.setAttribute("data-tooltip", `DOM statistics 
+ Click to pin`);
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      onDomStatsClick();
+    });
+    return btn;
+  }
+  function updateInspectButton(btn, isInspecting) {
+    btn.classList.toggle("active", isInspecting);
+    btn.innerHTML = isInspecting ? ICONS["close"] ?? "" : ICONS["inspect"] ?? "";
+    btn.setAttribute("data-tooltip", isInspecting ? "Exit inspect mode — or press Esc" : "Inspect component (Ctrl+Shift+C) — click to jump to source code in your IDE");
+  }
+
+  // devtools/toolbar.ts
+  class Toolbar {
+    #root = null;
+    #shadowRoot = null;
+    #toolbar = null;
+    #content = null;
+    #expandButton = null;
+    #inspectButton = null;
+    #fpsValueElement = null;
+    #memoryValueElement = null;
+    #fpsMonitor = new FPSMonitor;
+    #memoryMonitor = new MemoryMonitor;
+    #tooltipManager = new TooltipManager;
+    #lagRadarTooltipManager = new TooltipManager;
+    #domStatsTooltipManager = new TooltipManager;
+    #dragController = null;
+    #positionManager = null;
+    #lagRadarPanel = null;
+    #domStatsPanel = null;
+    #fpsIntervalId = null;
+    #memoryIntervalId = null;
+    #fpsMeterElement = null;
+    #pinnedOrder = [];
+    #resizeHandler = null;
+    #onScanningToggle = null;
+    #onInspectToggle = null;
+    constructor(options = {}) {
+      this.#onScanningToggle = options.onScanningToggle ?? null;
+      this.#onInspectToggle = options.onInspectToggle ?? null;
+      this.#dragController = new DragController({
+        onDragStart: () => {
+          this.#tooltipManager.suspend();
+          this.#lagRadarTooltipManager.suspend();
+          this.#domStatsTooltipManager.suspend();
+          this.#fpsMonitor.pause();
+          this.#stopDisplayUpdates();
+        },
+        onDragEnd: () => {
+          this.#fpsMonitor.resume();
+          this.#startDisplayUpdates();
+        },
+        onPositionChange: (position, corner) => {
+          StorageManager.setToolbarPosition(corner, position);
+          this.#updateTooltipStacking();
+          setTimeout(() => {
+            this.#tooltipManager.resume();
+            this.#lagRadarTooltipManager.resume();
+            this.#domStatsTooltipManager.resume();
+          }, 50);
+        },
+        onCollapse: (corner, orientation) => {
+          StorageManager.setCollapsedState({ corner, orientation });
+        },
+        onExpand: (corner) => {
+          this.#expandFromCollapsed(corner);
+        }
+      });
+      this.#lagRadarPanel = new LagRadarPanel(this.#lagRadarTooltipManager, this.#fpsMonitor);
+      this.#domStatsPanel = new DomStatsPanel(this.#domStatsTooltipManager);
+    }
+    mount() {
+      if (this.#root)
+        return;
+      const existing = document.getElementById("devtools-root");
+      if (existing) {
+        console.warn("Devtools: Toolbar already exists in DOM, skipping mount");
+        return;
+      }
+      this.#root = document.createElement("div");
+      this.#root.id = "devtools-root";
+      this.#root.setAttribute(CONFIG.attributes.devtools, "toolbar");
+      this.#shadowRoot = this.#root.attachShadow({ mode: "open" });
+      const style = document.createElement("style");
+      style.textContent = STYLES;
+      this.#shadowRoot.appendChild(style);
+      this.#toolbar = this.#createToolbar();
+      this.#shadowRoot.appendChild(this.#toolbar);
+      document.documentElement.appendChild(this.#root);
+      requestAnimationFrame(() => {
+        this.#initPosition();
+        this.#updateTooltipStacking();
+      });
+      this.#resizeHandler = () => this.#handleResize();
+      window.addEventListener("resize", this.#resizeHandler);
+      this.#startDisplayUpdates();
+    }
+    unmount() {
+      this.#stopDisplayUpdates();
+      this.#fpsMonitor.stop();
+      this.#tooltipManager.destroy();
+      this.#lagRadarTooltipManager.destroy();
+      this.#domStatsTooltipManager.destroy();
+      this.#dragController?.destroy();
+      this.#positionManager?.destroy();
+      this.#lagRadarPanel?.destroy();
+      this.#domStatsPanel?.destroy();
+      if (this.#root?.parentNode) {
+        this.#root.parentNode.removeChild(this.#root);
+      }
+      this.#root = null;
+      this.#shadowRoot = null;
+      this.#toolbar = null;
+      this.#content = null;
+      this.#expandButton = null;
+      this.#inspectButton = null;
+      this.#fpsValueElement = null;
+      this.#memoryValueElement = null;
+      this.#fpsMeterElement = null;
+      this.#positionManager = null;
+      this.#lagRadarPanel = null;
+      this.#domStatsPanel = null;
+    }
+    updateInspectButton(isInspecting) {
+      if (!this.#inspectButton)
+        return;
+      updateInspectButton(this.#inspectButton, isInspecting);
+    }
+    #createToolbar() {
+      const toolbar = document.createElement("div");
+      toolbar.className = "devtools-toolbar";
+      this.#dragController?.init(toolbar);
+      this.#expandButton = this.#createExpandButton();
+      this.#expandButton.style.display = "none";
+      toolbar.appendChild(this.#expandButton);
+      this.#content = document.createElement("div");
+      this.#content.style.cssText = "display: flex; align-items: center; gap: 8px;";
+      this.#inspectButton = this.#createInspectButton();
+      this.#content.appendChild(this.#inspectButton);
+      const toggle = this.#createScanningToggle();
+      this.#content.appendChild(toggle);
+      const fpsMeter = this.#createFPSMeter();
+      this.#content.appendChild(fpsMeter);
+      if (MemoryMonitor.isSupported()) {
+        const memoryMeter = this.#createMemoryMeter();
+        this.#content.appendChild(memoryMeter);
+      }
+      const domStatsBtn = this.#createDomStatsButton();
+      this.#content.appendChild(domStatsBtn);
+      toolbar.appendChild(this.#content);
+      const { container: tooltip } = this.#tooltipManager.create();
+      toolbar.appendChild(tooltip);
+      const { container: lagRadarTooltip } = this.#lagRadarTooltipManager.create();
+      toolbar.appendChild(lagRadarTooltip);
+      const { container: domStatsTooltip } = this.#domStatsTooltipManager.create();
+      toolbar.appendChild(domStatsTooltip);
+      this.#tooltipManager.setupEvents(toolbar);
+      return toolbar;
+    }
+    #createExpandButton() {
+      return createExpandButton(() => {
+        this.#dragController?.expand();
+      });
+    }
+    #createInspectButton() {
+      return createInspectButton(() => {
+        this.#onInspectToggle?.();
+      });
+    }
+    #createScanningToggle() {
+      return createScanningToggle((enabled) => {
+        this.#onScanningToggle?.(enabled);
+      });
+    }
+    #createFPSMeter() {
+      const { container, valueElement } = createFPSMeter(() => {
+        this.#toggleLagRadarPin();
+      });
+      this.#fpsValueElement = valueElement;
+      this.#fpsMeterElement = container;
+      if (StorageManager.isLagRadarPinned()) {
+        requestAnimationFrame(() => {
+          this.#pinLagRadar();
+        });
+      }
+      return container;
+    }
+    #updateTooltipStacking() {
+      const lagRadarTooltip = this.#lagRadarTooltipManager.getElement();
+      const domStatsTooltip = this.#domStatsTooltipManager.getElement();
+      if (lagRadarTooltip && this.#pinnedOrder.includes("lagRadar")) {
+        lagRadarTooltip.classList.remove("stacked-1", "stacked-2");
+        lagRadarTooltip.style.removeProperty("bottom");
+        lagRadarTooltip.style.removeProperty("top");
+      }
+      if (domStatsTooltip && this.#pinnedOrder.includes("domStats")) {
+        domStatsTooltip.classList.remove("stacked-1", "stacked-2");
+        domStatsTooltip.style.removeProperty("bottom");
+        domStatsTooltip.style.removeProperty("top");
+      }
+      const isTop = this.#toolbar?.classList.contains("corner-top") ?? false;
+      const baseGap = 8;
+      const tooltipGap = 8;
+      let accumulatedOffset = baseGap;
+      this.#pinnedOrder.forEach((id, index) => {
+        const stackClass = `stacked-${index + 1}`;
+        let tooltip = null;
+        if (id === "lagRadar" && lagRadarTooltip) {
+          tooltip = lagRadarTooltip;
+        } else if (id === "domStats" && domStatsTooltip) {
+          tooltip = domStatsTooltip;
+        }
+        if (tooltip) {
+          tooltip.classList.add(stackClass);
+          if (isTop) {
+            tooltip.style.top = `calc(100% + ${accumulatedOffset}px)`;
+          } else {
+            tooltip.style.bottom = `calc(100% + ${accumulatedOffset}px)`;
+          }
+          const tooltipHeight = tooltip.offsetHeight || CONFIG.dimensions.tooltipMinHeight;
+          accumulatedOffset += tooltipHeight + tooltipGap;
+        }
+      });
+    }
+    #pinLagRadar() {
+      if (!this.#fpsMeterElement || !this.#lagRadarPanel)
+        return;
+      this.#lagRadarPanel.pin();
+      this.#fpsMeterElement.classList.add("active");
+      if (!this.#pinnedOrder.includes("lagRadar")) {
+        this.#pinnedOrder.push("lagRadar");
+      }
+      this.#updateTooltipStacking();
+    }
+    #unpinLagRadar() {
+      if (!this.#fpsMeterElement || !this.#lagRadarPanel)
+        return;
+      this.#lagRadarPanel.unpin();
+      this.#fpsMeterElement.classList.remove("active");
+      this.#pinnedOrder = this.#pinnedOrder.filter((id) => id !== "lagRadar");
+      this.#updateTooltipStacking();
+    }
+    #toggleLagRadarPin() {
+      if (this.#lagRadarPanel?.isPinned) {
+        this.#unpinLagRadar();
+      } else {
+        this.#pinLagRadar();
+      }
+    }
+    #createMemoryMeter() {
+      const container = document.createElement("div");
+      container.className = "devtools-meter";
+      container.setAttribute("data-tooltip", `JS heap memory usage 
+ Detect memory leaks and excessive allocations`);
+      const value = document.createElement("span");
+      value.className = "devtools-meter-value memory";
+      value.textContent = "--";
+      this.#memoryValueElement = value;
+      const label = document.createElement("span");
+      label.className = "devtools-meter-label";
+      label.textContent = "MB";
+      container.appendChild(value);
+      container.appendChild(label);
+      return container;
+    }
+    #createDomStatsButton() {
+      const btn = createDomStatsButton(() => {
+        this.#toggleDomStatsPin(btn);
+      });
+      if (StorageManager.isDomStatsPinned()) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            this.#pinDomStats(btn);
+          });
+        });
+      }
+      return btn;
+    }
+    #pinDomStats(btn) {
+      if (!this.#domStatsPanel)
+        return;
+      this.#domStatsPanel.pin();
+      btn.classList.add("active");
+      if (!this.#pinnedOrder.includes("domStats")) {
+        this.#pinnedOrder.push("domStats");
+      }
+      this.#updateTooltipStacking();
+    }
+    #unpinDomStats(btn) {
+      if (!this.#domStatsPanel)
+        return;
+      this.#domStatsPanel.unpin();
+      btn.classList.remove("active");
+      this.#pinnedOrder = this.#pinnedOrder.filter((id) => id !== "domStats");
+      this.#updateTooltipStacking();
+    }
+    #toggleDomStatsPin(btn) {
+      if (this.#domStatsPanel?.isPinned) {
+        this.#unpinDomStats(btn);
+      } else {
+        this.#pinDomStats(btn);
+      }
     }
     #initPosition() {
       if (!this.#toolbar || !this.#dragController)
