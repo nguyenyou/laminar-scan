@@ -5,106 +5,91 @@
 // ============================================================================
 
 import { CONFIG, ICONS, STYLES } from "./00-config";
-import { debounce, clamp, lerp } from "./01-utilities";
 import { StorageManager } from "./02-storage";
 import { FPSMonitor, MemoryMonitor, LagRadar } from "./03-monitors";
 import { TooltipManager, DragController } from "./07-ui";
+
+interface ToolbarOptions {
+  onScanningToggle?: (enabled: boolean) => void;
+  onInspectToggle?: () => void;
+}
 
 /**
  * Main devtools toolbar component.
  * Composes FPSMonitor, MemoryMonitor, TooltipManager, and DragController.
  */
 export class Toolbar {
-  /** @type {HTMLDivElement | null} Root container element */
-  #root = null;
+  /** Root container element */
+  #root: HTMLDivElement | null = null;
 
-  /** @type {ShadowRoot | null} Shadow DOM root */
-  #shadowRoot = null;
+  /** Shadow DOM root */
+  #shadowRoot: ShadowRoot | null = null;
 
-  /** @type {HTMLDivElement | null} Toolbar element */
-  #toolbar = null;
+  /** Toolbar element */
+  #toolbar: HTMLDivElement | null = null;
 
-  /** @type {HTMLDivElement | null} Content container (hidden when collapsed) */
-  #content = null;
+  /** Content container (hidden when collapsed) */
+  #content: HTMLDivElement | null = null;
 
-  /** @type {HTMLButtonElement | null} Expand button (shown when collapsed) */
-  #expandButton = null;
+  /** Expand button (shown when collapsed) */
+  #expandButton: HTMLButtonElement | null = null;
 
-  /** @type {HTMLButtonElement | null} Inspect button */
-  #inspectButton = null;
+  /** Inspect button */
+  #inspectButton: HTMLButtonElement | null = null;
 
-  /** @type {HTMLInputElement | null} Scanning toggle checkbox */
-  #scanningToggle = null;
+  /** Scanning toggle checkbox (stored for potential future use) */
+  // @ts-expect-error - stored for potential future use
+  #scanningToggle: HTMLInputElement | null = null;
 
-  /** @type {HTMLSpanElement | null} FPS value display */
-  #fpsValueElement = null;
+  /** FPS value display */
+  #fpsValueElement: HTMLSpanElement | null = null;
 
-  /** @type {HTMLSpanElement | null} Memory value display */
-  #memoryValueElement = null;
+  /** Memory value display */
+  #memoryValueElement: HTMLSpanElement | null = null;
 
   // Composed components
-  /** @type {FPSMonitor} */
   #fpsMonitor = new FPSMonitor();
-
-  /** @type {MemoryMonitor} */
   #memoryMonitor = new MemoryMonitor();
-
-  /** @type {TooltipManager} */
   #tooltipManager = new TooltipManager();
 
-  /** @type {TooltipManager} Dedicated tooltip manager for lag radar */
+  /** Dedicated tooltip manager for lag radar */
   #lagRadarTooltipManager = new TooltipManager();
 
-  /** @type {TooltipManager} Dedicated tooltip manager for DOM stats */
+  /** Dedicated tooltip manager for DOM stats */
   #domStatsTooltipManager = new TooltipManager();
 
-  /** @type {DragController} */
-  #dragController = null;
+  #dragController: DragController | null = null;
 
   // Interval IDs for display updates
-  /** @type {number | null} */
-  #fpsIntervalId = null;
+  #fpsIntervalId: ReturnType<typeof setInterval> | null = null;
+  #memoryIntervalId: ReturnType<typeof setInterval> | null = null;
+  #domStatsIntervalId: ReturnType<typeof setInterval> | null = null;
 
-  /** @type {number | null} */
-  #memoryIntervalId = null;
+  /** Previous DOM node counts for comparison */
+  #prevDomCounts: Record<string, number> | null = null;
 
-  /** @type {number | null} */
-  #domStatsIntervalId = null;
+  /** Previous total DOM node count (stored for potential future use) */
+  // @ts-expect-error - stored for potential future use
+  #prevTotalNodes: number | null = null;
 
-  /** @type {Object<string, number> | null} Previous DOM node counts for comparison */
-  #prevDomCounts = null;
+  /** Lag radar visualization */
+  #lagRadar: LagRadar | null = null;
 
-  /** @type {number | null} Previous total DOM node count */
-  #prevTotalNodes = null;
+  /** FPS meter container element */
+  #fpsMeterElement: HTMLDivElement | null = null;
 
-  /** @type {LagRadar | null} Lag radar visualization */
-  #lagRadar = null;
-
-  /** @type {HTMLDivElement | null} FPS meter container element */
-  #fpsMeterElement = null;
-
-  /** @type {boolean} Whether lag radar is pinned */
+  /** Whether lag radar is pinned */
   #lagRadarPinned = false;
 
-  /** @type {boolean} Whether DOM stats is pinned */
+  /** Whether DOM stats is pinned */
   #domStatsPinned = false;
 
-  /** @type {Array<'lagRadar' | 'domStats'>} Order of pinned tooltips (first = closest to toolbar) */
-  #pinnedOrder = [];
+  /** Order of pinned tooltips (first = closest to toolbar) */
+  #pinnedOrder: Array<"lagRadar" | "domStats"> = [];
 
   // Callbacks
-  /** @type {((enabled: boolean) => void) | null} */
-  #onScanningToggle = null;
-
-  /** @type {(() => void) | null} */
-  #onInspectToggle = null;
-
-  // State flags
-  /** @type {boolean} */
-  #isExpanding = false;
-
-  /** @type {boolean} */
-  #isSnapping = false;
+  #onScanningToggle: ((enabled: boolean) => void) | null = null;
+  #onInspectToggle: (() => void) | null = null;
 
   /**
    * Create a new Toolbar.
@@ -112,9 +97,9 @@ export class Toolbar {
    * @param {(enabled: boolean) => void} [options.onScanningToggle] - Called when scanning toggle changes
    * @param {() => void} [options.onInspectToggle] - Called when inspect button clicked
    */
-  constructor(options = {}) {
-    this.#onScanningToggle = options.onScanningToggle || null;
-    this.#onInspectToggle = options.onInspectToggle || null;
+  constructor(options: ToolbarOptions = {}) {
+    this.#onScanningToggle = options.onScanningToggle ?? null;
+    this.#onInspectToggle = options.onInspectToggle ?? null;
 
     // Initialize drag controller with callbacks
     this.#dragController = new DragController({
@@ -246,11 +231,11 @@ export class Toolbar {
    * Update the inspect button state.
    * @param {boolean} isInspecting - Whether currently inspecting
    */
-  updateInspectButton(isInspecting) {
+  updateInspectButton(isInspecting: boolean): void {
     if (!this.#inspectButton) return;
 
     this.#inspectButton.classList.toggle("active", isInspecting);
-    this.#inspectButton.innerHTML = isInspecting ? ICONS.close : ICONS.inspect;
+    this.#inspectButton.innerHTML = isInspecting ? (ICONS["close"] ?? "") : (ICONS["inspect"] ?? "");
     this.#inspectButton.setAttribute(
       "data-tooltip",
       isInspecting
@@ -264,12 +249,12 @@ export class Toolbar {
    * @private
    * @returns {HTMLDivElement}
    */
-  #createToolbar() {
+  #createToolbar(): HTMLDivElement {
     const toolbar = document.createElement("div");
     toolbar.className = "devtools-toolbar";
 
     // Initialize drag controller
-    this.#dragController.init(toolbar);
+    this.#dragController?.init(toolbar);
 
     // Create expand button (for collapsed state)
     this.#expandButton = this.#createExpandButton();
@@ -326,14 +311,14 @@ export class Toolbar {
    * Create the expand button.
    * @private
    */
-  #createExpandButton() {
+  #createExpandButton(): HTMLButtonElement {
     const btn = document.createElement("button");
     btn.className = "devtools-expand-btn";
     btn.title = "Expand toolbar";
-    btn.innerHTML = ICONS.chevronRight;
+    btn.innerHTML = ICONS["chevronRight"] ?? "";
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      this.#dragController.expand();
+      this.#dragController?.expand();
     });
     return btn;
   }
@@ -342,11 +327,11 @@ export class Toolbar {
    * Create the inspect button.
    * @private
    */
-  #createInspectButton() {
+  #createInspectButton(): HTMLButtonElement {
     const btn = document.createElement("button");
     btn.className = "devtools-icon-btn";
     btn.setAttribute("data-tooltip", "Inspect component (Ctrl+Shift+C) \n Click to jump to source code in your IDE");
-    btn.innerHTML = ICONS.inspect;
+    btn.innerHTML = ICONS["inspect"] ?? "";
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       this.#onInspectToggle?.();
@@ -549,7 +534,7 @@ export class Toolbar {
     this.#updateTooltipStacking();
 
     // Start radar animation
-    this.#lagRadar.start();
+    this.#lagRadar?.start();
   }
 
   /**
@@ -623,10 +608,10 @@ export class Toolbar {
    * Create the DOM tree button.
    * @private
    */
-  #createDomStatsButton() {
+  #createDomStatsButton(): HTMLButtonElement {
     const btn = document.createElement("button");
     btn.className = "devtools-icon-btn";
-    btn.innerHTML = ICONS.domTree;
+    btn.innerHTML = ICONS["domTree"] ?? "";
     btn.setAttribute("data-tooltip", "DOM statistics \n Click to pin");
 
     // Toggle pin on click
@@ -653,7 +638,7 @@ export class Toolbar {
    * @private
    * @param {HTMLButtonElement} btn - The DOM stats button
    */
-  #pinDomStats(btn) {
+  #pinDomStats(btn: HTMLButtonElement): void {
     this.#domStatsPinned = true;
     btn.classList.add("active");
     StorageManager.setDomStatsPinned(true);
@@ -681,7 +666,7 @@ export class Toolbar {
    * @private
    * @param {HTMLButtonElement} btn - The DOM stats button
    */
-  #unpinDomStats(btn) {
+  #unpinDomStats(btn: HTMLButtonElement): void {
     this.#domStatsPinned = false;
     this.#domStatsTooltipManager.unpin();
     btn.classList.remove("active");
@@ -704,7 +689,7 @@ export class Toolbar {
    * @private
    * @param {HTMLButtonElement} btn - The DOM stats button
    */
-  #toggleDomStatsPin(btn) {
+  #toggleDomStatsPin(btn: HTMLButtonElement): void {
     if (this.#domStatsPinned) {
       this.#unpinDomStats(btn);
     } else {
@@ -715,15 +700,15 @@ export class Toolbar {
   /**
    * Get current DOM statistics data.
    * @private
-   * @returns {{ total: number, counts: Object<string, number>, sorted: [string, number][] }}
+   * @returns {{ total: number, counts: Record<string, number>, sorted: [string, number][] }}
    */
-  #getDOMStatsData() {
+  #getDOMStatsData(): { total: number; counts: Record<string, number>; sorted: [string, number][] } {
     const body = document.body;
     if (!body) return { total: 0, counts: {}, sorted: [] };
 
     const allNodes = body.querySelectorAll("*");
     const totalNodes = allNodes.length;
-    const counts = {};
+    const counts: Record<string, number> = {};
 
     for (const el of allNodes) {
       const tag = el.tagName.toLowerCase();
@@ -732,7 +717,7 @@ export class Toolbar {
 
     const sorted = Object.entries(counts)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 6);
+      .slice(0, 6) as [string, number][];
 
     return { total: totalNodes, counts, sorted };
   }
@@ -744,7 +729,7 @@ export class Toolbar {
    * @param {number|null} oldVal - Previous value (null if first render)
    * @returns {string} HTML string for odometer display
    */
-  #createOdometerHtml(newVal, oldVal) {
+  #createOdometerHtml(newVal: number, oldVal: number | null): string {
     const newStr = String(newVal);
     const oldStr = oldVal !== null ? String(oldVal) : newStr;
 
@@ -762,8 +747,8 @@ export class Toolbar {
 
     let digits = "";
     for (let i = 0; i < maxLen; i++) {
-      const oldDigit = paddedOld[i];
-      const newDigit = paddedNew[i];
+      const oldDigit = paddedOld[i] ?? " ";
+      const newDigit = paddedNew[i] ?? " ";
 
       // Determine if this digit changed and in which direction
       let digitAnim = "";
@@ -801,9 +786,9 @@ export class Toolbar {
    * @private
    * @returns {HTMLElement}
    */
-  #createDomStatsElement() {
+  #createDomStatsElement(): HTMLElement {
     const { total, sorted } = this.#getDOMStatsData();
-    const maxCount = sorted.length > 0 ? sorted[0][1] : 1;
+    const maxCount = sorted.length > 0 ? (sorted[0]?.[1] ?? 1) : 1;
 
     const container = document.createElement("div");
     container.className = "devtools-dom-stats";
@@ -815,7 +800,7 @@ export class Toolbar {
     const totalEl = document.createElement("span");
     totalEl.className = "devtools-dom-stats-total";
     totalEl.innerHTML = this.#createOdometerHtml(total, null);
-    totalEl.dataset.value = total;
+    totalEl.dataset["value"] = String(total);
 
     const labelEl = document.createElement("span");
     labelEl.className = "devtools-dom-stats-label";
@@ -832,7 +817,7 @@ export class Toolbar {
     for (const [tag, count] of sorted) {
       const row = document.createElement("div");
       row.className = "devtools-dom-stats-row";
-      row.dataset.tag = tag;
+      row.dataset["tag"] = tag;
 
       const tagEl = document.createElement("span");
       tagEl.className = "devtools-dom-stats-tag";
@@ -844,7 +829,7 @@ export class Toolbar {
       const bar = document.createElement("div");
       bar.className = "devtools-dom-stats-bar";
       bar.style.width = `${(count / maxCount) * 100}%`;
-      bar.dataset.count = count;
+      bar.dataset["count"] = String(count);
 
       const countEl = document.createElement("span");
       countEl.className = "devtools-dom-stats-count";
@@ -871,17 +856,17 @@ export class Toolbar {
    * @private
    * @param {HTMLElement} container
    */
-  #updateDomStatsElement(container) {
+  #updateDomStatsElement(container: HTMLElement): void {
     const { total, sorted } = this.#getDOMStatsData();
-    const maxCount = sorted.length > 0 ? sorted[0][1] : 1;
+    const maxCount = sorted.length > 0 ? (sorted[0]?.[1] ?? 1) : 1;
 
     // Update total with odometer animation
-    const totalEl = container.querySelector(".devtools-dom-stats-total");
+    const totalEl = container.querySelector(".devtools-dom-stats-total") as HTMLElement | null;
     if (totalEl) {
-      const prevTotal = parseInt(totalEl.dataset.value, 10) || 0;
+      const prevTotal = parseInt(totalEl.dataset["value"] ?? "0", 10) || 0;
       if (total !== prevTotal) {
         totalEl.innerHTML = this.#createOdometerHtml(total, prevTotal);
-        totalEl.dataset.value = total;
+        totalEl.dataset["value"] = String(total);
       }
     }
 
@@ -893,7 +878,7 @@ export class Toolbar {
 
     // Update each row in place
     sorted.forEach(([tag, count], index) => {
-      const row = rows[index];
+      const row = rows[index] as HTMLElement | undefined;
       if (!row) return;
 
       const prevCount = this.#prevDomCounts?.[tag] ?? count;
@@ -904,10 +889,10 @@ export class Toolbar {
       if (tagEl && tagEl.textContent !== tag) {
         tagEl.textContent = tag;
       }
-      row.dataset.tag = tag;
+      row.dataset["tag"] = tag;
 
       // Update bar
-      const bar = row.querySelector(".devtools-dom-stats-bar");
+      const bar = row.querySelector(".devtools-dom-stats-bar") as HTMLElement | null;
       if (bar) {
         bar.style.width = `${(count / maxCount) * 100}%`;
 
@@ -917,7 +902,7 @@ export class Toolbar {
           void bar.offsetWidth; // Force reflow
           bar.classList.add(count > prevCount ? "increasing" : "decreasing");
         }
-        bar.dataset.count = count;
+        bar.dataset["count"] = String(count);
       }
 
       // Update count text
@@ -936,8 +921,8 @@ export class Toolbar {
    * Initialize toolbar position.
    * @private
    */
-  #initPosition() {
-    if (!this.#toolbar) return;
+  #initPosition(): void {
+    if (!this.#toolbar || !this.#dragController) return;
 
     // Load collapsed state first
     const collapsedState = StorageManager.getCollapsedState();
@@ -988,7 +973,7 @@ export class Toolbar {
    * Apply collapsed state to toolbar.
    * @private
    */
-  #applyCollapsedState(corner, orientation) {
+  #applyCollapsedState(corner: string, orientation: string): void {
     if (!this.#toolbar) return;
 
     // Hide content, show expand button
@@ -1037,17 +1022,16 @@ export class Toolbar {
         break;
     }
 
-    this.#dragController.setPosition(position, corner);
+    this.#dragController?.setPosition(position, corner);
   }
 
   /**
    * Expand from collapsed state.
    * @private
    */
-  #expandFromCollapsed(savedCorner) {
+  #expandFromCollapsed(savedCorner: string): void {
     if (!this.#toolbar) return;
 
-    this.#isExpanding = true;
     this.#tooltipManager.suspend();
     this.#lagRadarTooltipManager.suspend();
     this.#domStatsTooltipManager.suspend();
@@ -1062,6 +1046,7 @@ export class Toolbar {
 
     // Animate to corner position
     requestAnimationFrame(() => {
+      if (!this.#toolbar || !this.#dragController) return;
       const rect = this.#toolbar.getBoundingClientRect();
       this.#dragController.snapToCorner(savedCorner, CONFIG.dimensions.toolbarWidth, rect.height || 40);
       StorageManager.setToolbarPosition(savedCorner, this.#dragController.position);
@@ -1070,7 +1055,6 @@ export class Toolbar {
 
       // Resume tooltips after animation
       setTimeout(() => {
-        this.#isExpanding = false;
         this.#tooltipManager.resume();
         this.#lagRadarTooltipManager.resume();
         this.#domStatsTooltipManager.resume();
@@ -1082,8 +1066,8 @@ export class Toolbar {
    * Update corner-based CSS classes.
    * @private
    */
-  #updateCornerClasses() {
-    if (!this.#toolbar) return;
+  #updateCornerClasses(): void {
+    if (!this.#toolbar || !this.#dragController) return;
 
     const corner = this.#dragController.corner;
     const isTop = corner.startsWith("top");
@@ -1097,8 +1081,8 @@ export class Toolbar {
    * Handle window resize.
    * @private
    */
-  #handleResize() {
-    if (!this.#toolbar) return;
+  #handleResize(): void {
+    if (!this.#toolbar || !this.#dragController) return;
 
     const collapsed = this.#dragController.collapsed;
     if (collapsed) {
@@ -1137,14 +1121,14 @@ export class Toolbar {
    * Start FPS and memory display updates.
    * @private
    */
-  #startDisplayUpdates() {
+  #startDisplayUpdates(): void {
     this.#fpsMonitor.start();
 
     // FPS updates
     this.#fpsIntervalId = setInterval(() => {
       if (this.#fpsValueElement) {
         const fps = this.#fpsMonitor.getFPS();
-        this.#fpsValueElement.textContent = fps;
+        this.#fpsValueElement.textContent = String(fps);
         this.#fpsValueElement.style.color = this.#fpsMonitor.getColor();
       }
     }, CONFIG.intervals.fpsDisplay);
@@ -1154,7 +1138,7 @@ export class Toolbar {
       if (this.#memoryValueElement) {
         const info = this.#memoryMonitor.getInfo();
         if (info) {
-          this.#memoryValueElement.textContent = info.usedMB;
+          this.#memoryValueElement.textContent = String(info.usedMB);
           this.#memoryValueElement.style.color = this.#memoryMonitor.getColor(info.percent);
         }
       }
@@ -1165,7 +1149,7 @@ export class Toolbar {
    * Stop display updates.
    * @private
    */
-  #stopDisplayUpdates() {
+  #stopDisplayUpdates(): void {
     if (this.#fpsIntervalId) {
       clearInterval(this.#fpsIntervalId);
       this.#fpsIntervalId = null;

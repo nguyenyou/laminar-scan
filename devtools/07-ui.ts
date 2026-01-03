@@ -5,7 +5,6 @@
 // ============================================================================
 
 import { CONFIG } from "./00-config";
-import { debounce, clamp, lerp, type DebouncedFunction } from "./01-utilities";
 
 /**
  * Tooltip state enum.
@@ -421,9 +420,9 @@ export class DragController {
    * Initialize the drag controller with an element.
    * @param {HTMLElement} element - Element to make draggable
    */
-  init(element) {
+  init(element: HTMLElement): void {
     this.#element = element;
-    element.addEventListener("pointerdown", (e) => this.#handlePointerDown(e));
+    element.addEventListener("pointerdown", (e: PointerEvent) => this.#handlePointerDown(e));
   }
 
   /**
@@ -431,7 +430,7 @@ export class DragController {
    * @param {{ x: number, y: number }} position - New position
    * @param {string} [corner] - Corner identifier
    */
-  setPosition(position, corner) {
+  setPosition(position: Position, corner?: string): void {
     this.#position = { ...position };
     if (corner) this.#corner = corner;
     this.#applyPosition(false);
@@ -441,7 +440,7 @@ export class DragController {
    * Set collapsed state.
    * @param {{ corner: string, orientation: string } | null} state - Collapsed state
    */
-  setCollapsed(state) {
+  setCollapsed(state: CollapsedState | null): void {
     this.#collapsed = state ? { ...state } : null;
     if (state) {
       this.#corner = state.corner;
@@ -454,7 +453,7 @@ export class DragController {
    * @param {number} width - Element width
    * @param {number} height - Element height
    */
-  snapToCorner(corner, width, height) {
+  snapToCorner(corner: string, width: number, height: number): void {
     this.#corner = corner;
     this.#position = this.#calculatePosition(corner, width, height);
     this.#applyPosition(true);
@@ -477,9 +476,10 @@ export class DragController {
    * @private
    * @param {PointerEvent} e - Pointer event
    */
-  #handlePointerDown(e) {
+  #handlePointerDown(e: PointerEvent): void {
     // Don't drag if clicking on interactive elements
-    if (e.target.closest("button") || e.target.closest("input") || e.target.closest("label") || e.target.closest(".clickable")) {
+    const target = e.target as HTMLElement;
+    if (target.closest("button") || target.closest("input") || target.closest("label") || target.closest(".clickable")) {
       return;
     }
 
@@ -506,13 +506,13 @@ export class DragController {
     let lastMouseX = initialMouseX;
     let lastMouseY = initialMouseY;
     let hasMoved = false;
-    let rafId = null;
+    let rafId: number | null = null;
 
     // Capture pointer for smooth tracking
     toolbar.setPointerCapture(e.pointerId);
     const pointerId = e.pointerId;
 
-    const handlePointerMove = (moveEvent) => {
+    const handlePointerMove = (moveEvent: PointerEvent): void => {
       lastMouseX = moveEvent.clientX;
       lastMouseY = moveEvent.clientY;
 
@@ -540,7 +540,7 @@ export class DragController {
       });
     };
 
-    const handlePointerEnd = () => {
+    const handlePointerEnd = (): void => {
       if (toolbar.hasPointerCapture(pointerId)) {
         toolbar.releasePointerCapture(pointerId);
       }
@@ -605,7 +605,7 @@ export class DragController {
    * @private
    * @param {PointerEvent} e - Pointer event
    */
-  #handleCollapsedDrag(e) {
+  #handleCollapsedDrag(e: PointerEvent): void {
     if (!this.#collapsed) return;
 
     const { corner, orientation } = this.#collapsed;
@@ -613,7 +613,7 @@ export class DragController {
     const initialMouseY = e.clientY;
     let hasExpanded = false;
 
-    const handlePointerMove = (moveEvent) => {
+    const handlePointerMove = (moveEvent: PointerEvent): void => {
       if (hasExpanded) return;
 
       const deltaX = moveEvent.clientX - initialMouseX;
@@ -638,7 +638,7 @@ export class DragController {
       }
     };
 
-    const handlePointerEnd = () => {
+    const handlePointerEnd = (): void => {
       document.removeEventListener("pointermove", handlePointerMove);
       document.removeEventListener("pointerup", handlePointerEnd);
     };
@@ -652,7 +652,7 @@ export class DragController {
    * @private
    * @param {boolean} animate - Whether to animate
    */
-  #applyPosition(animate) {
+  #applyPosition(animate: boolean): void {
     if (!this.#element) return;
 
     const style = this.#element.style;
@@ -689,7 +689,7 @@ export class DragController {
    * @param {number} height - Element height
    * @returns {{ x: number, y: number }}
    */
-  #calculatePosition(corner, width, height) {
+  #calculatePosition(corner: string, width: number, height: number): Position {
     const safeArea = CONFIG.dimensions.safeArea;
     const rightX = window.innerWidth - width - safeArea;
     const bottomY = window.innerHeight - height - safeArea;
@@ -711,7 +711,7 @@ export class DragController {
    * Determine best corner based on drag direction.
    * @private
    */
-  #getBestCorner(mouseX, mouseY, initialMouseX, initialMouseY) {
+  #getBestCorner(mouseX: number, mouseY: number, initialMouseX: number, initialMouseY: number): string {
     const deltaX = mouseX - initialMouseX;
     const deltaY = mouseY - initialMouseY;
     const threshold = 40;
@@ -747,7 +747,7 @@ export class DragController {
    * Check if toolbar should collapse.
    * @private
    */
-  #shouldCollapse(x, y, width, height) {
+  #shouldCollapse(x: number, y: number, width: number, height: number): boolean {
     const right = x + width;
     const bottom = y + height;
 
@@ -768,7 +768,7 @@ export class DragController {
    * Get collapse target corner and orientation.
    * @private
    */
-  #getCollapseTarget(x, y, width, height) {
+  #getCollapseTarget(x: number, y: number, width: number, height: number): CollapsedState | null {
     const outsideLeft = -x;
     const outsideRight = (x + width) - window.innerWidth;
     const outsideTop = -y;

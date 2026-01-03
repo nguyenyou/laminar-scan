@@ -25,18 +25,31 @@ import { HotkeyManager } from "./06-hotkeys";
  * Devtools.show();
  * Devtools.hide();
  */
-export const Devtools = {
-  /** @type {MutationScanner | null} */
-  _scanner: null,
-
-  /** @type {ComponentInspector | null} */
-  _inspector: null,
-
-  /** @type {Toolbar | null} */
-  _toolbar: null,
-
-  /** @type {HotkeyManager | null} */
-  _hotkeys: null,
+export const Devtools: {
+  _scanner: MutationScanner | null;
+  _inspector: ComponentInspector | null;
+  _toolbar: Toolbar | null;
+  _hotkeys: HotkeyManager | null;
+  enable(): void;
+  disable(): void;
+  isEnabled(): boolean;
+  show(): void;
+  hide(): void;
+  init(): void;
+  destroy(): void;
+  isRunning(): boolean;
+  start(): void;
+  stop(): void;
+  toggle(): void;
+  isInspecting(): boolean;
+  startInspect(): void;
+  stopInspect(): void;
+  toggleInspect(): void;
+} = {
+  _scanner: null as MutationScanner | null,
+  _inspector: null as ComponentInspector | null,
+  _toolbar: null as Toolbar | null,
+  _hotkeys: null as HotkeyManager | null,
 
   // ===== Enable/Disable API =====
 
@@ -107,13 +120,13 @@ export const Devtools = {
     this._toolbar = new Toolbar({
       onScanningToggle: (enabled) => {
         if (enabled) {
-          this._scanner.start();
+          this._scanner?.start();
         } else {
-          this._scanner.stop();
+          this._scanner?.stop();
         }
       },
       onInspectToggle: () => {
-        this._inspector.toggle();
+        this._inspector?.toggle();
       },
     });
 
@@ -129,7 +142,7 @@ export const Devtools = {
 
     // Auto-start scanning if previously enabled
     if (StorageManager.isScanningEnabled()) {
-      this._scanner.start();
+      this._scanner?.start();
     }
   },
 
@@ -212,5 +225,10 @@ export const Devtools = {
 };
 
 // Expose to global scope for console access
+declare global {
+  interface Window {
+    Devtools: typeof Devtools;
+  }
+}
 window.Devtools = Devtools;
 
