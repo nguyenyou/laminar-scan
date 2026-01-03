@@ -37,9 +37,6 @@ export class Toolbar {
   /** Inspect button */
   #inspectButton: HTMLButtonElement | null = null;
 
-  /** Scanning toggle checkbox */
-  #scanningToggle: HTMLInputElement | null = null;
-
   /** FPS value display */
   #fpsValueElement: HTMLSpanElement | null = null;
 
@@ -66,9 +63,6 @@ export class Toolbar {
 
   /** Previous DOM node counts for comparison */
   #prevDomCounts: Record<string, number> | null = null;
-
-  /** Previous total DOM node count */
-  #prevTotalNodes: number | null = null;
 
   /** Bound resize handler for cleanup */
   #resizeHandler: (() => void) | null = null;
@@ -226,7 +220,6 @@ export class Toolbar {
     this.#content = null;
     this.#expandButton = null;
     this.#inspectButton = null;
-    this.#scanningToggle = null;
     this.#fpsValueElement = null;
     this.#memoryValueElement = null;
     this.#fpsMeterElement = null;
@@ -360,7 +353,6 @@ export class Toolbar {
       this.#onScanningToggle?.(checkbox.checked);
       StorageManager.setScanningEnabled(checkbox.checked);
     });
-    this.#scanningToggle = checkbox;
 
     const track = document.createElement("div");
     track.className = "devtools-toggle-track";
@@ -850,7 +842,6 @@ export class Toolbar {
     container.appendChild(chart);
 
     // Store previous values for animation
-    this.#prevTotalNodes = total;
     this.#prevDomCounts = Object.fromEntries(sorted);
 
     return container;
@@ -918,7 +909,6 @@ export class Toolbar {
     });
 
     // Store for next comparison
-    this.#prevTotalNodes = total;
     this.#prevDomCounts = Object.fromEntries(sorted);
   }
 
