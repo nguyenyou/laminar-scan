@@ -17,30 +17,9 @@ interface PerformanceMemory {
   jsHeapSizeLimit: number;
 }
 
-/** Attribution entry for memory breakdown */
-interface MemoryAttributionEntry {
-  url?: string;
-  scope?: string;
-  container?: {
-    id?: string;
-    src?: string;
-  };
-}
-
-/** Result from performance.measureUserAgentSpecificMemory() */
-interface MeasureUserAgentSpecificMemoryResult {
-  bytes: number;
-  breakdown: Array<{
-    bytes: number;
-    attribution: MemoryAttributionEntry[];
-    types: string[];
-  }>;
-}
-
 /** Extended Performance interface with non-standard APIs */
 interface ExtendedPerformance extends Performance {
   memory?: PerformanceMemory;
-  measureUserAgentSpecificMemory?: () => Promise<MeasureUserAgentSpecificMemoryResult>;
 }
 
 /** Number of FPS samples to keep for radar history (one full rotation) */
@@ -285,13 +264,9 @@ export class LagRadar {
 }
 
 /**
- * Monitors JavaScript heap memory usage.
- * Prefers measureUserAgentSpecificMemory API when available, falls back to performance.memory.
+ * Monitors JavaScript heap memory usage using the performance.memory API.
  */
 export class MemoryMonitor {
-  private cachedMemoryInfo: MemoryInfo | null = null;
-  private lastMeasureTime = 0;
-  private static readonly MEASURE_INTERVAL_MS = 1000; // Minimum interval between async measurements
 
   /** Get typed reference to performance with extended APIs */
   private static get perf(): ExtendedPerformance {
@@ -300,14 +275,7 @@ export class MemoryMonitor {
 
   static isSupported(): boolean {
     const p = MemoryMonitor.perf;
-    return !!(
-      typeof p.measureUserAgentSpecificMemory === "function" ||
-      (p.memory && typeof p.memory.usedJSHeapSize === "number")
-    );
-  }
-
-  private static canUseMeasureUserAgentSpecificMemory(): boolean {
-    return typeof MemoryMonitor.perf.measureUserAgentSpecificMemory === "function";
+    return !!(p.memory && typeof p.memory.usedJSHeapSize === "number");
   }
 
   private static canUseLegacyMemory(): boolean {
@@ -315,46 +283,10 @@ export class MemoryMonitor {
     return !!(memory && typeof memory.usedJSHeapSize === "number");
   }
 
-  /**
-   * Triggers an async memory measurement if measureUserAgentSpecificMemory is available.
-   * Updates the cached memory info when the measurement completes.
-   */
-  private triggerAsyncMeasurement(): void {
-    const now = Date.now();
-    if (now - this.lastMeasureTime < MemoryMonitor.MEASURE_INTERVAL_MS) return;
-    this.lastMeasureTime = now;
 
-    const p = MemoryMonitor.perf;
-    p.measureUserAgentSpecificMemory!().then((result) => {
-      const bytesToMB = (bytes: number) => Math.round(bytes / (1024 * 1024));
-      const usedBytes = result.bytes ?? 0;
-      // measureUserAgentSpecificMemory doesn't provide total/limit, estimate from legacy if available
-      const legacyMemory = p.memory;
-      const limitBytes = legacyMemory?.jsHeapSizeLimit ?? usedBytes * 2; // Fallback estimate
-      const totalBytes = legacyMemory?.totalJSHeapSize ?? usedBytes;
-
-      const usedMB = bytesToMB(usedBytes);
-      const totalMB = bytesToMB(totalBytes);
-      const limitMB = bytesToMB(limitBytes);
-      const percent = limitBytes > 0 ? Math.round((usedBytes / limitBytes) * 100) : 0;
-
-      this.cachedMemoryInfo = { usedMB, totalMB, limitMB, percent };
-    }).catch(() => {
-      // Silently ignore errors (e.g., cross-origin isolation requirements not met)
-    });
-  }
 
   getInfo(): MemoryInfo | null {
-    // Try measureUserAgentSpecificMemory first (async, uses cached result)
-    if (MemoryMonitor.canUseMeasureUserAgentSpecificMemory()) {
-      this.triggerAsyncMeasurement();
-      // Return cached result if available, otherwise fall through to legacy
-      if (this.cachedMemoryInfo) {
-        return this.cachedMemoryInfo;
-      }
-    }
-
-    // Fallback to legacy performance.memory (synchronous)
+    // Use legacy performance.memory API
     if (MemoryMonitor.canUseLegacyMemory()) {
       const memory = MemoryMonitor.perf.memory!;
       const bytesToMB = (bytes: number) => Math.round(bytes / (1024 * 1024));

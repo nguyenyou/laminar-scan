@@ -1883,19 +1883,28 @@
   }
 
   class MemoryMonitor {
+    static get perf() {
+      return performance;
+    }
     static isSupported() {
-      return !!(performance.memory && typeof performance.memory.usedJSHeapSize === "number");
+      const p = MemoryMonitor.perf;
+      return !!(p.memory && typeof p.memory.usedJSHeapSize === "number");
+    }
+    static canUseLegacyMemory() {
+      const memory = MemoryMonitor.perf.memory;
+      return !!(memory && typeof memory.usedJSHeapSize === "number");
     }
     getInfo() {
-      const memory = performance.memory;
-      if (!memory || typeof memory.usedJSHeapSize !== "number")
-        return null;
-      const bytesToMB = (bytes) => Math.round(bytes / (1024 * 1024));
-      const usedMB = bytesToMB(memory.usedJSHeapSize);
-      const totalMB = bytesToMB(memory.totalJSHeapSize);
-      const limitMB = bytesToMB(memory.jsHeapSizeLimit);
-      const percent = Math.round(memory.usedJSHeapSize / memory.jsHeapSizeLimit * 100);
-      return { usedMB, totalMB, limitMB, percent };
+      if (MemoryMonitor.canUseLegacyMemory()) {
+        const memory = MemoryMonitor.perf.memory;
+        const bytesToMB = (bytes) => Math.round(bytes / (1024 * 1024));
+        const usedMB = bytesToMB(memory.usedJSHeapSize);
+        const totalMB = bytesToMB(memory.totalJSHeapSize);
+        const limitMB = bytesToMB(memory.jsHeapSizeLimit);
+        const percent = Math.round(memory.usedJSHeapSize / memory.jsHeapSizeLimit * 100);
+        return { usedMB, totalMB, limitMB, percent };
+      }
+      return null;
     }
     getColor(percent) {
       const { memoryCritical, memoryWarning } = CONFIG.thresholds;
