@@ -1,4 +1,7 @@
 {
-  "ignorePatterns": ["devtools.js"]
+  "ignorePatterns": ["devtools.js", "frontend-devtools.js"],
+  "rules": {
+    "@typescript-eslint/unbound-method": "off"
+  }
 }
 
