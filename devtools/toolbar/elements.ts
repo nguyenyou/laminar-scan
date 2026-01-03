@@ -7,6 +7,9 @@
 import { ICONS } from "../config";
 import { StorageManager } from "../storage";
 
+// Tooltip messages
+const INSPECT_TOOLTIP = "Inspect component (Ctrl+Shift+C) \n Click to jump to source code in your IDE";
+
 /**
  * Create the expand button for collapsed state.
  */
@@ -28,7 +31,7 @@ export function createExpandButton(onExpand: () => void): HTMLButtonElement {
 export function createInspectButton(onInspect: () => void): HTMLButtonElement {
   const btn = document.createElement("button");
   btn.className = "devtools-icon-btn";
-  btn.setAttribute("data-tooltip", "Inspect component (Ctrl+Shift+C) \n Click to jump to source code in your IDE");
+  btn.setAttribute("data-tooltip", INSPECT_TOOLTIP);
   btn.innerHTML = ICONS["inspect"] ?? "";
   btn.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -142,7 +145,7 @@ export function updateInspectButton(btn: HTMLButtonElement, isInspecting: boolea
     "data-tooltip",
     isInspecting
       ? "Exit inspect mode — or press Esc"
-      : "Inspect component (Ctrl+Shift+C) — click to jump to source code in your IDE"
+      : INSPECT_TOOLTIP
   );
 }
 

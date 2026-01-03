@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { TooltipManager } from "../ui";
+import { StorageManager } from "../storage";
 
 /**
  * Manages DOM statistics display with animated odometer counters.
@@ -31,6 +32,7 @@ export class DomStatsPanel {
    */
   pin(): void {
     this.#pinned = true;
+    StorageManager.setDomStatsPinned(true);
     const statsElement = this.#createDomStatsElement();
     this.#tooltipManager.pinElement(statsElement);
 
@@ -45,6 +47,7 @@ export class DomStatsPanel {
    */
   unpin(): void {
     this.#pinned = false;
+    StorageManager.setDomStatsPinned(false);
     this.#tooltipManager.unpin();
 
     if (this.#intervalId) {
