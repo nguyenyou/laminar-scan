@@ -444,6 +444,21 @@ const STYLES = `
     letter-spacing: -0.02em;
   }
 
+  .devtools-dom-stats-total .odometer {
+    height: 1.1em;
+    line-height: 1.1em;
+  }
+
+  .devtools-dom-stats-total .odometer-digit {
+    height: 1.1em;
+  }
+
+  .devtools-dom-stats-total .odometer-digit-old,
+  .devtools-dom-stats-total .odometer-digit-new {
+    height: 1.1em;
+    line-height: 1.1em;
+  }
+
   .devtools-dom-stats-label {
     font-size: 11px;
     color: rgba(255, 255, 255, 0.5);
@@ -4416,6 +4431,65 @@ class Toolbar {
   }
 
   /**
+   * Create odometer HTML for a number with digit-by-digit animation.
+   * @private
+   * @param {number} newVal - Current value
+   * @param {number|null} oldVal - Previous value (null if first render)
+   * @returns {string} HTML string for odometer display
+   */
+  #createOdometerHtml(newVal, oldVal) {
+    const newStr = String(newVal);
+    const oldStr = oldVal !== null ? String(oldVal) : newStr;
+
+    // Determine overall direction for color pulse
+    let direction = "";
+    if (oldVal !== null) {
+      if (newVal > oldVal) direction = "increasing";
+      else if (newVal < oldVal) direction = "decreasing";
+    }
+
+    // Pad shorter string with leading spaces to match lengths
+    const maxLen = Math.max(newStr.length, oldStr.length);
+    const paddedNew = newStr.padStart(maxLen, " ");
+    const paddedOld = oldStr.padStart(maxLen, " ");
+
+    let digits = "";
+    for (let i = 0; i < maxLen; i++) {
+      const oldDigit = paddedOld[i];
+      const newDigit = paddedNew[i];
+
+      // Determine if this digit changed and in which direction
+      let digitAnim = "";
+      if (oldDigit !== newDigit && oldVal !== null) {
+        const oldNum = oldDigit === " " ? -1 : parseInt(oldDigit, 10);
+        const newNum = newDigit === " " ? -1 : parseInt(newDigit, 10);
+
+        if (newNum > oldNum || (oldDigit === " " && newDigit !== " ")) {
+          digitAnim = "roll-up";
+        } else {
+          digitAnim = "roll-down";
+        }
+      }
+
+      if (digitAnim) {
+        const displayOld = oldDigit === " " ? "&nbsp;" : oldDigit;
+        const displayNew = newDigit === " " ? "&nbsp;" : newDigit;
+
+        if (digitAnim === "roll-up") {
+          digits += `<span class="odometer-digit"><span class="odometer-digit-inner ${digitAnim}"><span class="odometer-digit-old">${displayOld}</span><span class="odometer-digit-new">${displayNew}</span></span></span>`;
+        } else {
+          digits += `<span class="odometer-digit"><span class="odometer-digit-inner ${digitAnim}"><span class="odometer-digit-new">${displayNew}</span><span class="odometer-digit-old">${displayOld}</span></span></span>`;
+        }
+      } else {
+        const displayDigit = newDigit === " " ? "" : newDigit;
+        digits += `<span class="odometer-digit"><span class="odometer-digit-inner"><span class="odometer-digit-new">${displayDigit}</span></span></span>`;
+      }
+    }
+
+    return `<span class="odometer ${direction}">${digits}</span>`;
+  }
+
+  /**
    * Create the DOM stats visual element.
    * @private
    * @returns {HTMLElement}
@@ -4433,7 +4507,7 @@ class Toolbar {
 
     const totalEl = document.createElement("span");
     totalEl.className = "devtools-dom-stats-total";
-    totalEl.textContent = total.toLocaleString();
+    totalEl.innerHTML = this.#createOdometerHtml(total, null);
     totalEl.dataset.value = total;
 
     const labelEl = document.createElement("span");
@@ -4494,16 +4568,13 @@ class Toolbar {
     const { total, sorted } = this.#getDOMStatsData();
     const maxCount = sorted.length > 0 ? sorted[0][1] : 1;
 
-    // Update total
+    // Update total with odometer animation
     const totalEl = container.querySelector(".devtools-dom-stats-total");
     if (totalEl) {
       const prevTotal = parseInt(totalEl.dataset.value, 10) || 0;
       if (total !== prevTotal) {
-        totalEl.textContent = total.toLocaleString();
+        totalEl.innerHTML = this.#createOdometerHtml(total, prevTotal);
         totalEl.dataset.value = total;
-        // Flash color on change
-        totalEl.style.color = total > prevTotal ? "#f87171" : "#4ade80";
-        setTimeout(() => { totalEl.style.color = ""; }, 400);
       }
     }
 

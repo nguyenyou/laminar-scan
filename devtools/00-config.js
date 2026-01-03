@@ -441,6 +441,21 @@ const STYLES = `
     letter-spacing: -0.02em;
   }
 
+  .devtools-dom-stats-total .odometer {
+    height: 1.1em;
+    line-height: 1.1em;
+  }
+
+  .devtools-dom-stats-total .odometer-digit {
+    height: 1.1em;
+  }
+
+  .devtools-dom-stats-total .odometer-digit-old,
+  .devtools-dom-stats-total .odometer-digit-new {
+    height: 1.1em;
+    line-height: 1.1em;
+  }
+
   .devtools-dom-stats-label {
     font-size: 11px;
     color: rgba(255, 255, 255, 0.5);
