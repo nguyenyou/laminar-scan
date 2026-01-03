@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "fix": "./mill __.fix",
     "fmt": "./mill mill.scalalib.scalafmt/",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "build:devtools": "bun build devtools/index.ts --outfile devtools.js --format iife"
   },
   "devDependencies": {
