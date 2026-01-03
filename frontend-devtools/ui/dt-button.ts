@@ -2,24 +2,38 @@ import { LitElement, css, html } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 
 /**
- * A button component styled for devtools.
+ * A unified button component styled for devtools.
+ * Supports regular buttons, icon-only buttons, and buttons with icons.
  *
- * @slot - Button content
+ * @slot - Button content (text, icons, or both)
  * @fires click - Fired when the button is clicked
+ *
+ * @example
+ * // Regular button
+ * <dt-button>Click me</dt-button>
+ *
+ * // Icon-only button
+ * <dt-button variant="icon" tooltip="Settings">
+ *   <dt-icon name="settings"></dt-icon>
+ * </dt-button>
+ *
+ * // Button with icon and text
+ * <dt-button>
+ *   <dt-icon name="plus"></dt-icon>
+ *   Add Item
+ * </dt-button>
  */
 @customElement('dt-button')
 export class DtButton extends LitElement {
   /**
    * The button variant.
+   * - default: Standard button with background
+   * - primary: Highlighted action button
+   * - ghost: Transparent button
+   * - icon: Icon-only button (square, no padding)
    */
   @property({ type: String, reflect: true })
-  variant: 'default' | 'primary' | 'ghost' = 'default'
-
-  /**
-   * The button size.
-   */
-  @property({ type: String, reflect: true })
-  size: 'sm' | 'md' | 'lg' = 'md'
+  variant: 'default' | 'primary' | 'ghost' | 'icon' = 'default'
 
   /**
    * Whether the button is disabled.
@@ -33,6 +47,18 @@ export class DtButton extends LitElement {
   @property({ type: Boolean, reflect: true })
   active = false
 
+  /**
+   * Accessible label (for icon-only buttons).
+   */
+  @property({ type: String })
+  label = ''
+
+  /**
+   * Tooltip text shown on hover.
+   */
+  @property({ type: String })
+  tooltip = ''
+
   private _handleClick(e: MouseEvent) {
     if (this.disabled) {
       e.preventDefault()
@@ -42,10 +68,14 @@ export class DtButton extends LitElement {
   }
 
   render() {
+    const ariaLabel = this.label || this.tooltip || undefined
+
     return html`
       <button
         class="devtools-btn"
         ?disabled=${this.disabled}
+        aria-label=${ariaLabel ?? ''}
+        title=${this.tooltip}
         @click=${this._handleClick}
         part="button"
       >
@@ -69,36 +99,19 @@ export class DtButton extends LitElement {
       align-items: center;
       justify-content: center;
       gap: 6px;
-      border: 1px solid transparent;
+      border: none;
       border-radius: 6px;
       font-family: system-ui, -apple-system, sans-serif;
       font-weight: 500;
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s, color 0.15s;
       white-space: nowrap;
-    }
-
-    /* Sizes */
-    :host([size='sm']) .devtools-btn {
-      padding: 4px 10px;
-      font-size: 12px;
-      height: 26px;
-    }
-
-    :host([size='md']) .devtools-btn,
-    .devtools-btn {
-      padding: 6px 14px;
+      padding: 6px 12px;
       font-size: 13px;
-      height: 32px;
+      height: 28px;
     }
 
-    :host([size='lg']) .devtools-btn {
-      padding: 8px 18px;
-      font-size: 14px;
-      height: 38px;
-    }
-
-    /* Default variant */
+    /* ===== Default variant ===== */
     :host([variant='default']) .devtools-btn,
     .devtools-btn {
       background: #1a1a1a;
@@ -118,7 +131,7 @@ export class DtButton extends LitElement {
       box-shadow: inset 0 0 0 1px rgba(142, 97, 230, 0.4);
     }
 
-    /* Primary variant */
+    /* ===== Primary variant ===== */
     :host([variant='primary']) .devtools-btn {
       background: #7361e6;
       color: #fff;
@@ -133,7 +146,7 @@ export class DtButton extends LitElement {
       background: #6351d6;
     }
 
-    /* Ghost variant */
+    /* ===== Ghost variant ===== */
     :host([variant='ghost']) .devtools-btn {
       background: transparent;
       color: #999;
@@ -149,6 +162,31 @@ export class DtButton extends LitElement {
       color: #8e61e3;
     }
 
+    /* ===== Icon variant ===== */
+    :host([variant='icon']) .devtools-btn {
+      background: transparent;
+      color: #999;
+      box-shadow: none;
+      padding: 0;
+      border-radius: 4px;
+      width: 28px;
+      height: 28px;
+    }
+
+    :host([variant='icon']) .devtools-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    :host([variant='icon'][active]) .devtools-btn {
+      color: #8e61e3;
+    }
+
+    :host([variant='icon'][active]) .devtools-btn:hover {
+      color: #9f7af0;
+    }
+
+    /* ===== Focus states ===== */
     .devtools-btn:focus {
       outline: none;
     }
@@ -158,28 +196,12 @@ export class DtButton extends LitElement {
       outline-offset: 2px;
     }
 
-    /* Icon sizing within button */
+    /* ===== Icon sizing ===== */
     ::slotted(svg),
     ::slotted(dt-icon) {
       flex-shrink: 0;
-    }
-
-    :host([size='sm']) ::slotted(svg),
-    :host([size='sm']) ::slotted(dt-icon) {
-      width: 14px;
-      height: 14px;
-    }
-
-    :host([size='md']) ::slotted(svg),
-    :host([size='md']) ::slotted(dt-icon) {
       width: 16px;
       height: 16px;
-    }
-
-    :host([size='lg']) ::slotted(svg),
-    :host([size='lg']) ::slotted(dt-icon) {
-      width: 18px;
-      height: 18px;
     }
   `
 }

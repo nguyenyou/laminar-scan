@@ -1,7 +1,7 @@
 import { LitElement, css, html } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
 import './ui/dt-switch'
-import './ui/dt-icon-button'
+import './ui/dt-button'
 import './ui/dt-icon'
 
 @customElement('frontend-devtools')
@@ -23,22 +23,21 @@ export class FrontendDevtools extends LitElement {
   render() {
     return html`
       <div class="panel">
-        <dt-switch
-          .checked=${this._enabled}
-          @change=${this._handleToggle}
-        ></dt-switch>
-
-        <dt-icon-button
+        <dt-button
+          variant="icon"
           tooltip="Inspect component"
           ?active=${this._inspectActive}
           @click=${this._handleInspectClick}
         >
           <dt-icon name="inspect"></dt-icon>
-        </dt-icon-button>
-
-        <dt-icon-button tooltip="Settings">
+        </dt-button>
+        <dt-switch
+          .checked=${this._enabled}
+          @change=${this._handleToggle}
+        ></dt-switch>
+        <dt-button variant="icon" tooltip="Settings">
           <dt-icon name="settings"></dt-icon>
-        </dt-icon-button>
+        </dt-button>
       </div>
     `
   }
