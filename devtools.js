@@ -4511,68 +4511,43 @@ class Toolbar {
     const chart = container.querySelector(".devtools-dom-stats-chart");
     if (!chart) return;
 
-    // Build a map of current rows
-    const existingRows = new Map();
-    for (const row of chart.querySelectorAll(".devtools-dom-stats-row")) {
-      existingRows.set(row.dataset.tag, row);
-    }
+    const rows = chart.querySelectorAll(".devtools-dom-stats-row");
 
-    // Clear and rebuild chart to maintain order
-    chart.innerHTML = "";
+    // Update each row in place
+    sorted.forEach(([tag, count], index) => {
+      const row = rows[index];
+      if (!row) return;
 
-    for (const [tag, count] of sorted) {
-      let row = existingRows.get(tag);
       const prevCount = this.#prevDomCounts?.[tag] ?? count;
+      const hasChanged = count !== prevCount;
 
-      if (row) {
-        // Update existing row
-        const bar = row.querySelector(".devtools-dom-stats-bar");
-        const countEl = row.querySelector(".devtools-dom-stats-count");
-
-        if (bar) {
-          bar.style.width = `${(count / maxCount) * 100}%`;
-
-          // Animate on change
-          if (count !== prevCount) {
-            bar.classList.remove("increasing", "decreasing");
-            void bar.offsetWidth; // Force reflow
-            bar.classList.add(count > prevCount ? "increasing" : "decreasing");
-          }
-          bar.dataset.count = count;
-        }
-        if (countEl) {
-          countEl.textContent = count.toLocaleString();
-        }
-      } else {
-        // Create new row
-        row = document.createElement("div");
-        row.className = "devtools-dom-stats-row";
-        row.dataset.tag = tag;
-
-        const tagEl = document.createElement("span");
-        tagEl.className = "devtools-dom-stats-tag";
+      // Update tag name if different
+      const tagEl = row.querySelector(".devtools-dom-stats-tag");
+      if (tagEl && tagEl.textContent !== tag) {
         tagEl.textContent = tag;
+      }
+      row.dataset.tag = tag;
 
-        const barContainer = document.createElement("div");
-        barContainer.className = "devtools-dom-stats-bar-container";
-
-        const bar = document.createElement("div");
-        bar.className = "devtools-dom-stats-bar";
+      // Update bar
+      const bar = row.querySelector(".devtools-dom-stats-bar");
+      if (bar) {
         bar.style.width = `${(count / maxCount) * 100}%`;
+
+        // Only animate on actual count change
+        if (hasChanged) {
+          bar.classList.remove("increasing", "decreasing");
+          void bar.offsetWidth; // Force reflow
+          bar.classList.add(count > prevCount ? "increasing" : "decreasing");
+        }
         bar.dataset.count = count;
-
-        const countEl = document.createElement("span");
-        countEl.className = "devtools-dom-stats-count";
-        countEl.textContent = count.toLocaleString();
-
-        barContainer.appendChild(bar);
-        barContainer.appendChild(countEl);
-        row.appendChild(tagEl);
-        row.appendChild(barContainer);
       }
 
-      chart.appendChild(row);
-    }
+      // Update count text
+      const countEl = row.querySelector(".devtools-dom-stats-count");
+      if (countEl) {
+        countEl.textContent = count.toLocaleString();
+      }
+    });
 
     // Store for next comparison
     this.#prevTotalNodes = total;
