@@ -8,7 +8,7 @@
  * Central configuration object for all devtools settings.
  * Modify these values to customize behavior without hunting through code.
  */
-const CONFIG = {
+export const CONFIG = {
   /** Primary brand color used for highlights and UI accents */
   colors: {
     primary: { r: 115, g: 97, b: 230 },
@@ -112,7 +112,7 @@ const CONFIG = {
 /**
  * SVG icon definitions used throughout the UI.
  */
-const ICONS = {
+export const ICONS = {
   /** Inspect mode cursor icon */
   inspect: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M12.034 12.681a.498.498 0 0 1 .647-.647l9 3.5a.5.5 0 0 1-.033.943l-3.444 1.068a1 1 0 0 0-.66.66l-1.067 3.443a.5.5 0 0 1-.943.033z"/>
@@ -152,7 +152,7 @@ const ICONS = {
  * CSS styles for the toolbar and its components.
  * Injected into Shadow DOM for style isolation.
  */
-const STYLES = `
+export const STYLES = `
   /* ===== Toolbar Container ===== */
   .devtools-toolbar {
     position: fixed;

@@ -6,11 +6,11 @@
 
 /**
  * Manages global keyboard shortcuts for devtools.
- * 
+ *
  * Default hotkeys:
  * - Ctrl+Shift+C: Toggle inspect mode
  */
-class HotkeyManager {
+export class HotkeyManager {
   /** @type {Map<string, Function>} Registered hotkey handlers */
   #handlers = new Map();
 

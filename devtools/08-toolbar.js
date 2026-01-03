@@ -4,11 +4,17 @@
 // Main toolbar UI that composes all other components.
 // ============================================================================
 
+import { CONFIG, ICONS, STYLES } from "./00-config.js";
+import { debounce, clamp, lerp } from "./01-utilities.js";
+import { StorageManager } from "./02-storage.js";
+import { FPSMonitor, MemoryMonitor, LagRadar } from "./03-monitors.js";
+import { TooltipManager, DragController } from "./07-ui.js";
+
 /**
  * Main devtools toolbar component.
  * Composes FPSMonitor, MemoryMonitor, TooltipManager, and DragController.
  */
-class Toolbar {
+export class Toolbar {
   /** @type {HTMLDivElement | null} Root container element */
   #root = null;
 

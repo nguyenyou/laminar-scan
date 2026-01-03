@@ -4,11 +4,16 @@
 // Main devtools functionality: mutation scanning and component inspection.
 // ============================================================================
 
+import { CONFIG } from "./00-config.js";
+import { getScalaComponent, getComponentSourceInfo, openInIDE } from "./01-utilities.js";
+import { HighlightCanvas, InspectOverlay } from "./04-canvas.js";
+import { getReactComponentFromNode } from "./01-react-inspector.js";
+
 /**
  * Observes DOM mutations and visualizes them with animated highlights.
  * Helps identify unexpected re-renders and DOM changes.
  */
-class MutationScanner {
+export class MutationScanner {
   /** @type {MutationObserver | null} */
   #observer = null;
 
@@ -168,7 +173,7 @@ class MutationScanner {
  * Manages the component inspection mode.
  * Allows users to hover over components and click to open source in IDE.
  */
-class ComponentInspector {
+export class ComponentInspector {
   /** @type {'off' | 'inspecting'} */
   #state = "off";
 

@@ -4,11 +4,13 @@
 // Centralized localStorage operations with error handling.
 // ============================================================================
 
+import { CONFIG } from "./00-config.js";
+
 /**
  * Manages persistent storage operations with graceful error handling.
  * All localStorage access goes through this class.
  */
-class StorageManager {
+export class StorageManager {
   /**
    * Get a value from localStorage.
    * @param {string} key - Storage key

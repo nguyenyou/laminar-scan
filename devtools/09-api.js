@@ -4,22 +4,28 @@
 // Clean facade exposing the public devtools API.
 // ============================================================================
 
+import { CONFIG } from "./00-config.js";
+import { StorageManager } from "./02-storage.js";
+import { MutationScanner, ComponentInspector } from "./05-core.js";
+import { Toolbar } from "./08-toolbar.js";
+import { HotkeyManager } from "./06-hotkeys.js";
+
 /**
  * Devtools - Public API facade.
  * Coordinates the scanner, inspector, and toolbar components.
- * 
+ *
  * @example
  * // Enable devtools (shows toolbar on next page load)
  * Devtools.enable();
- * 
+ *
  * // Disable devtools (hides toolbar on next page load)
  * Devtools.disable();
- * 
+ *
  * // Toggle devtools visibility immediately
  * Devtools.show();
  * Devtools.hide();
  */
-const Devtools = {
+export const Devtools = {
   /** @type {MutationScanner | null} */
   _scanner: null,
 

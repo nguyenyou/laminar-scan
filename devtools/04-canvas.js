@@ -4,11 +4,14 @@
 // Canvas management for mutation highlights and component inspection overlays.
 // ============================================================================
 
+import { CONFIG } from "./00-config.js";
+import { debounce, getDevicePixelRatio } from "./01-utilities.js";
+
 /**
  * Manages the canvas used for rendering mutation highlights.
  * Handles creation, resizing, and drawing of highlight rectangles.
  */
-class HighlightCanvas {
+export class HighlightCanvas {
   /** @type {HTMLCanvasElement | null} */
   #canvas = null;
 
@@ -324,7 +327,7 @@ class HighlightCanvas {
  * Manages the overlay canvas used during component inspection.
  * Draws animated highlight rectangles and component name labels.
  */
-class InspectOverlay {
+export class InspectOverlay {
   /** @type {HTMLCanvasElement | null} */
   #canvas = null;
 

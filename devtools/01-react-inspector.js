@@ -146,11 +146,11 @@ function getComponentNameFromFiber(fiber) {
 /**
  * Get the nearest React component info for a DOM node.
  * Traverses up the fiber tree to find actual React components (skipping host components).
- * 
+ *
  * @param {Element} domNode - DOM node to inspect
  * @returns {{ name: string, fiber: object, props: object, element: Element } | null} Component info or null
  */
-function getReactComponentFromNode(domNode) {
+export function getReactComponentFromNode(domNode) {
   try {
     const fiber = getReactFiber(domNode);
     if (!fiber) return null;
@@ -185,11 +185,11 @@ function getReactComponentFromNode(domNode) {
 /**
  * Get all React components in the fiber tree for a DOM node.
  * Useful for getting the full component hierarchy.
- * 
+ *
  * @param {Element} domNode - DOM node to inspect
  * @returns {Array<{ name: string, fiber: object, props: object }>} Array of component info
  */
-function getAllReactComponentsFromNode(domNode) {
+export function getAllReactComponentsFromNode(domNode) {
   try {
     const fiber = getReactFiber(domNode);
     if (!fiber) return [];

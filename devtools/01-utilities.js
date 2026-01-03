@@ -4,6 +4,8 @@
 // Pure helper functions with no side effects or dependencies.
 // ============================================================================
 
+import { CONFIG } from "./00-config.js";
+
 /**
  * Linear interpolation between two values.
  * @param {number} start - Starting value
@@ -11,7 +13,7 @@
  * @param {number} [speed] - Interpolation factor (0-1), defaults to CONFIG.animation.interpolationSpeed
  * @returns {number} Interpolated value
  */
-function lerp(start, end, speed = CONFIG.animation.interpolationSpeed) {
+export function lerp(start, end, speed = CONFIG.animation.interpolationSpeed) {
   return start + (end - start) * speed;
 }
 
@@ -22,7 +24,7 @@ function lerp(start, end, speed = CONFIG.animation.interpolationSpeed) {
  * @param {number} max - Maximum bound
  * @returns {number} Clamped value
  */
-function clamp(value, min, max) {
+export function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
@@ -32,7 +34,7 @@ function clamp(value, min, max) {
  * @param {number} delay - Delay in milliseconds
  * @returns {Function} Debounced function with cancel() method
  */
-function debounce(fn, delay) {
+export function debounce(fn, delay) {
   let timeoutId = null;
 
   const debounced = (...args) => {
@@ -57,7 +59,7 @@ function debounce(fn, delay) {
  * Get device pixel ratio, minimum 1.
  * @returns {number} Device pixel ratio
  */
-function getDevicePixelRatio() {
+export function getDevicePixelRatio() {
   return Math.max(window.devicePixelRatio, 1);
 }
 
@@ -66,7 +68,7 @@ function getDevicePixelRatio() {
  * @param {Element} element - Element to check
  * @returns {boolean} True if element is a devtools element
  */
-function isDevtoolsElement(element) {
+export function isDevtoolsElement(element) {
   if (!element) return false;
   const attr = CONFIG.attributes.devtools;
   return element.hasAttribute(attr) || element.closest(`[${attr}]`) !== null;
@@ -77,7 +79,7 @@ function isDevtoolsElement(element) {
  * @param {Element} element - Starting element
  * @returns {{ element: Element, name: string } | null} Component info or null
  */
-function getScalaComponent(element) {
+export function getScalaComponent(element) {
   if (!element) return null;
   const attr = CONFIG.attributes.scalaComponent;
   const closest = element.closest(`[${attr}]`);
@@ -93,7 +95,7 @@ function getScalaComponent(element) {
  * @param {Node} node - Starting node
  * @returns {string | null} Scala source identifier or null
  */
-function getScalaSource(node) {
+export function getScalaSource(node) {
   const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
   if (!element) return null;
 
@@ -110,7 +112,7 @@ function getScalaSource(node) {
  * @param {Element} element - Component element
  * @returns {Object} Source information object
  */
-function getComponentSourceInfo(element) {
+export function getComponentSourceInfo(element) {
   if (!element) return null;
 
   const props = CONFIG.properties;
@@ -131,7 +133,7 @@ function getComponentSourceInfo(element) {
  * @param {string} sourcePath - File path to open
  * @param {string | null} [sourceLine] - Optional line number
  */
-function openInIDE(sourcePath, sourceLine = null) {
+export function openInIDE(sourcePath, sourceLine = null) {
   if (!sourcePath) {
     console.warn("Devtools: No source path provided");
     return;

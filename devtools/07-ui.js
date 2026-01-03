@@ -4,12 +4,15 @@
 // Reusable UI components for the toolbar: tooltips and drag handling.
 // ============================================================================
 
+import { CONFIG } from "./00-config.js";
+import { debounce, clamp, lerp } from "./01-utilities.js";
+
 /**
  * Tooltip state enum.
  * @readonly
  * @enum {string}
  */
-const TooltipState = Object.freeze({
+export const TooltipState = Object.freeze({
   /** Hover shows tooltips normally */
   IDLE: "idle",
   /** Click-pinned content, hover completely ignored */
@@ -26,7 +29,7 @@ const TooltipState = Object.freeze({
  * - PINNED: Tooltip stays visible with pinned content. Hover is ignored. Click unpins → IDLE.
  * - SUSPENDED: All interactions ignored (used during drag). Returns to previous state.
  */
-class TooltipManager {
+export class TooltipManager {
   /** @type {HTMLDivElement | null} Tooltip container element */
   #element = null;
 
@@ -361,7 +364,7 @@ class TooltipManager {
 /**
  * Handles drag-to-move and snap-to-corner behavior for the toolbar.
  */
-class DragController {
+export class DragController {
   /** @type {HTMLElement | null} Element being dragged */
   #element = null;
 

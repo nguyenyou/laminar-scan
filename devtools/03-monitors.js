@@ -11,7 +11,7 @@ const FPS_HISTORY_SIZE = 360;
  * Monitors frame rate using requestAnimationFrame.
  * Provides real-time FPS tracking with pause/resume capability.
  */
-class FPSMonitor {
+export class FPSMonitor {
   /** @type {number} Current FPS value */
   #fps = 0;
 
@@ -190,7 +190,7 @@ class FPSMonitor {
  * Based on lag-radar by @mobz (Dan Abramov version).
  * Colors based on frame delta time: Green = smooth, Red = laggy.
  */
-class LagRadar {
+export class LagRadar {
   /** @type {SVGSVGElement | null} SVG root element */
   #root = null;
 
@@ -402,7 +402,7 @@ class LagRadar {
  * Monitors JavaScript heap memory usage.
  * Only available in Chromium-based browsers via performance.memory API.
  */
-class MemoryMonitor {
+export class MemoryMonitor {
   /**
    * Check if memory monitoring is supported in this browser.
    * @returns {boolean} True if performance.memory API is available
