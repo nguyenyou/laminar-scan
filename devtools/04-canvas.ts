@@ -5,7 +5,7 @@
 // ============================================================================
 
 import { CONFIG } from "./00-config";
-import { debounce, getDevicePixelRatio } from "./01-utilities";
+import { debounce, getDevicePixelRatio, lerp } from "./01-utilities";
 
 /**
  * Manages the canvas used for rendering mutation highlights.
