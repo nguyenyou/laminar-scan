@@ -99,7 +99,7 @@ export class DtSwitch extends LitElement {
     }
 
     .devtools-toggle input:checked + .devtools-toggle-track {
-      background: #7361e6;
+      background: var(--dt-color-primary);
     }
 
     .devtools-toggle-thumb {

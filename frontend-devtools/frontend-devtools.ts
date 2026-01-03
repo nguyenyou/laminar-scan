@@ -24,7 +24,7 @@ export class FrontendDevtools extends LitElement {
     return html`
       <div class="panel">
         <dt-button
-          variant="icon"
+          size="icon"
           tooltip="Inspect component"
           ?active=${this._inspectActive}
           @click=${this._handleInspectClick}
@@ -35,7 +35,7 @@ export class FrontendDevtools extends LitElement {
           .checked=${this._enabled}
           @change=${this._handleToggle}
         ></dt-switch>
-        <dt-button variant="icon" tooltip="Settings">
+        <dt-button size="icon" tooltip="Settings">
           <dt-icon name="settings"></dt-icon>
         </dt-button>
       </div>
@@ -43,6 +43,15 @@ export class FrontendDevtools extends LitElement {
   }
 
   static styles = css`
+    :host {
+      /* Primary color palette - override these to customize the theme */
+      --dt-color-primary: #7361e6;
+      --dt-color-primary-hover: #8571f0;
+      --dt-color-primary-active: #6351d6;
+      --dt-color-primary-muted: #8e61e3;
+      --dt-color-primary-muted-hover: #9f7af0;
+    }
+
     .panel {
       position: fixed;
       top: 16px;

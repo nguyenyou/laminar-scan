@@ -3,7 +3,7 @@ import { customElement, property } from 'lit/decorators.js'
 
 /**
  * A unified button component styled for devtools.
- * Supports regular buttons, icon-only buttons, and buttons with icons.
+ * Supports regular buttons and icon-only buttons.
  *
  * @slot - Button content (text, icons, or both)
  * @fires click - Fired when the button is clicked
@@ -13,7 +13,7 @@ import { customElement, property } from 'lit/decorators.js'
  * <dt-button>Click me</dt-button>
  *
  * // Icon-only button
- * <dt-button variant="icon" tooltip="Settings">
+ * <dt-button size="icon" tooltip="Settings">
  *   <dt-icon name="settings"></dt-icon>
  * </dt-button>
  *
@@ -26,14 +26,12 @@ import { customElement, property } from 'lit/decorators.js'
 @customElement('dt-button')
 export class DtButton extends LitElement {
   /**
-   * The button variant.
-   * - default: Standard button with background
-   * - primary: Highlighted action button
-   * - ghost: Transparent button
-   * - icon: Icon-only button (square, no padding)
+   * The button size.
+   * - default: Standard button with padding for text
+   * - icon: Square icon-only button (no padding)
    */
   @property({ type: String, reflect: true })
-  variant: 'default' | 'primary' | 'ghost' | 'icon' = 'default'
+  size: 'default' | 'icon' = 'default'
 
   /**
    * Whether the button is disabled.
@@ -111,79 +109,32 @@ export class DtButton extends LitElement {
       height: 28px;
     }
 
-    /* ===== Default variant ===== */
-    :host([variant='default']) .devtools-btn,
+    /* ===== Base styles ===== */
     .devtools-btn {
-      background: #1a1a1a;
-      color: #fff;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-    }
-
-    :host([variant='default']) .devtools-btn:hover,
-    .devtools-btn:hover {
-      background: #252525;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
-    }
-
-    :host([variant='default'][active]) .devtools-btn,
-    :host([variant='default']) .devtools-btn:active {
-      background: #1f1f1f;
-      box-shadow: inset 0 0 0 1px rgba(142, 97, 230, 0.4);
-    }
-
-    /* ===== Primary variant ===== */
-    :host([variant='primary']) .devtools-btn {
-      background: #7361e6;
-      color: #fff;
-      box-shadow: none;
-    }
-
-    :host([variant='primary']) .devtools-btn:hover {
-      background: #8571f0;
-    }
-
-    :host([variant='primary']) .devtools-btn:active {
-      background: #6351d6;
-    }
-
-    /* ===== Ghost variant ===== */
-    :host([variant='ghost']) .devtools-btn {
       background: transparent;
       color: #999;
       box-shadow: none;
     }
 
-    :host([variant='ghost']) .devtools-btn:hover {
+    .devtools-btn:hover {
       background: rgba(255, 255, 255, 0.1);
       color: #fff;
     }
 
-    :host([variant='ghost'][active]) .devtools-btn {
-      color: #8e61e3;
+    :host([active]) .devtools-btn {
+      color: var(--dt-color-primary-muted);
     }
 
-    /* ===== Icon variant ===== */
-    :host([variant='icon']) .devtools-btn {
-      background: transparent;
-      color: #999;
-      box-shadow: none;
+    :host([active]) .devtools-btn:hover {
+      color: var(--dt-color-primary-muted-hover);
+    }
+
+    /* ===== Icon size ===== */
+    :host([size='icon']) .devtools-btn {
       padding: 0;
       border-radius: 4px;
       width: 28px;
       height: 28px;
-    }
-
-    :host([variant='icon']) .devtools-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
-    }
-
-    :host([variant='icon'][active]) .devtools-btn {
-      color: #8e61e3;
-    }
-
-    :host([variant='icon'][active]) .devtools-btn:hover {
-      color: #9f7af0;
     }
 
     /* ===== Focus states ===== */
@@ -192,7 +143,7 @@ export class DtButton extends LitElement {
     }
 
     .devtools-btn:focus-visible {
-      outline: 2px solid #7361e6;
+      outline: 2px solid var(--dt-color-primary);
       outline-offset: 2px;
     }
 
