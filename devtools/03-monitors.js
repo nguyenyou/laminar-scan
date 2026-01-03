@@ -4,6 +4,9 @@
 // FPS and Memory monitoring with encapsulated state.
 // ============================================================================
 
+/** Number of FPS samples to keep for radar history (one full rotation) */
+const FPS_HISTORY_SIZE = 360;
+
 /**
  * Monitors frame rate using requestAnimationFrame.
  * Provides real-time FPS tracking with pause/resume capability.
@@ -26,6 +29,18 @@ class FPSMonitor {
 
   /** @type {boolean} Whether monitor has been initialized */
   #initialized = false;
+
+  /** @type {number[]} Circular buffer of FPS history samples (-1 = no data) */
+  #history = new Array(FPS_HISTORY_SIZE).fill(-1);
+
+  /** @type {number} Current write index in history buffer */
+  #historyIndex = 0;
+
+  /** @type {number} Timestamp of last history sample */
+  #lastHistorySample = 0;
+
+  /** @type {number} Total samples recorded (tracks rotations) */
+  #totalSamples = 0;
 
   /**
    * Start or resume FPS monitoring.
@@ -117,6 +132,18 @@ class FPSMonitor {
   }
 
   /**
+   * Get the FPS history buffer for radar visualization.
+   * @returns {{ history: number[], index: number, totalSamples: number }} History data
+   */
+  getHistory() {
+    return {
+      history: this.#history,
+      index: this.#historyIndex,
+      totalSamples: this.#totalSamples,
+    };
+  }
+
+  /**
    * Internal RAF tick function.
    * @private
    */
@@ -135,6 +162,14 @@ class FPSMonitor {
       this.#lastTime = now;
     }
 
+    // Sample FPS history every ~16.67ms (360 samples over 6 seconds)
+    if (now - this.#lastHistorySample >= 16.67) {
+      this.#history[this.#historyIndex] = this.#fps;
+      this.#historyIndex = (this.#historyIndex + 1) % FPS_HISTORY_SIZE;
+      this.#lastHistorySample = now;
+      this.#totalSamples++;
+    }
+
     this.#animationId = requestAnimationFrame(() => this.#tick());
   }
 
@@ -147,6 +182,218 @@ class FPSMonitor {
       cancelAnimationFrame(this.#animationId);
       this.#animationId = null;
     }
+  }
+}
+
+/**
+ * Renders an animated lag radar visualization.
+ * Based on lag-radar by @mobz - colors based on frame delta time.
+ * Green = smooth (small delta), Red = laggy (large delta).
+ */
+class FPSRadar {
+  /** @type {HTMLCanvasElement | null} Canvas element */
+  #canvas = null;
+
+  /** @type {CanvasRenderingContext2D | null} Canvas 2D context */
+  #ctx = null;
+
+  /** @type {number | null} RAF ID for animation loop */
+  #animationId = null;
+
+  /** @type {number} Size of the radar in pixels */
+  #size = 200;
+
+  /** @type {boolean} Whether radar is running */
+  #running = false;
+
+  /** @type {number} Number of arc frames to keep */
+  #frames = 60;
+
+  /** @type {number} Sweep speed in radians per millisecond */
+  #speed = 0.0017;
+
+  /** @type {{ rotation: number, now: number, tx: number, ty: number }} Last frame state */
+  #last = null;
+
+  /** @type {number} Current frame pointer */
+  #framePtr = 0;
+
+  /** @type {{ path: Path2D, hue: number }[]} Arc frame buffer */
+  #arcBuffer = [];
+
+  /**
+   * Create a new FPSRadar (lag radar style).
+   * @param {FPSMonitor} _fpsMonitor - Unused, kept for API compatibility
+   * @param {{ size?: number, frames?: number, speed?: number }} [options] - Configuration options
+   */
+  constructor(_fpsMonitor, options = {}) {
+    this.#size = options.size || 200;
+    this.#frames = options.frames || 60;
+    this.#speed = options.speed || 0.0017;
+  }
+
+  /**
+   * Create and return the canvas element.
+   * @returns {HTMLCanvasElement} The radar canvas
+   */
+  create() {
+    if (this.#canvas) return this.#canvas;
+
+    const canvas = document.createElement("canvas");
+    const dpr = window.devicePixelRatio || 1;
+    
+    canvas.width = this.#size * dpr;
+    canvas.height = this.#size * dpr;
+    canvas.style.width = `${this.#size}px`;
+    canvas.style.height = `${this.#size}px`;
+    canvas.style.display = "block";
+    canvas.style.margin = "0 auto";
+    canvas.style.borderRadius = "50%";
+
+    this.#canvas = canvas;
+    this.#ctx = canvas.getContext("2d");
+    this.#ctx.scale(dpr, dpr);
+
+    // Initialize arc buffer
+    this.#arcBuffer = new Array(this.#frames).fill(null).map(() => ({ path: null, hue: 120 }));
+
+    return canvas;
+  }
+
+  /**
+   * Start the radar animation.
+   */
+  start() {
+    if (this.#running) return;
+    this.#running = true;
+    
+    const middle = this.#size / 2;
+    const radius = middle - 4;
+    
+    this.#last = {
+      rotation: 0,
+      now: performance.now(),
+      tx: middle + radius,
+      ty: middle,
+    };
+    this.#framePtr = 0;
+    
+    this.#animationId = requestAnimationFrame(() => this.#draw());
+  }
+
+  /**
+   * Stop the radar animation.
+   */
+  stop() {
+    this.#running = false;
+    if (this.#animationId) {
+      cancelAnimationFrame(this.#animationId);
+      this.#animationId = null;
+    }
+  }
+
+  /**
+   * Destroy the radar and cleanup resources.
+   */
+  destroy() {
+    this.stop();
+    this.#canvas = null;
+    this.#ctx = null;
+    this.#arcBuffer = [];
+  }
+
+  /**
+   * Calculate hue based on frame delta (lag-radar algorithm).
+   * Logarithmic scale: small delta = green (120), large delta = red (0)
+   * @private
+   * @param {number} msDelta - Milliseconds since last frame
+   * @returns {number} Hue value (0-120)
+   */
+  #calcHue(msDelta) {
+    const maxHue = 120;
+    const maxMs = 1000;
+    const logF = 10;
+    const mult = maxHue / Math.log(maxMs / logF);
+    return maxHue - Math.max(0, Math.min(mult * Math.log(msDelta / logF), maxHue));
+  }
+
+  /**
+   * Main draw loop - lag-radar style.
+   * Each frame draws an arc from last position to current position.
+   * @private
+   */
+  #draw() {
+    if (!this.#running || !this.#ctx || !this.#canvas) return;
+
+    const ctx = this.#ctx;
+    const size = this.#size;
+    const middle = size / 2;
+    const radius = middle - 4;
+    const PI2 = Math.PI * 2;
+
+    const now = performance.now();
+    const timeDelta = now - this.#last.now;
+    const rdelta = Math.min(PI2 - this.#speed, this.#speed * timeDelta);
+    const rotation = (this.#last.rotation + rdelta) % PI2;
+    const tx = middle + radius * Math.cos(rotation);
+    const ty = middle + radius * Math.sin(rotation);
+
+    // Calculate hue based on frame delta
+    const hue = this.#calcHue(timeDelta);
+
+    // Create arc path from current to last position
+    const arcPath = new Path2D();
+    arcPath.moveTo(middle, middle);
+    arcPath.lineTo(tx, ty);
+    // Arc from current to last
+    const bigArc = rdelta < Math.PI ? 0 : 1;
+    arcPath.arc(middle, middle, radius, rotation, this.#last.rotation, true);
+    arcPath.closePath();
+
+    // Store arc in buffer
+    const bufferIdx = this.#framePtr % this.#frames;
+    this.#arcBuffer[bufferIdx] = { path: arcPath, hue };
+
+    // Clear and draw background
+    ctx.clearRect(0, 0, size, size);
+    ctx.beginPath();
+    ctx.arc(middle, middle, radius, 0, PI2);
+    ctx.fillStyle = "#000";
+    ctx.fill();
+
+    // Draw all arcs with fading opacity
+    for (let i = 0; i < this.#frames; i++) {
+      const idx = (this.#frames + this.#framePtr - i) % this.#frames;
+      const arc = this.#arcBuffer[idx];
+      if (!arc || !arc.path) continue;
+
+      const opacity = 1 - (i / this.#frames);
+      ctx.fillStyle = `hsla(${arc.hue}, 80%, 50%, ${opacity})`;
+      ctx.fill(arc.path);
+    }
+
+    // Draw sweep line (hand)
+    ctx.beginPath();
+    ctx.moveTo(middle, middle);
+    ctx.lineTo(tx, ty);
+    ctx.strokeStyle = `hsl(${hue}, 80%, 60%)`;
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    ctx.stroke();
+
+    // Draw circle outline
+    ctx.beginPath();
+    ctx.arc(middle, middle, radius, 0, PI2);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Update state
+    this.#framePtr++;
+    this.#last = { now, rotation, tx, ty };
+
+    // Continue animation
+    this.#animationId = requestAnimationFrame(() => this.#draw());
   }
 }
 

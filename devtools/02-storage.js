@@ -85,10 +85,11 @@ class StorageManager {
 
   /**
    * Check if devtools is enabled.
+   * Enabled by default unless explicitly disabled.
    * @returns {boolean} True if enabled
    */
   static isDevtoolsEnabled() {
-    return this.getString(CONFIG.storageKeys.enabled) === "true";
+    return this.getString(CONFIG.storageKeys.enabled) !== "false";
   }
 
   /**
@@ -154,6 +155,22 @@ class StorageManager {
    */
   static setDomStatsPinned(pinned) {
     this.setString(CONFIG.storageKeys.domStatsPinned, pinned ? "true" : "false");
+  }
+
+  /**
+   * Check if FPS radar is pinned.
+   * @returns {boolean} True if pinned
+   */
+  static isFpsRadarPinned() {
+    return this.getString(CONFIG.storageKeys.fpsRadarPinned) === "true";
+  }
+
+  /**
+   * Save FPS radar pinned state.
+   * @param {boolean} pinned - Whether FPS radar is pinned
+   */
+  static setFpsRadarPinned(pinned) {
+    this.setString(CONFIG.storageKeys.fpsRadarPinned, pinned ? "true" : "false");
   }
 }
 

@@ -202,6 +202,27 @@ class TooltipManager {
   }
 
   /**
+   * Pin the tooltip with a DOM element instead of text.
+   * @param {HTMLElement} element - DOM element to display
+   */
+  pinElement(element) {
+    this.#pinned = true;
+    this.#pinnedContent = null;
+
+    // Add pinned class for styling
+    this.#element?.classList.add("pinned");
+
+    if (this.#contentElement) {
+      // Clear existing content and append the element
+      this.#contentElement.innerHTML = "";
+      this.#contentElement.appendChild(element);
+    }
+
+    // Make sure tooltip is visible
+    this.#element?.classList.add("visible");
+  }
+
+  /**
    * Unpin the tooltip and hide it.
    */
   unpin() {

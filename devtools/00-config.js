@@ -53,6 +53,7 @@ const CONFIG = {
     safeArea: 16,
     collapsedHorizontal: { width: 20, height: 48 },
     collapsedVertical: { width: 48, height: 20 },
+    radarSize: 220,
   },
 
   /** Threshold values for various interactions */
@@ -98,6 +99,7 @@ const CONFIG = {
     enabled: "FRONTEND_DEVTOOLS_ENABLED",
     scanning: "FRONTEND_DEVTOOLS_SCANNING",
     domStatsPinned: "FRONTEND_DEVTOOLS_DOM_STATS_PINNED",
+    fpsRadarPinned: "FRONTEND_DEVTOOLS_FPS_RADAR_PINNED",
   },
 
   /** Font settings */
@@ -242,6 +244,21 @@ const STYLES = `
     box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
   }
 
+  .devtools-meter.clickable {
+    cursor: pointer;
+    transition: background 0.15s, box-shadow 0.15s;
+  }
+
+  .devtools-meter.clickable:hover {
+    background: #1a1a1a;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
+  }
+
+  .devtools-meter.clickable.active {
+    background: #1f1f1f;
+    box-shadow: inset 0 0 0 1px rgba(142, 97, 230, 0.4);
+  }
+
   .devtools-meter-value {
     font-size: 14px;
     font-weight: 600;
@@ -356,6 +373,51 @@ const STYLES = `
   .devtools-tooltip-content {
     white-space: pre-line;
     will-change: transform, opacity;
+  }
+
+  /* ===== FPS Radar ===== */
+  .devtools-radar-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+  }
+
+  .devtools-radar-container canvas {
+    display: block;
+  }
+
+  .devtools-radar-legend {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .devtools-radar-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .devtools-radar-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .devtools-radar-legend-dot.good {
+    background: hsl(120, 80%, 50%);
+  }
+
+  .devtools-radar-legend-dot.warning {
+    background: hsl(60, 80%, 50%);
+  }
+
+  .devtools-radar-legend-dot.critical {
+    background: hsl(0, 80%, 50%);
   }
 
   /* ===== Odometer Animation ===== */

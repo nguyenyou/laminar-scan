@@ -65,6 +65,15 @@ class Toolbar {
   /** @type {number | null} Previous total DOM node count */
   #prevTotalNodes = null;
 
+  /** @type {FPSRadar | null} FPS radar visualization */
+  #fpsRadar = null;
+
+  /** @type {HTMLDivElement | null} FPS meter container element */
+  #fpsMeterElement = null;
+
+  /** @type {boolean} Whether FPS radar is pinned */
+  #fpsRadarPinned = false;
+
   // Callbacks
   /** @type {((enabled: boolean) => void) | null} */
   #onScanningToggle = null;
@@ -171,6 +180,12 @@ class Toolbar {
     this.#tooltipManager.destroy();
     this.#dragController?.destroy();
 
+    // Cleanup FPS radar
+    if (this.#fpsRadar) {
+      this.#fpsRadar.destroy();
+      this.#fpsRadar = null;
+    }
+
     // Clear DOM stats interval
     if (this.#domStatsIntervalId) {
       clearInterval(this.#domStatsIntervalId);
@@ -192,6 +207,7 @@ class Toolbar {
     this.#scanningToggle = null;
     this.#fpsValueElement = null;
     this.#memoryValueElement = null;
+    this.#fpsMeterElement = null;
   }
 
   /**
@@ -335,8 +351,8 @@ class Toolbar {
    */
   #createFPSMeter() {
     const container = document.createElement("div");
-    container.className = "devtools-meter";
-    container.setAttribute("data-tooltip", "Frames per second \n Detect long-running scripts blocking the main thread");
+    container.className = "devtools-meter clickable";
+    container.setAttribute("data-tooltip", "Frames per second \n Click to show FPS radar");
 
     const value = document.createElement("span");
     value.className = "devtools-meter-value";
@@ -350,7 +366,120 @@ class Toolbar {
     container.appendChild(value);
     container.appendChild(label);
 
+    // Store reference for later use
+    this.#fpsMeterElement = container;
+
+    // Toggle radar on click
+    container.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.#toggleFpsRadarPin();
+    });
+
+    // Restore pinned state from storage
+    if (StorageManager.isFpsRadarPinned()) {
+      requestAnimationFrame(() => {
+        this.#pinFpsRadar();
+      });
+    }
+
     return container;
+  }
+
+  /**
+   * Create the FPS radar tooltip content.
+   * @private
+   * @returns {HTMLElement} Radar container element
+   */
+  #createFpsRadarContent() {
+    const container = document.createElement("div");
+    container.className = "devtools-radar-container";
+
+    // Create radar instance
+    this.#fpsRadar = new FPSRadar(this.#fpsMonitor, {
+      size: CONFIG.dimensions.radarSize,
+    });
+    const canvas = this.#fpsRadar.create();
+    container.appendChild(canvas);
+
+    // Add legend
+    const legend = document.createElement("div");
+    legend.className = "devtools-radar-legend";
+    legend.innerHTML = `
+      <div class="devtools-radar-legend-item">
+        <span class="devtools-radar-legend-dot good"></span>
+        <span>Good (50+)</span>
+      </div>
+      <div class="devtools-radar-legend-item">
+        <span class="devtools-radar-legend-dot warning"></span>
+        <span>Warning (30-50)</span>
+      </div>
+      <div class="devtools-radar-legend-item">
+        <span class="devtools-radar-legend-dot critical"></span>
+        <span>Critical (&lt;30)</span>
+      </div>
+    `;
+    container.appendChild(legend);
+
+    return container;
+  }
+
+  /**
+   * Pin FPS radar tooltip.
+   * @private
+   */
+  #pinFpsRadar() {
+    if (!this.#fpsMeterElement) return;
+
+    // Unpin DOM stats if pinned
+    const domStatsBtn = this.#content?.querySelector(".devtools-icon-btn:last-child");
+    if (domStatsBtn && this.#tooltipManager.isPinned()) {
+      this.#unpinDomStats(domStatsBtn);
+    }
+
+    this.#fpsRadarPinned = true;
+    this.#fpsMeterElement.classList.add("active");
+    StorageManager.setFpsRadarPinned(true);
+
+    // Create radar content
+    const radarContent = this.#createFpsRadarContent();
+    
+    // Pin with radar DOM element
+    this.#tooltipManager.pinElement(radarContent);
+    
+    // Start radar animation
+    this.#fpsRadar.start();
+  }
+
+  /**
+   * Unpin FPS radar tooltip.
+   * @private
+   */
+  #unpinFpsRadar() {
+    if (!this.#fpsMeterElement) return;
+
+    this.#fpsRadarPinned = false;
+    this.#fpsMeterElement.classList.remove("active");
+    StorageManager.setFpsRadarPinned(false);
+
+    // Stop and destroy radar
+    if (this.#fpsRadar) {
+      this.#fpsRadar.destroy();
+      this.#fpsRadar = null;
+    }
+
+    this.#tooltipManager.unpin();
+  }
+
+  /**
+   * Toggle FPS radar pin state.
+   * @private
+   */
+  #toggleFpsRadarPin() {
+    if (this.#fpsRadarPinned) {
+      this.#unpinFpsRadar();
+    } else {
+      this.#pinFpsRadar();
+    }
   }
 
   /**
