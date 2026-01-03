@@ -343,6 +343,25 @@ const STYLES = `
     visibility: visible;
   }
 
+  /* Stacked tooltips - stacked-1 is base position, stacked-2 offset is set via JS */
+  .devtools-tooltip.stacked-1 {
+    bottom: calc(100% + 8px);
+  }
+
+  .devtools-tooltip.stacked-2 {
+    /* Offset is set dynamically via inline style */
+  }
+
+  .devtools-toolbar.corner-top .devtools-tooltip.stacked-1 {
+    bottom: auto;
+    top: calc(100% + 8px);
+  }
+
+  .devtools-toolbar.corner-top .devtools-tooltip.stacked-2 {
+    bottom: auto;
+    /* Offset is set dynamically via inline style */
+  }
+
   .devtools-tooltip .live-indicator {
     display: none;
     width: 6px;

@@ -217,6 +217,14 @@ class TooltipManager {
   }
 
   /**
+   * Get the tooltip container element.
+   * @returns {HTMLDivElement | null}
+   */
+  getElement() {
+    return this.#element;
+  }
+
+  /**
    * Temporarily suspend tooltips (e.g., during drag). Transitions to SUSPENDED state.
    */
   suspend() {
