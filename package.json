@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "fix": "./mill __.fix",
     "fmt": "./mill mill.scalalib.scalafmt/",
+    "typecheck": "tsgo --noEmit",
     "build:devtools": "bun build devtools/index.ts --outfile devtools.js --format iife"
   },
   "devDependencies": {
@@ -16,6 +17,7 @@
     "vite": "8.0.0-beta.4"
   },
   "dependencies": {
+    "@typescript/native-preview": "7.0.0-dev.20260103.1",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   }
