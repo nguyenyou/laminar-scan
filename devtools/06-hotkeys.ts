@@ -11,14 +11,9 @@
  * - Ctrl+Shift+C: Toggle inspect mode
  */
 export class HotkeyManager {
-  /** @type {Map<string, Function>} Registered hotkey handlers */
-  #handlers = new Map();
-
-  /** @type {boolean} Whether the manager is active */
+  #handlers: Map<string, () => void> = new Map();
   #active = false;
-
-  /** @type {Function} Bound keydown handler */
-  #boundKeydown = null;
+  #boundKeydown: (e: KeyboardEvent) => void;
 
   constructor() {
     this.#boundKeydown = this.#handleKeydown.bind(this);
@@ -27,7 +22,7 @@ export class HotkeyManager {
   /**
    * Start listening for hotkeys.
    */
-  start() {
+  start(): void {
     if (this.#active) return;
     this.#active = true;
     document.addEventListener("keydown", this.#boundKeydown, { capture: true });
@@ -36,7 +31,7 @@ export class HotkeyManager {
   /**
    * Stop listening for hotkeys.
    */
-  stop() {
+  stop(): void {
     if (!this.#active) return;
     this.#active = false;
     document.removeEventListener("keydown", this.#boundKeydown, { capture: true });
@@ -44,27 +39,22 @@ export class HotkeyManager {
 
   /**
    * Register a hotkey handler.
-   * @param {string} combo - Key combination (e.g., "ctrl+shift+c")
-   * @param {Function} handler - Handler function
    */
-  register(combo, handler) {
+  register(combo: string, handler: () => void): void {
     this.#handlers.set(combo.toLowerCase(), handler);
   }
 
   /**
    * Unregister a hotkey handler.
-   * @param {string} combo - Key combination to remove
    */
-  unregister(combo) {
+  unregister(combo: string): void {
     this.#handlers.delete(combo.toLowerCase());
   }
 
   /**
    * Handle keydown events.
-   * @private
-   * @param {KeyboardEvent} e
    */
-  #handleKeydown(e) {
+  #handleKeydown(e: KeyboardEvent): void {
     // Build the key combo string
     const parts = [];
     if (e.ctrlKey) parts.push("ctrl");

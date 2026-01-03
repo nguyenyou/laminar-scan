@@ -5,21 +5,21 @@
 // ============================================================================
 
 import { CONFIG } from "./00-config";
-import { debounce, clamp, lerp } from "./01-utilities";
+import { debounce, clamp, lerp, type DebouncedFunction } from "./01-utilities";
 
 /**
  * Tooltip state enum.
- * @readonly
- * @enum {string}
  */
-export const TooltipState = Object.freeze({
+export const TooltipState = {
   /** Hover shows tooltips normally */
   IDLE: "idle",
   /** Click-pinned content, hover completely ignored */
   PINNED: "pinned",
   /** Temporarily disabled (during drag), will return to previous state */
   SUSPENDED: "suspended",
-});
+} as const;
+
+type TooltipStateType = (typeof TooltipState)[keyof typeof TooltipState];
 
 /**
  * Manages tooltip display with animated content transitions.
@@ -30,29 +30,14 @@ export const TooltipState = Object.freeze({
  * - SUSPENDED: All interactions ignored (used during drag). Returns to previous state.
  */
 export class TooltipManager {
-  /** @type {HTMLDivElement | null} Tooltip container element */
-  #element = null;
-
-  /** @type {HTMLDivElement | null} Inner content element */
-  #contentElement = null;
-
-  /** @type {number | null} Timeout for hiding tooltip */
-  #hideTimeout = null;
-
-  /** @type {number | null} Timeout for showing tooltip (delay to prevent accidental hover) */
-  #showTimeout = null;
-
-  /** @type {number | null} Last hovered element's X position */
-  #lastElementX = null;
-
-  /** @type {Array<Function>} Cleanup functions for event listeners */
-  #cleanupFns = [];
-
-  /** @type {TooltipState} Current tooltip state */
-  #state = TooltipState.IDLE;
-
-  /** @type {TooltipState} State to restore after SUSPENDED */
-  #stateBeforeSuspend = TooltipState.IDLE;
+  #element: HTMLDivElement | null = null;
+  #contentElement: HTMLDivElement | null = null;
+  #hideTimeout: ReturnType<typeof setTimeout> | null = null;
+  #showTimeout: ReturnType<typeof setTimeout> | null = null;
+  #lastElementX: number | null = null;
+  #cleanupFns: (() => void)[] = [];
+  #state: TooltipStateType = TooltipState.IDLE;
+  #stateBeforeSuspend: TooltipStateType = TooltipState.IDLE;
 
   /**
    * Create the tooltip DOM elements.
@@ -80,9 +65,8 @@ export class TooltipManager {
   /**
    * Setup tooltip event handlers for elements with data-tooltip attribute.
    * Hover events only work in IDLE state.
-   * @param {HTMLElement} container - Container to search for tooltip elements
    */
-  setupEvents(container) {
+  setupEvents(container: HTMLElement): void {
     const tooltipElements = container.querySelectorAll("[data-tooltip]");
 
     for (const el of tooltipElements) {
@@ -98,7 +82,7 @@ export class TooltipManager {
         const currentX = rect.left + rect.width / 2;
 
         // Determine slide direction based on movement
-        let direction = "left";
+        let direction: "left" | "right" = "left";
         if (this.#lastElementX !== null) {
           direction = currentX > this.#lastElementX ? "left" : "right";
         }
@@ -113,7 +97,7 @@ export class TooltipManager {
           this.#showTimeout = setTimeout(() => {
             this.#showContent(tooltipText, direction);
             this.#showTimeout = null;
-          }, CONFIG.intervals.tooltipShowDelay || 300);
+          }, CONFIG.intervals.tooltipShowDelay ?? 300);
         }
       };
 
@@ -147,9 +131,8 @@ export class TooltipManager {
 
   /**
    * Pin the tooltip with text content. Transitions to PINNED state.
-   * @param {string} text - Tooltip text to display
    */
-  pin(text) {
+  pin(text: string): void {
     this.#cancelAllTimeouts();
     this.#state = TooltipState.PINNED;
 
@@ -169,9 +152,8 @@ export class TooltipManager {
 
   /**
    * Pin the tooltip with a DOM element. Transitions to PINNED state.
-   * @param {HTMLElement} element - DOM element to display
    */
-  pinElement(element) {
+  pinElement(element: HTMLElement): void {
     this.#cancelAllTimeouts();
     this.#state = TooltipState.PINNED;
 
@@ -195,7 +177,7 @@ export class TooltipManager {
   /**
    * Unpin the tooltip and hide it. Transitions to IDLE state.
    */
-  unpin() {
+  unpin(): void {
     this.#state = TooltipState.IDLE;
     this.#element?.classList.remove("pinned");
     this.#hideTooltip();
@@ -203,9 +185,8 @@ export class TooltipManager {
 
   /**
    * Update pinned content if tooltip is in PINNED state (without animation).
-   * @param {string} text - New tooltip text (can contain HTML)
    */
-  updatePinnedContent(text) {
+  updatePinnedContent(text: string): void {
     if (this.#state === TooltipState.PINNED && this.#contentElement) {
       this.#contentElement.innerHTML = text;
     }
@@ -213,17 +194,15 @@ export class TooltipManager {
 
   /**
    * Check if tooltip is in PINNED state.
-   * @returns {boolean}
    */
-  isPinned() {
+  isPinned(): boolean {
     return this.#state === TooltipState.PINNED;
   }
 
   /**
    * Get the tooltip container element.
-   * @returns {HTMLDivElement | null}
    */
-  getElement() {
+  getElement(): HTMLDivElement | null {
     return this.#element;
   }
 
@@ -269,19 +248,17 @@ export class TooltipManager {
 
   /**
    * Show tooltip content with optional animation.
-   * @private
-   * @param {string} text - Tooltip text or HTML
-   * @param {'left' | 'right'} [direction='left'] - Animation direction
    */
-  #showContent(text, direction = "left") {
+  #showContent(text: string | null, direction: "left" | "right" = "left"): void {
     if (!this.#element || !this.#contentElement) return;
 
     const content = this.#contentElement;
     const tooltip = this.#element;
+    const displayText = text ?? "";
 
     // If not visible, just set content and show
     if (!tooltip.classList.contains("visible")) {
-      content.innerHTML = text;
+      content.innerHTML = displayText;
       content.style.transform = "translateX(0)";
       content.style.opacity = "1";
       tooltip.classList.add("visible");
@@ -300,7 +277,7 @@ export class TooltipManager {
 
     // After slide out, update content and slide in
     setTimeout(() => {
-      content.innerHTML = text;
+      content.innerHTML = displayText;
       content.style.transition = "none";
       content.style.transform = `translateX(${slideInX})`;
 
@@ -361,50 +338,51 @@ export class TooltipManager {
   }
 }
 
+interface CollapsedState {
+  corner: string;
+  orientation: string;
+}
+
+interface Position {
+  x: number;
+  y: number;
+}
+
+interface DragControllerOptions {
+  onDragStart?: (isDragging: boolean) => void;
+  onDragEnd?: () => void;
+  onPositionChange?: (position: Position, corner: string) => void;
+  onCollapse?: (corner: string, orientation: string) => void;
+  onExpand?: (corner: string) => void;
+}
+
 /**
  * Handles drag-to-move and snap-to-corner behavior for the toolbar.
  */
 export class DragController {
-  /** @type {HTMLElement | null} Element being dragged */
-  #element = null;
-
-  /** @type {boolean} Whether currently dragging */
+  #element: HTMLElement | null = null;
   #isDragging = false;
-
-  /** @type {{ x: number, y: number }} Current position */
-  #position = { x: 0, y: 0 };
-
-  /** @type {string} Current corner */
+  #position: Position = { x: 0, y: 0 };
   #corner = "bottom-right";
-
-  /** @type {{ corner: string, orientation: string } | null} Collapsed state */
-  #collapsed = null;
-
-  /** @type {number | null} Transition timeout ID */
-  #transitionTimeoutId = null;
+  #collapsed: CollapsedState | null = null;
+  #transitionTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   // Callbacks
-  #onDragStart = null;
-  #onDragEnd = null;
-  #onPositionChange = null;
-  #onCollapse = null;
-  #onExpand = null;
+  #onDragStart: ((isDragging: boolean) => void) | null = null;
+  #onDragEnd: (() => void) | null = null;
+  #onPositionChange: ((position: Position, corner: string) => void) | null = null;
+  #onCollapse: ((corner: string, orientation: string) => void) | null = null;
+  #onExpand: ((corner: string) => void) | null = null;
 
   /**
    * Create a new DragController.
-   * @param {Object} options - Configuration options
-   * @param {(isDragging: boolean) => void} [options.onDragStart] - Called when drag starts
-   * @param {() => void} [options.onDragEnd] - Called when drag ends
-   * @param {(position: { x: number, y: number }, corner: string) => void} [options.onPositionChange] - Called when position changes
-   * @param {(corner: string, orientation: string) => void} [options.onCollapse] - Called when collapsing
-   * @param {(corner: string) => void} [options.onExpand] - Called when expanding
    */
-  constructor(options = {}) {
-    this.#onDragStart = options.onDragStart || null;
-    this.#onDragEnd = options.onDragEnd || null;
-    this.#onPositionChange = options.onPositionChange || null;
-    this.#onCollapse = options.onCollapse || null;
-    this.#onExpand = options.onExpand || null;
+  constructor(options: DragControllerOptions = {}) {
+    this.#onDragStart = options.onDragStart ?? null;
+    this.#onDragEnd = options.onDragEnd ?? null;
+    this.#onPositionChange = options.onPositionChange ?? null;
+    this.#onCollapse = options.onCollapse ?? null;
+    this.#onExpand = options.onExpand ?? null;
   }
 
   /**

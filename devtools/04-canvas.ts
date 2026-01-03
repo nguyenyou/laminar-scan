@@ -5,37 +5,43 @@
 // ============================================================================
 
 import { CONFIG } from "./00-config";
-import { debounce, getDevicePixelRatio, lerp } from "./01-utilities";
+import { debounce, getDevicePixelRatio, lerp, type DebouncedFunction } from "./01-utilities";
+
+interface HighlightData {
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  targetX: number;
+  targetY: number;
+  targetWidth: number;
+  targetHeight: number;
+  frame: number;
+  count: number;
+  isReact: boolean;
+}
 
 /**
  * Manages the canvas used for rendering mutation highlights.
  * Handles creation, resizing, and drawing of highlight rectangles.
  */
 export class HighlightCanvas {
-  /** @type {HTMLCanvasElement | null} */
-  #canvas = null;
-
-  /** @type {CanvasRenderingContext2D | null} */
-  #ctx = null;
-
-  /** @type {number | null} RAF ID for animation loop */
-  #animationId = null;
-
-  /** @type {Map<Element, HighlightData>} Active highlight animations */
-  #highlights = new Map();
-
-  /** @type {Function | null} Debounced resize handler */
-  #resizeHandler = null;
+  #canvas: HTMLCanvasElement | null = null;
+  #ctx: CanvasRenderingContext2D | null = null;
+  #animationId: number | null = null;
+  #highlights: Map<Element, HighlightData> = new Map();
+  #resizeHandler: DebouncedFunction<() => void> | null = null;
 
   /**
    * Create and mount the highlight canvas.
    * @returns {HTMLCanvasElement} The created canvas element
    */
-  create() {
+  create(): HTMLCanvasElement {
     if (this.#canvas) return this.#canvas;
 
     // Safety check: prevent duplicate highlight canvases in DOM
-    const existing = document.querySelector(`[${CONFIG.attributes.devtools}="highlight-canvas"]`);
+    const existing = document.querySelector(`[${CONFIG.attributes.devtools}="highlight-canvas"]`) as HTMLCanvasElement | null;
     if (existing) {
       console.warn("Devtools: Highlight canvas already exists in DOM, reusing");
       this.#canvas = existing;
@@ -64,7 +70,7 @@ export class HighlightCanvas {
 
     this.#canvas = canvas;
     this.#ctx = canvas.getContext("2d");
-    this.#ctx.scale(dpr, dpr);
+    this.#ctx?.scale(dpr, dpr);
 
     // Setup resize handler
     this.#resizeHandler = debounce(() => this.#handleResize(), CONFIG.intervals.resizeDebounce);
@@ -96,17 +102,14 @@ export class HighlightCanvas {
 
   /**
    * Add or update a highlight for an element.
-   * @param {Element} element - Element to highlight
-   * @param {string} name - Display name for the highlight
-   * @param {{ isReact?: boolean }} [options] - Additional options
    */
-  highlight(element, name, options = {}) {
+  highlight(element: Element, name: string, options: { isReact?: boolean } = {}): void {
     if (!this.#canvas || !element.isConnected) return;
 
     const rect = element.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
 
-    const isReact = options.isReact || false;
+    const isReact = options.isReact ?? false;
 
     const existing = this.#highlights.get(element);
     if (existing) {
@@ -323,35 +326,37 @@ export class HighlightCanvas {
   }
 }
 
+interface RectType {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+interface OverlayInfo {
+  isMarked?: boolean;
+  isReact?: boolean;
+}
+
 /**
  * Manages the overlay canvas used during component inspection.
  * Draws animated highlight rectangles and component name labels.
  */
 export class InspectOverlay {
-  /** @type {HTMLCanvasElement | null} */
-  #canvas = null;
-
-  /** @type {CanvasRenderingContext2D | null} */
-  #ctx = null;
-
-  /** @type {{ left: number, top: number, width: number, height: number } | null} */
-  #currentRect = null;
-
-  /** @type {number | null} RAF ID for animation */
-  #animationId = null;
-
-  /** @type {number | null} Timeout ID for canvas removal */
-  #removeTimeoutId = null;
+  #canvas: HTMLCanvasElement | null = null;
+  #ctx: CanvasRenderingContext2D | null = null;
+  #currentRect: RectType | null = null;
+  #animationId: number | null = null;
+  #removeTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   /**
    * Create and mount the inspect overlay canvas.
-   * @returns {HTMLCanvasElement} The created canvas
    */
-  create() {
+  create(): HTMLCanvasElement {
     if (this.#canvas) return this.#canvas;
 
     // Safety check: prevent duplicate inspect canvases in DOM
-    const existing = document.querySelector(`[${CONFIG.attributes.devtools}="inspect-canvas"]`);
+    const existing = document.querySelector(`[${CONFIG.attributes.devtools}="inspect-canvas"]`) as HTMLCanvasElement | null;
     if (existing) {
       console.warn("Devtools: Inspect canvas already exists in DOM, reusing");
       this.#canvas = existing;
@@ -380,7 +385,7 @@ export class InspectOverlay {
 
     this.#canvas = canvas;
     this.#ctx = canvas.getContext("2d");
-    this.#ctx.scale(dpr, dpr);
+    this.#ctx?.scale(dpr, dpr);
 
     return canvas;
   }
@@ -431,11 +436,8 @@ export class InspectOverlay {
 
   /**
    * Animate to a new target rectangle.
-   * @param {{ left: number, top: number, width: number, height: number }} targetRect - Target rectangle
-   * @param {string} componentName - Component name to display
-   * @param {{ isMarked?: boolean }} [info] - Component info
    */
-  animateTo(targetRect, componentName, info = {}) {
+  animateTo(targetRect: RectType, componentName: string, info: OverlayInfo = {}): void {
     if (!this.#currentRect) {
       this.#currentRect = { ...targetRect };
       this.#drawOverlay(this.#currentRect, componentName, info);
@@ -445,6 +447,7 @@ export class InspectOverlay {
     this.#cancelAnimation();
 
     const animate = () => {
+      if (!this.#currentRect) return;
       this.#currentRect.left = lerp(this.#currentRect.left, targetRect.left);
       this.#currentRect.top = lerp(this.#currentRect.top, targetRect.top);
       this.#currentRect.width = lerp(this.#currentRect.width, targetRect.width);
@@ -492,12 +495,8 @@ export class InspectOverlay {
 
   /**
    * Draw the overlay rectangle and label.
-   * @private
-   * @param {{ left: number, top: number, width: number, height: number }} rect - Rectangle to draw
-   * @param {string} componentName - Component name
-   * @param {{ isMarked?: boolean, isReact?: boolean }} info - Component info
    */
-  #drawOverlay(rect, componentName, info) {
+  #drawOverlay(rect: RectType, componentName: string, info: OverlayInfo): void {
     if (!this.#ctx) return;
 
     this.#clearCanvas();

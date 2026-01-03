@@ -5,36 +5,30 @@
 // ============================================================================
 
 import { CONFIG } from "./00-config";
-import { getScalaComponent, getComponentSourceInfo, openInIDE } from "./01-utilities";
+import { getScalaComponent, getComponentSourceInfo, openInIDE, isDevtoolsElement, getScalaSource } from "./01-utilities";
 import { HighlightCanvas, InspectOverlay } from "./04-canvas";
-import { getReactComponentFromNode } from "./01-react-inspector";
+import { getReactComponentFromNode, getReactComponent, getReactComponentSourceInfo, getAllReactComponentsFromNode } from "./01-react-inspector";
+
+interface ScannerOptions {
+  onStateChange?: (running: boolean) => void;
+}
 
 /**
  * Observes DOM mutations and visualizes them with animated highlights.
  * Helps identify unexpected re-renders and DOM changes.
  */
 export class MutationScanner {
-  /** @type {MutationObserver | null} */
-  #observer = null;
-
-  /** @type {HighlightCanvas | null} */
-  #canvas = null;
-
-  /** @type {boolean} */
+  #observer: MutationObserver | null = null;
+  #canvas: HighlightCanvas | null = null;
   #running = false;
-
-  /** @type {boolean} Whether scanning is paused (e.g., during drag) */
   #paused = false;
-
-  /** @type {Function | null} Callback when scanning state changes */
-  #onStateChange = null;
+  #onStateChange: ((running: boolean) => void) | null = null;
 
   /**
    * Create a new MutationScanner.
-   * @param {{ onStateChange?: (running: boolean) => void }} [options] - Options
    */
-  constructor(options = {}) {
-    this.#onStateChange = options.onStateChange || null;
+  constructor(options: ScannerOptions = {}) {
+    this.#onStateChange = options.onStateChange ?? null;
   }
 
   /**
@@ -117,16 +111,14 @@ export class MutationScanner {
 
   /**
    * Handle mutation records.
-   * @private
-   * @param {MutationRecord[]} mutations - Mutation records
    */
-  #handleMutations(mutations) {
+  #handleMutations(mutations: MutationRecord[]): void {
     if (!this.#running || this.#paused) return;
 
     for (const record of mutations) {
       const target =
         record.target.nodeType === Node.ELEMENT_NODE
-          ? record.target
+          ? (record.target as Element)
           : record.target.parentElement;
 
       // Skip devtools elements
@@ -136,8 +128,8 @@ export class MutationScanner {
 
       // Highlight added nodes
       for (const node of record.addedNodes) {
-        if (node.nodeType === Node.ELEMENT_NODE && !isDevtoolsElement(node)) {
-          this.#highlightElement(node);
+        if (node.nodeType === Node.ELEMENT_NODE && !isDevtoolsElement(node as Element)) {
+          this.#highlightElement(node as Element);
         }
       }
     }
@@ -145,17 +137,15 @@ export class MutationScanner {
 
   /**
    * Highlight an element with the canvas.
-   * @private
-   * @param {Element} element - Element to highlight
    */
-  #highlightElement(element) {
+  #highlightElement(element: Element): void {
     if (!this.#canvas) return;
     if (!element.isConnected) return;
 
     // Try Scala source first, then React component, then fall back to tag name
-    let name = getScalaSource(element);
+    let name: string | null = getScalaSource(element);
     let isReact = false;
-    
+
     if (!name) {
       const reactComponent = getReactComponentFromNode(element);
       if (reactComponent) {
@@ -163,10 +153,14 @@ export class MutationScanner {
         isReact = true;
       }
     }
-    name = name || element.tagName.toLowerCase();
-    
-    this.#canvas.highlight(element, name, { isReact });
+    const displayName = name ?? element.tagName.toLowerCase();
+
+    this.#canvas.highlight(element, displayName, { isReact });
   }
+}
+
+interface InspectorOptions {
+  onStateChange?: (inspecting: boolean) => void;
 }
 
 /**
@@ -174,32 +168,22 @@ export class MutationScanner {
  * Allows users to hover over components and click to open source in IDE.
  */
 export class ComponentInspector {
-  /** @type {'off' | 'inspecting'} */
-  #state = "off";
-
-  /** @type {InspectOverlay | null} */
-  #overlay = null;
-
-  /** @type {HTMLDivElement | null} Event catcher element */
-  #eventCatcher = null;
-
-  /** @type {Element | null} Last hovered element */
-  #lastHovered = null;
-
-  /** @type {Function | null} Callback when state changes */
-  #onStateChange = null;
+  #state: "off" | "inspecting" = "off";
+  #overlay: InspectOverlay | null = null;
+  #eventCatcher: HTMLDivElement | null = null;
+  #lastHovered: Element | null = null;
+  #onStateChange: ((inspecting: boolean) => void) | null = null;
 
   // Bound event handlers for proper removal
-  #boundHandlePointerMove = null;
-  #boundHandleClick = null;
-  #boundHandleKeydown = null;
+  #boundHandlePointerMove: (e: PointerEvent) => void;
+  #boundHandleClick: (e: MouseEvent) => void;
+  #boundHandleKeydown: (e: KeyboardEvent) => void;
 
   /**
    * Create a new ComponentInspector.
-   * @param {{ onStateChange?: (inspecting: boolean) => void }} [options] - Options
    */
-  constructor(options = {}) {
-    this.#onStateChange = options.onStateChange || null;
+  constructor(options: InspectorOptions = {}) {
+    this.#onStateChange = options.onStateChange ?? null;
     this.#boundHandlePointerMove = this.#handlePointerMove.bind(this);
     this.#boundHandleClick = this.#handleClick.bind(this);
     this.#boundHandleKeydown = this.#handleKeydown.bind(this);
@@ -289,12 +273,10 @@ export class ComponentInspector {
 
   /**
    * Create the event catcher element.
-   * @private
-   * @returns {HTMLDivElement} Event catcher element
    */
-  #createEventCatcher() {
+  #createEventCatcher(): HTMLDivElement {
     // Safety check: prevent duplicate event catchers in DOM
-    const existing = document.querySelector(`[${CONFIG.attributes.devtools}="event-catcher"]`);
+    const existing = document.querySelector(`[${CONFIG.attributes.devtools}="event-catcher"]`) as HTMLDivElement | null;
     if (existing) {
       console.warn("Devtools: Event catcher already exists in DOM, reusing");
       return existing;
@@ -317,10 +299,8 @@ export class ComponentInspector {
 
   /**
    * Handle pointer move during inspection.
-   * @private
-   * @param {PointerEvent} e - Pointer event
    */
-  #handlePointerMove(e) {
+  #handlePointerMove(e: PointerEvent): void {
     if (this.#state !== "inspecting") return;
 
     // Clear stale reference if previously hovered element is disconnected
@@ -328,6 +308,8 @@ export class ComponentInspector {
       this.#lastHovered = null;
       this.#overlay?.clear();
     }
+
+    if (!this.#eventCatcher) return;
 
     // Temporarily disable event catcher to find element underneath
     this.#eventCatcher.style.pointerEvents = "none";
@@ -338,8 +320,8 @@ export class ComponentInspector {
 
     // Try Scala component first, then fall back to React
     let component = getScalaComponent(element);
-    let info = null;
-    
+    let info: { isMarked?: boolean; isReact?: boolean } | null = null;
+
     if (component) {
       info = getComponentSourceInfo(component.element);
     } else {
@@ -349,7 +331,7 @@ export class ComponentInspector {
         info = getReactComponentSourceInfo(component.element);
       }
     }
-    
+
     if (!component) {
       if (this.#lastHovered) {
         this.#lastHovered = null;
@@ -365,24 +347,24 @@ export class ComponentInspector {
 
     this.#overlay?.animateTo(
       { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
-      component.name,
-      info
+      component.name ?? "Unknown",
+      info ?? {}
     );
   }
 
   /**
    * Handle click during inspection.
-   * @private
-   * @param {MouseEvent} e - Click event
    */
-  #handleClick(e) {
+  #handleClick(e: MouseEvent): void {
     if (this.#state !== "inspecting") return;
 
     // Allow clicks on devtools elements to pass through
-    if (isDevtoolsElement(e.target) && e.target !== this.#eventCatcher) return;
+    if (isDevtoolsElement(e.target as Element) && e.target !== this.#eventCatcher) return;
 
     e.preventDefault();
     e.stopPropagation();
+
+    if (!this.#eventCatcher) return;
 
     // Find element under click
     this.#eventCatcher.style.pointerEvents = "none";
@@ -441,10 +423,8 @@ export class ComponentInspector {
 
   /**
    * Handle keydown during inspection.
-   * @private
-   * @param {KeyboardEvent} e - Keyboard event
    */
-  #handleKeydown(e) {
+  #handleKeydown(e: KeyboardEvent): void {
     if (e.key === "Escape" && this.#state === "inspecting") {
       this.stop();
     }

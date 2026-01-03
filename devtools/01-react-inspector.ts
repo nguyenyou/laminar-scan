@@ -62,7 +62,7 @@ function getReactFiber(domNode: Element | null): ReactFiber | null {
  * Get the React props attached to a DOM node.
  * React attaches props using '__reactProps$' + randomKey
  */
-function getReactProps(domNode: Element | null): any {
+export function getReactProps(domNode: Element | null): any {
   try {
     if (!domNode) return null;
 
@@ -235,7 +235,7 @@ export function getAllReactComponentsFromNode(domNode: Element | null): Array<Om
 /**
  * Get React component info in a format compatible with the inspector.
  */
-function getReactComponent(element: Element | null): ReactComponentResult | null {
+export function getReactComponent(element: Element | null): ReactComponentResult | null {
   try {
     if (!element) return null;
 
@@ -257,7 +257,7 @@ function getReactComponent(element: Element | null): ReactComponentResult | null
  * React components don't have built-in source mapping in production.
  * However, if the display name looks like a file path (contains /), treat it as source.
  */
-function getReactComponentSourceInfo(element: Element | null): ReactSourceInfo | null {
+export function getReactComponentSourceInfo(element: Element | null): ReactSourceInfo | null {
   try {
     const reactInfo = getReactComponentFromNode(element);
     if (!reactInfo) return null;
@@ -273,14 +273,16 @@ function getReactComponentSourceInfo(element: Element | null): ReactSourceInfo |
       // Parse potential line number from format: "path/to/file.tsx:123"
       const lineMatch = name.match(/^(.+):(\d+)$/);
       if (lineMatch) {
-        sourcePath = lineMatch[1];
-        sourceLine = lineMatch[2];
+        sourcePath = lineMatch[1] ?? null;
+        sourceLine = lineMatch[2] ?? null;
       } else {
         sourcePath = name;
       }
       // Extract filename from path
-      const pathParts = sourcePath.split("/");
-      filename = pathParts[pathParts.length - 1];
+      if (sourcePath) {
+        const pathParts = sourcePath.split("/");
+        filename = pathParts[pathParts.length - 1] ?? null;
+      }
     }
 
     return {
