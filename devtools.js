@@ -4115,15 +4115,15 @@ class Toolbar {
     legend.innerHTML = `
       <div class="devtools-radar-legend-item">
         <span class="devtools-radar-legend-dot good"></span>
-        <span>Good (50+)</span>
+        <span>50+</span>
       </div>
       <div class="devtools-radar-legend-item">
         <span class="devtools-radar-legend-dot warning"></span>
-        <span>Warning (30-50)</span>
+        <span>30-50</span>
       </div>
       <div class="devtools-radar-legend-item">
         <span class="devtools-radar-legend-dot critical"></span>
-        <span>Critical (&lt;30)</span>
+        <span>&lt;30</span>
       </div>
     `;
     container.appendChild(legend);
