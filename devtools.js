@@ -423,6 +423,103 @@ const STYLES = `
     background: hsl(0, 80%, 50%);
   }
 
+  /* ===== DOM Stats Panel ===== */
+  .devtools-dom-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .devtools-dom-stats-header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .devtools-dom-stats-total {
+    font-size: 28px;
+    font-weight: 600;
+    font-family: ui-monospace, monospace;
+    color: #fff;
+    letter-spacing: -0.02em;
+  }
+
+  .devtools-dom-stats-label {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .devtools-dom-stats-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .devtools-dom-stats-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .devtools-dom-stats-tag {
+    width: 48px;
+    font-size: 11px;
+    font-family: ui-monospace, monospace;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .devtools-dom-stats-bar-container {
+    flex: 1;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .devtools-dom-stats-bar {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #8e61e6 0%, #6366f1 100%);
+    transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    min-width: 2px;
+  }
+
+  .devtools-dom-stats-bar.increasing {
+    animation: barPulseUp 0.4s ease-out;
+  }
+
+  .devtools-dom-stats-bar.decreasing {
+    animation: barPulseDown 0.4s ease-out;
+  }
+
+  @keyframes barPulseUp {
+    0% { filter: brightness(1); }
+    30% { filter: brightness(1.5); background: linear-gradient(90deg, #f87171 0%, #ef4444 100%); }
+    100% { filter: brightness(1); }
+  }
+
+  @keyframes barPulseDown {
+    0% { filter: brightness(1); }
+    30% { filter: brightness(1.5); background: linear-gradient(90deg, #4ade80 0%, #22c55e 100%); }
+    100% { filter: brightness(1); }
+  }
+
+  .devtools-dom-stats-count {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    font-family: ui-monospace, monospace;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+
   /* ===== Odometer Animation ===== */
   .odometer {
     display: inline-flex;
@@ -4222,21 +4319,13 @@ class Toolbar {
     const btn = document.createElement("button");
     btn.className = "devtools-icon-btn";
     btn.innerHTML = ICONS.domTree;
-
-    // Update tooltip with DOM stats on mouseenter
-    btn.addEventListener("mouseenter", () => {
-      const stats = this.#getDOMStats();
-      btn.setAttribute("data-tooltip", stats);
-    });
+    btn.setAttribute("data-tooltip", "DOM statistics \n Click to pin");
 
     // Toggle pin on click
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       this.#toggleDomStatsPin(btn);
     });
-
-    // Set initial tooltip
-    btn.setAttribute("data-tooltip", "Click to pin DOM statistics");
 
     // Restore pinned state from storage
     if (StorageManager.isDomStatsPinned()) {
@@ -4255,17 +4344,21 @@ class Toolbar {
    * @param {HTMLButtonElement} btn - The DOM stats button
    */
   #pinDomStats(btn) {
-    const stats = this.#getDOMStats();
-    btn.setAttribute("data-tooltip", stats);
-    this.#tooltipManager.pin(stats);
+    // Unpin lag radar if pinned
+    if (this.#lagRadarPinned) {
+      this.#unpinLagRadar();
+    }
+
     btn.classList.add("active");
     StorageManager.setDomStatsPinned(true);
 
+    // Create initial DOM stats element
+    const statsElement = this.#createDomStatsElement();
+    this.#tooltipManager.pinElement(statsElement);
+
     // Update DOM stats every 500ms while pinned
     this.#domStatsIntervalId = setInterval(() => {
-      const updatedStats = this.#getDOMStats();
-      btn.setAttribute("data-tooltip", updatedStats);
-      this.#tooltipManager.updatePinnedContent(updatedStats);
+      this.#updateDomStatsElement(statsElement);
     }, 500);
   }
 
@@ -4298,19 +4391,16 @@ class Toolbar {
   }
 
   /**
-   * Get DOM node statistics with smooth odometer animation for changes.
+   * Get current DOM statistics data.
    * @private
-   * @returns {string} Formatted DOM statistics HTML string
+   * @returns {{ total: number, counts: Object<string, number>, sorted: [string, number][] }}
    */
-  #getDOMStats() {
+  #getDOMStatsData() {
     const body = document.body;
-    if (!body) return "DOM not ready";
+    if (!body) return { total: 0, counts: {}, sorted: [] };
 
-    // Count all nodes
     const allNodes = body.querySelectorAll("*");
     const totalNodes = allNodes.length;
-
-    // Count specific element types
     const counts = {};
 
     for (const el of allNodes) {
@@ -4318,96 +4408,175 @@ class Toolbar {
       counts[tag] = (counts[tag] || 0) + 1;
     }
 
-    /**
-     * Create odometer HTML for a number with digit-by-digit animation.
-     * Shows old value sliding out while new value slides in.
-     * @param {number} newVal - Current value
-     * @param {number|null} oldVal - Previous value (null if first render)
-     * @returns {string} HTML string for odometer display
-     */
-    const createOdometer = (newVal, oldVal) => {
-      const newStr = String(newVal);
-      const oldStr = oldVal !== null ? String(oldVal) : newStr;
-      
-      // Determine overall direction for color pulse
-      let direction = "";
-      if (oldVal !== null) {
-        if (newVal > oldVal) direction = "increasing";
-        else if (newVal < oldVal) direction = "decreasing";
-      }
-
-      // Pad shorter string with leading spaces to match lengths
-      const maxLen = Math.max(newStr.length, oldStr.length);
-      const paddedNew = newStr.padStart(maxLen, " ");
-      const paddedOld = oldStr.padStart(maxLen, " ");
-
-      let digits = "";
-      for (let i = 0; i < maxLen; i++) {
-        const oldDigit = paddedOld[i];
-        const newDigit = paddedNew[i];
-        
-        // Determine if this digit changed and in which direction
-        let digitAnim = "";
-        if (oldDigit !== newDigit && oldVal !== null) {
-          // Compare numeric values of digits for animation direction
-          const oldNum = oldDigit === " " ? -1 : parseInt(oldDigit, 10);
-          const newNum = newDigit === " " ? -1 : parseInt(newDigit, 10);
-          
-          if (newNum > oldNum || (oldDigit === " " && newDigit !== " ")) {
-            digitAnim = "roll-up";
-          } else {
-            digitAnim = "roll-down";
-          }
-        }
-
-        if (digitAnim) {
-          // Animated digit: show old sliding out, new sliding in
-          const displayOld = oldDigit === " " ? "&nbsp;" : oldDigit;
-          const displayNew = newDigit === " " ? "&nbsp;" : newDigit;
-          
-          if (digitAnim === "roll-up") {
-            // Old on top, new below - animate up (old exits top, new enters from bottom)
-            digits += `<span class="odometer-digit"><span class="odometer-digit-inner ${digitAnim}"><span class="odometer-digit-old">${displayOld}</span><span class="odometer-digit-new">${displayNew}</span></span></span>`;
-          } else {
-            // New on top, old below - animate down (old exits bottom, new enters from top)
-            digits += `<span class="odometer-digit"><span class="odometer-digit-inner ${digitAnim}"><span class="odometer-digit-new">${displayNew}</span><span class="odometer-digit-old">${displayOld}</span></span></span>`;
-          }
-        } else {
-          // Static digit
-          const displayDigit = newDigit === " " ? "" : newDigit;
-          digits += `<span class="odometer-digit"><span class="odometer-digit-inner"><span class="odometer-digit-new">${displayDigit}</span></span></span>`;
-        }
-      }
-
-      return `<span class="odometer ${direction}">${digits}</span>`;
-    };
-
-    // Build total nodes line with odometer animation
-    const totalNumHtml = createOdometer(totalNodes, this.#prevTotalNodes);
-    let tooltip = `DOM Nodes: ${totalNumHtml}\n`;
-
-    // Store current total for next comparison
-    const prevTotal = this.#prevTotalNodes;
-    this.#prevTotalNodes = totalNodes;
-
-    // Sort by count descending and show top elements
     const sorted = Object.entries(counts)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 8);
+      .slice(0, 6);
 
-    if (sorted.length > 0) {
-      const parts = sorted.map(([tag, count]) => {
-        const prevCount = this.#prevDomCounts?.[tag] ?? null;
-        const countHtml = createOdometer(count, prevCount);
-        return `${tag}: ${countHtml}`;
-      });
-      tooltip += parts.join(" ");
+    return { total: totalNodes, counts, sorted };
+  }
+
+  /**
+   * Create the DOM stats visual element.
+   * @private
+   * @returns {HTMLElement}
+   */
+  #createDomStatsElement() {
+    const { total, sorted } = this.#getDOMStatsData();
+    const maxCount = sorted.length > 0 ? sorted[0][1] : 1;
+
+    const container = document.createElement("div");
+    container.className = "devtools-dom-stats";
+
+    // Header with total
+    const header = document.createElement("div");
+    header.className = "devtools-dom-stats-header";
+
+    const totalEl = document.createElement("span");
+    totalEl.className = "devtools-dom-stats-total";
+    totalEl.textContent = total.toLocaleString();
+    totalEl.dataset.value = total;
+
+    const labelEl = document.createElement("span");
+    labelEl.className = "devtools-dom-stats-label";
+    labelEl.textContent = "DOM Nodes";
+
+    header.appendChild(totalEl);
+    header.appendChild(labelEl);
+    container.appendChild(header);
+
+    // Bar chart
+    const chart = document.createElement("div");
+    chart.className = "devtools-dom-stats-chart";
+
+    for (const [tag, count] of sorted) {
+      const row = document.createElement("div");
+      row.className = "devtools-dom-stats-row";
+      row.dataset.tag = tag;
+
+      const tagEl = document.createElement("span");
+      tagEl.className = "devtools-dom-stats-tag";
+      tagEl.textContent = tag;
+
+      const barContainer = document.createElement("div");
+      barContainer.className = "devtools-dom-stats-bar-container";
+
+      const bar = document.createElement("div");
+      bar.className = "devtools-dom-stats-bar";
+      bar.style.width = `${(count / maxCount) * 100}%`;
+      bar.dataset.count = count;
+
+      const countEl = document.createElement("span");
+      countEl.className = "devtools-dom-stats-count";
+      countEl.textContent = count.toLocaleString();
+
+      barContainer.appendChild(bar);
+      barContainer.appendChild(countEl);
+      row.appendChild(tagEl);
+      row.appendChild(barContainer);
+      chart.appendChild(row);
     }
 
-    // Store current counts for next comparison
-    this.#prevDomCounts = counts;
+    container.appendChild(chart);
 
-    return tooltip;
+    // Store previous values for animation
+    this.#prevTotalNodes = total;
+    this.#prevDomCounts = Object.fromEntries(sorted);
+
+    return container;
+  }
+
+  /**
+   * Update the DOM stats element with new data.
+   * @private
+   * @param {HTMLElement} container
+   */
+  #updateDomStatsElement(container) {
+    const { total, sorted } = this.#getDOMStatsData();
+    const maxCount = sorted.length > 0 ? sorted[0][1] : 1;
+
+    // Update total
+    const totalEl = container.querySelector(".devtools-dom-stats-total");
+    if (totalEl) {
+      const prevTotal = parseInt(totalEl.dataset.value, 10) || 0;
+      if (total !== prevTotal) {
+        totalEl.textContent = total.toLocaleString();
+        totalEl.dataset.value = total;
+        // Flash color on change
+        totalEl.style.color = total > prevTotal ? "#f87171" : "#4ade80";
+        setTimeout(() => { totalEl.style.color = ""; }, 400);
+      }
+    }
+
+    // Update bars
+    const chart = container.querySelector(".devtools-dom-stats-chart");
+    if (!chart) return;
+
+    // Build a map of current rows
+    const existingRows = new Map();
+    for (const row of chart.querySelectorAll(".devtools-dom-stats-row")) {
+      existingRows.set(row.dataset.tag, row);
+    }
+
+    // Clear and rebuild chart to maintain order
+    chart.innerHTML = "";
+
+    for (const [tag, count] of sorted) {
+      let row = existingRows.get(tag);
+      const prevCount = this.#prevDomCounts?.[tag] ?? count;
+
+      if (row) {
+        // Update existing row
+        const bar = row.querySelector(".devtools-dom-stats-bar");
+        const countEl = row.querySelector(".devtools-dom-stats-count");
+
+        if (bar) {
+          bar.style.width = `${(count / maxCount) * 100}%`;
+
+          // Animate on change
+          if (count !== prevCount) {
+            bar.classList.remove("increasing", "decreasing");
+            void bar.offsetWidth; // Force reflow
+            bar.classList.add(count > prevCount ? "increasing" : "decreasing");
+          }
+          bar.dataset.count = count;
+        }
+        if (countEl) {
+          countEl.textContent = count.toLocaleString();
+        }
+      } else {
+        // Create new row
+        row = document.createElement("div");
+        row.className = "devtools-dom-stats-row";
+        row.dataset.tag = tag;
+
+        const tagEl = document.createElement("span");
+        tagEl.className = "devtools-dom-stats-tag";
+        tagEl.textContent = tag;
+
+        const barContainer = document.createElement("div");
+        barContainer.className = "devtools-dom-stats-bar-container";
+
+        const bar = document.createElement("div");
+        bar.className = "devtools-dom-stats-bar";
+        bar.style.width = `${(count / maxCount) * 100}%`;
+        bar.dataset.count = count;
+
+        const countEl = document.createElement("span");
+        countEl.className = "devtools-dom-stats-count";
+        countEl.textContent = count.toLocaleString();
+
+        barContainer.appendChild(bar);
+        barContainer.appendChild(countEl);
+        row.appendChild(tagEl);
+        row.appendChild(barContainer);
+      }
+
+      chart.appendChild(row);
+    }
+
+    // Store for next comparison
+    this.#prevTotalNodes = total;
+    this.#prevDomCounts = Object.fromEntries(sorted);
   }
 
   /**

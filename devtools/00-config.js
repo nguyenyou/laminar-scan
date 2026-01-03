@@ -420,6 +420,103 @@ const STYLES = `
     background: hsl(0, 80%, 50%);
   }
 
+  /* ===== DOM Stats Panel ===== */
+  .devtools-dom-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .devtools-dom-stats-header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .devtools-dom-stats-total {
+    font-size: 28px;
+    font-weight: 600;
+    font-family: ui-monospace, monospace;
+    color: #fff;
+    letter-spacing: -0.02em;
+  }
+
+  .devtools-dom-stats-label {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .devtools-dom-stats-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .devtools-dom-stats-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .devtools-dom-stats-tag {
+    width: 48px;
+    font-size: 11px;
+    font-family: ui-monospace, monospace;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .devtools-dom-stats-bar-container {
+    flex: 1;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .devtools-dom-stats-bar {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #8e61e6 0%, #6366f1 100%);
+    transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    min-width: 2px;
+  }
+
+  .devtools-dom-stats-bar.increasing {
+    animation: barPulseUp 0.4s ease-out;
+  }
+
+  .devtools-dom-stats-bar.decreasing {
+    animation: barPulseDown 0.4s ease-out;
+  }
+
+  @keyframes barPulseUp {
+    0% { filter: brightness(1); }
+    30% { filter: brightness(1.5); background: linear-gradient(90deg, #f87171 0%, #ef4444 100%); }
+    100% { filter: brightness(1); }
+  }
+
+  @keyframes barPulseDown {
+    0% { filter: brightness(1); }
+    30% { filter: brightness(1.5); background: linear-gradient(90deg, #4ade80 0%, #22c55e 100%); }
+    100% { filter: brightness(1); }
+  }
+
+  .devtools-dom-stats-count {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    font-family: ui-monospace, monospace;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+
   /* ===== Odometer Animation ===== */
   .odometer {
     display: inline-flex;
