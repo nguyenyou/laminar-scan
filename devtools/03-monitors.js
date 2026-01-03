@@ -190,7 +190,7 @@ class FPSMonitor {
  * Based on lag-radar by @mobz - colors based on frame delta time.
  * Green = smooth (small delta), Red = laggy (large delta).
  */
-class FPSRadar {
+class LagRadar {
   /** @type {HTMLCanvasElement | null} Canvas element */
   #canvas = null;
 

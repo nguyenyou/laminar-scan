@@ -216,6 +216,10 @@ class TooltipManager {
       // Clear existing content and append the element
       this.#contentElement.innerHTML = "";
       this.#contentElement.appendChild(element);
+      
+      // Set content visibility (like show() does)
+      this.#contentElement.style.transform = "translateX(0)";
+      this.#contentElement.style.opacity = "1";
     }
 
     // Make sure tooltip is visible

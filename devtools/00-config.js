@@ -99,7 +99,7 @@ const CONFIG = {
     enabled: "FRONTEND_DEVTOOLS_ENABLED",
     scanning: "FRONTEND_DEVTOOLS_SCANNING",
     domStatsPinned: "FRONTEND_DEVTOOLS_DOM_STATS_PINNED",
-    fpsRadarPinned: "FRONTEND_DEVTOOLS_FPS_RADAR_PINNED",
+    lagRadarPinned: "FRONTEND_DEVTOOLS_LAG_RADAR_PINNED",
   },
 
   /** Font settings */

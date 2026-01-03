@@ -102,7 +102,7 @@ const CONFIG = {
     enabled: "FRONTEND_DEVTOOLS_ENABLED",
     scanning: "FRONTEND_DEVTOOLS_SCANNING",
     domStatsPinned: "FRONTEND_DEVTOOLS_DOM_STATS_PINNED",
-    fpsRadarPinned: "FRONTEND_DEVTOOLS_FPS_RADAR_PINNED",
+    lagRadarPinned: "FRONTEND_DEVTOOLS_LAG_RADAR_PINNED",
   },
 
   /** Font settings */
@@ -1262,19 +1262,19 @@ class StorageManager {
   }
 
   /**
-   * Check if FPS radar is pinned.
+   * Check if lag radar is pinned.
    * @returns {boolean} True if pinned
    */
-  static isFpsRadarPinned() {
-    return this.getString(CONFIG.storageKeys.fpsRadarPinned) === "true";
+  static isLagRadarPinned() {
+    return this.getString(CONFIG.storageKeys.lagRadarPinned) === "true";
   }
 
   /**
-   * Save FPS radar pinned state.
-   * @param {boolean} pinned - Whether FPS radar is pinned
+   * Save lag radar pinned state.
+   * @param {boolean} pinned - Whether lag radar is pinned
    */
-  static setFpsRadarPinned(pinned) {
-    this.setString(CONFIG.storageKeys.fpsRadarPinned, pinned ? "true" : "false");
+  static setLagRadarPinned(pinned) {
+    this.setString(CONFIG.storageKeys.lagRadarPinned, pinned ? "true" : "false");
   }
 }
 
@@ -1471,7 +1471,7 @@ class FPSMonitor {
  * Based on lag-radar by @mobz - colors based on frame delta time.
  * Green = smooth (small delta), Red = laggy (large delta).
  */
-class FPSRadar {
+class LagRadar {
   /** @type {HTMLCanvasElement | null} Canvas element */
   #canvas = null;
 
@@ -3106,6 +3106,10 @@ class TooltipManager {
       // Clear existing content and append the element
       this.#contentElement.innerHTML = "";
       this.#contentElement.appendChild(element);
+      
+      // Set content visibility (like show() does)
+      this.#contentElement.style.transform = "translateX(0)";
+      this.#contentElement.style.opacity = "1";
     }
 
     // Make sure tooltip is visible
@@ -3727,14 +3731,14 @@ class Toolbar {
   /** @type {number | null} Previous total DOM node count */
   #prevTotalNodes = null;
 
-  /** @type {FPSRadar | null} FPS radar visualization */
-  #fpsRadar = null;
+  /** @type {LagRadar | null} Lag radar visualization */
+  #lagRadar = null;
 
   /** @type {HTMLDivElement | null} FPS meter container element */
   #fpsMeterElement = null;
 
-  /** @type {boolean} Whether FPS radar is pinned */
-  #fpsRadarPinned = false;
+  /** @type {boolean} Whether lag radar is pinned */
+  #lagRadarPinned = false;
 
   // Callbacks
   /** @type {((enabled: boolean) => void) | null} */
@@ -3842,10 +3846,10 @@ class Toolbar {
     this.#tooltipManager.destroy();
     this.#dragController?.destroy();
 
-    // Cleanup FPS radar
-    if (this.#fpsRadar) {
-      this.#fpsRadar.destroy();
-      this.#fpsRadar = null;
+    // Cleanup lag radar
+    if (this.#lagRadar) {
+      this.#lagRadar.destroy();
+      this.#lagRadar = null;
     }
 
     // Clear DOM stats interval
@@ -4014,7 +4018,7 @@ class Toolbar {
   #createFPSMeter() {
     const container = document.createElement("div");
     container.className = "devtools-meter clickable";
-    container.setAttribute("data-tooltip", "Frames per second \n Click to show FPS radar");
+    container.setAttribute("data-tooltip", "Frames per second \n Click to show lag radar");
 
     const value = document.createElement("span");
     value.className = "devtools-meter-value";
@@ -4034,13 +4038,13 @@ class Toolbar {
     // Toggle radar on click
     container.addEventListener("click", (e) => {
       e.stopPropagation();
-      this.#toggleFpsRadarPin();
+      this.#toggleLagRadarPin();
     });
 
     // Restore pinned state from storage
-    if (StorageManager.isFpsRadarPinned()) {
+    if (StorageManager.isLagRadarPinned()) {
       requestAnimationFrame(() => {
-        this.#pinFpsRadar();
+        this.#pinLagRadar();
       });
     }
 
@@ -4048,19 +4052,19 @@ class Toolbar {
   }
 
   /**
-   * Create the FPS radar tooltip content.
+   * Create the lag radar tooltip content.
    * @private
    * @returns {HTMLElement} Radar container element
    */
-  #createFpsRadarContent() {
+  #createLagRadarContent() {
     const container = document.createElement("div");
     container.className = "devtools-radar-container";
 
     // Create radar instance
-    this.#fpsRadar = new FPSRadar(this.#fpsMonitor, {
+    this.#lagRadar = new LagRadar(this.#fpsMonitor, {
       size: CONFIG.dimensions.radarSize,
     });
-    const canvas = this.#fpsRadar.create();
+    const canvas = this.#lagRadar.create();
     container.appendChild(canvas);
 
     // Add legend
@@ -4086,10 +4090,10 @@ class Toolbar {
   }
 
   /**
-   * Pin FPS radar tooltip.
+   * Pin lag radar tooltip.
    * @private
    */
-  #pinFpsRadar() {
+  #pinLagRadar() {
     if (!this.#fpsMeterElement) return;
 
     // Unpin DOM stats if pinned
@@ -4098,49 +4102,49 @@ class Toolbar {
       this.#unpinDomStats(domStatsBtn);
     }
 
-    this.#fpsRadarPinned = true;
+    this.#lagRadarPinned = true;
     this.#fpsMeterElement.classList.add("active");
-    StorageManager.setFpsRadarPinned(true);
+    StorageManager.setLagRadarPinned(true);
 
     // Create radar content
-    const radarContent = this.#createFpsRadarContent();
+    const radarContent = this.#createLagRadarContent();
     
     // Pin with radar DOM element
     this.#tooltipManager.pinElement(radarContent);
     
     // Start radar animation
-    this.#fpsRadar.start();
+    this.#lagRadar.start();
   }
 
   /**
-   * Unpin FPS radar tooltip.
+   * Unpin lag radar tooltip.
    * @private
    */
-  #unpinFpsRadar() {
+  #unpinLagRadar() {
     if (!this.#fpsMeterElement) return;
 
-    this.#fpsRadarPinned = false;
+    this.#lagRadarPinned = false;
     this.#fpsMeterElement.classList.remove("active");
-    StorageManager.setFpsRadarPinned(false);
+    StorageManager.setLagRadarPinned(false);
 
     // Stop and destroy radar
-    if (this.#fpsRadar) {
-      this.#fpsRadar.destroy();
-      this.#fpsRadar = null;
+    if (this.#lagRadar) {
+      this.#lagRadar.destroy();
+      this.#lagRadar = null;
     }
 
     this.#tooltipManager.unpin();
   }
 
   /**
-   * Toggle FPS radar pin state.
+   * Toggle lag radar pin state.
    * @private
    */
-  #toggleFpsRadarPin() {
-    if (this.#fpsRadarPinned) {
-      this.#unpinFpsRadar();
+  #toggleLagRadarPin() {
+    if (this.#lagRadarPinned) {
+      this.#unpinLagRadar();
     } else {
-      this.#pinFpsRadar();
+      this.#pinLagRadar();
     }
   }
 

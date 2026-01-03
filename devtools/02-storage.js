@@ -158,19 +158,19 @@ class StorageManager {
   }
 
   /**
-   * Check if FPS radar is pinned.
+   * Check if lag radar is pinned.
    * @returns {boolean} True if pinned
    */
-  static isFpsRadarPinned() {
-    return this.getString(CONFIG.storageKeys.fpsRadarPinned) === "true";
+  static isLagRadarPinned() {
+    return this.getString(CONFIG.storageKeys.lagRadarPinned) === "true";
   }
 
   /**
-   * Save FPS radar pinned state.
-   * @param {boolean} pinned - Whether FPS radar is pinned
+   * Save lag radar pinned state.
+   * @param {boolean} pinned - Whether lag radar is pinned
    */
-  static setFpsRadarPinned(pinned) {
-    this.setString(CONFIG.storageKeys.fpsRadarPinned, pinned ? "true" : "false");
+  static setLagRadarPinned(pinned) {
+    this.setString(CONFIG.storageKeys.lagRadarPinned, pinned ? "true" : "false");
   }
 }
 
