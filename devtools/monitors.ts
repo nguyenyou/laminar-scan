@@ -40,7 +40,7 @@ export class FPSMonitor {
   #animationId: number | null = null;
   #paused: boolean = false;
   #initialized: boolean = false;
-  #history: number[] = new Array(FPS_HISTORY_SIZE).fill(-1);
+  #history: number[] = Array.from({ length: FPS_HISTORY_SIZE }, () => -1);
   #historyIndex: number = 0;
   #lastHistorySample: number = 0;
   #totalSamples: number = 0;
@@ -179,7 +179,7 @@ export class LagRadar {
       .lagRadar-hand { stroke: rgba(255, 255, 255, 0.85); stroke-width: 4px; stroke-linecap: round; }
     `);
     this.#hand = this.#svg("path", { class: "lagRadar-hand" }) as SVGPathElement;
-    this.#arcs = new Array(this.#frames).fill("path").map(() => this.#svg("path") as SVGPathElement);
+    this.#arcs = Array.from({ length: this.#frames }, () => this.#svg("path") as SVGPathElement);
     this.#root = this.#svg(
       "svg",
       { class: "lagRadar", height: String(this.#size), width: String(this.#size), style: "display: block; margin: 0 auto;" },

@@ -37,8 +37,7 @@ export class Toolbar {
   /** Inspect button */
   #inspectButton: HTMLButtonElement | null = null;
 
-  /** Scanning toggle checkbox (stored for potential future use) */
-  // @ts-expect-error - stored for potential future use
+  /** Scanning toggle checkbox */
   #scanningToggle: HTMLInputElement | null = null;
 
   /** FPS value display */
@@ -68,9 +67,11 @@ export class Toolbar {
   /** Previous DOM node counts for comparison */
   #prevDomCounts: Record<string, number> | null = null;
 
-  /** Previous total DOM node count (stored for potential future use) */
-  // @ts-expect-error - stored for potential future use
+  /** Previous total DOM node count */
   #prevTotalNodes: number | null = null;
+
+  /** Bound resize handler for cleanup */
+  #resizeHandler: (() => void) | null = null;
 
   /** Lag radar visualization */
   #lagRadar: LagRadar | null = null;
@@ -180,7 +181,8 @@ export class Toolbar {
     });
 
     // Setup resize handler
-    window.addEventListener("resize", () => this.#handleResize());
+    this.#resizeHandler = () => this.#handleResize();
+    window.addEventListener("resize", this.#resizeHandler);
 
     // Start display updates
     this.#startDisplayUpdates();
@@ -209,7 +211,10 @@ export class Toolbar {
       this.#domStatsIntervalId = null;
     }
 
-    window.removeEventListener("resize", () => this.#handleResize());
+    if (this.#resizeHandler) {
+      window.removeEventListener("resize", this.#resizeHandler);
+      this.#resizeHandler = null;
+    }
 
     if (this.#root?.parentNode) {
       this.#root.parentNode.removeChild(this.#root);
