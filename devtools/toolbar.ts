@@ -11,6 +11,8 @@ import { TooltipManager, DragController } from "./ui";
 import { DomStatsPanel } from "./toolbar/dom-stats-panel";
 import { LagRadarPanel } from "./toolbar/lag-radar-panel";
 import { PositionManager } from "./toolbar/position-manager";
+import { TooltipStackManager } from "./toolbar/tooltip-stack-manager";
+import { DisplayUpdater } from "./toolbar/display-updater";
 import * as Elements from "./toolbar/elements";
 
 interface ToolbarOptions {
@@ -63,18 +65,17 @@ export class Toolbar {
   #lagRadarPanel: LagRadarPanel | null = null;
   #domStatsPanel: DomStatsPanel | null = null;
 
-  // Interval IDs for display updates
-  #fpsIntervalId: ReturnType<typeof setInterval> | null = null;
-  #memoryIntervalId: ReturnType<typeof setInterval> | null = null;
-
   /** FPS meter container element */
   #fpsMeterElement: HTMLDivElement | null = null;
 
-  /** Order of pinned tooltips (first = closest to toolbar) */
-  #pinnedOrder: Array<"lagRadar" | "domStats"> = [];
-
   /** Resize event handler */
   #resizeHandler: (() => void) | null = null;
+
+  /** Manages tooltip stacking order */
+  #tooltipStackManager: TooltipStackManager;
+
+  /** Manages display updates */
+  #displayUpdater: DisplayUpdater | null = null;
 
   // Callbacks
   #onScanningToggle: ((enabled: boolean) => void) | null = null;
@@ -90,6 +91,12 @@ export class Toolbar {
     this.#onScanningToggle = options.onScanningToggle ?? null;
     this.#onInspectToggle = options.onInspectToggle ?? null;
 
+    // Initialize tooltip stack manager
+    this.#tooltipStackManager = new TooltipStackManager({
+      lagRadar: this.#lagRadarTooltipManager,
+      domStats: this.#domStatsTooltipManager,
+    });
+
     // Initialize drag controller with callbacks
     this.#dragController = new DragController({
       onDragStart: () => {
@@ -97,15 +104,15 @@ export class Toolbar {
         this.#lagRadarTooltipManager.suspend();
         this.#domStatsTooltipManager.suspend();
         this.#fpsMonitor.pause();
-        this.#stopDisplayUpdates();
+        this.#displayUpdater?.stop();
       },
       onDragEnd: () => {
         this.#fpsMonitor.resume();
-        this.#startDisplayUpdates();
+        this.#displayUpdater?.start();
       },
       onPositionChange: (position, corner) => {
         StorageManager.setToolbarPosition(corner, position);
-        this.#updateTooltipStacking();
+        this.#tooltipStackManager.updateStacking();
         setTimeout(() => {
           this.#tooltipManager.resume();
           this.#lagRadarTooltipManager.resume();
@@ -155,8 +162,18 @@ export class Toolbar {
     this.#toolbar = this.#createToolbar();
     this.#shadowRoot.appendChild(this.#toolbar);
 
+    // Set toolbar reference for tooltip stack manager
+    this.#tooltipStackManager.setToolbar(this.#toolbar);
+
     // Mount to document
     document.documentElement.appendChild(this.#root);
+
+    // Initialize display updater now that elements exist
+    this.#displayUpdater = new DisplayUpdater(
+      this.#fpsMonitor,
+      this.#memoryMonitor,
+      { fpsValue: this.#fpsValueElement, memoryValue: this.#memoryValueElement }
+    );
 
     // Initialize position after in DOM
     requestAnimationFrame(() => {
@@ -164,7 +181,7 @@ export class Toolbar {
 
       // Update tooltip stacking after corner classes are set
       // This ensures pinned tooltips from storage are positioned correctly
-      this.#updateTooltipStacking();
+      this.#tooltipStackManager.updateStacking();
     });
 
     // Setup resize handler
@@ -172,15 +189,15 @@ export class Toolbar {
     window.addEventListener("resize", this.#resizeHandler);
 
     // Start display updates
-    this.#startDisplayUpdates();
+    this.#displayUpdater.start();
   }
 
   /**
    * Unmount the toolbar from the DOM.
    */
   unmount() {
-    this.#stopDisplayUpdates();
-    this.#fpsMonitor.stop();
+    this.#displayUpdater?.destroy();
+    this.#displayUpdater = null;
     this.#tooltipManager.destroy();
     this.#lagRadarTooltipManager.destroy();
     this.#domStatsTooltipManager.destroy();
@@ -332,67 +349,6 @@ export class Toolbar {
   }
 
 
-
-  /**
-   * Update stacking classes and positions for pinned tooltips.
-   * First pinned = stacked-1 (closest to toolbar), second = stacked-2 (on top of first).
-   * @private
-   */
-  #updateTooltipStacking() {
-    // Get tooltip elements from their managers
-    const lagRadarTooltip = this.#lagRadarTooltipManager.getElement();
-    const domStatsTooltip = this.#domStatsTooltipManager.getElement();
-
-    // Only reset stacking for tooltips that are still pinned
-    // Don't touch unpinned tooltips - they may be fading out and we don't want to
-    // change their position during the fade animation
-    if (lagRadarTooltip && this.#pinnedOrder.includes("lagRadar")) {
-      lagRadarTooltip.classList.remove("stacked-1", "stacked-2");
-      lagRadarTooltip.style.removeProperty("bottom");
-      lagRadarTooltip.style.removeProperty("top");
-    }
-    if (domStatsTooltip && this.#pinnedOrder.includes("domStats")) {
-      domStatsTooltip.classList.remove("stacked-1", "stacked-2");
-      domStatsTooltip.style.removeProperty("bottom");
-      domStatsTooltip.style.removeProperty("top");
-    }
-
-    // Check if toolbar is at top (affects positioning direction)
-    const isTop = this.#toolbar?.classList.contains("corner-top") ?? false;
-
-    // Apply stacking classes and dynamic positioning
-    // Base gap from toolbar is 8px, gap between tooltips is also 8px
-    const baseGap = 8;
-    const tooltipGap = 8;
-    let accumulatedOffset = baseGap; // Start with the base gap from toolbar
-
-    this.#pinnedOrder.forEach((id, index) => {
-      const stackClass = `stacked-${index + 1}`;
-      let tooltip = null;
-
-      if (id === "lagRadar" && lagRadarTooltip) {
-        tooltip = lagRadarTooltip;
-      } else if (id === "domStats" && domStatsTooltip) {
-        tooltip = domStatsTooltip;
-      }
-
-      if (tooltip) {
-        tooltip.classList.add(stackClass);
-
-        // Set position for all tooltips (first uses base gap, subsequent stack on top)
-        if (isTop) {
-          tooltip.style.top = `calc(100% + ${accumulatedOffset}px)`;
-        } else {
-          tooltip.style.bottom = `calc(100% + ${accumulatedOffset}px)`;
-        }
-
-        // Accumulate height for next tooltip
-        const tooltipHeight = tooltip.offsetHeight || CONFIG.dimensions.tooltipMinHeight;
-        accumulatedOffset += tooltipHeight + tooltipGap;
-      }
-    });
-  }
-
   /**
    * Pin lag radar tooltip.
    * @private
@@ -402,14 +358,8 @@ export class Toolbar {
 
     this.#lagRadarPanel.pin();
     this.#fpsMeterElement.classList.add("active");
-
-    // Add to pinned order
-    if (!this.#pinnedOrder.includes("lagRadar")) {
-      this.#pinnedOrder.push("lagRadar");
-    }
-
-    // Update stacking
-    this.#updateTooltipStacking();
+    this.#tooltipStackManager.addToPinnedOrder("lagRadar");
+    this.#tooltipStackManager.updateStacking();
   }
 
   /**
@@ -421,12 +371,8 @@ export class Toolbar {
 
     this.#lagRadarPanel.unpin();
     this.#fpsMeterElement.classList.remove("active");
-
-    // Remove from pinned order
-    this.#pinnedOrder = this.#pinnedOrder.filter((id) => id !== "lagRadar");
-
-    // Update stacking for remaining pinned tooltips
-    this.#updateTooltipStacking();
+    this.#tooltipStackManager.removeFromPinnedOrder("lagRadar");
+    this.#tooltipStackManager.updateStacking();
   }
 
   /**
@@ -496,14 +442,8 @@ export class Toolbar {
 
     this.#domStatsPanel.pin();
     btn.classList.add("active");
-
-    // Add to pinned order
-    if (!this.#pinnedOrder.includes("domStats")) {
-      this.#pinnedOrder.push("domStats");
-    }
-
-    // Update stacking
-    this.#updateTooltipStacking();
+    this.#tooltipStackManager.addToPinnedOrder("domStats");
+    this.#tooltipStackManager.updateStacking();
   }
 
   /**
@@ -516,12 +456,8 @@ export class Toolbar {
 
     this.#domStatsPanel.unpin();
     btn.classList.remove("active");
-
-    // Remove from pinned order
-    this.#pinnedOrder = this.#pinnedOrder.filter((id) => id !== "domStats");
-
-    // Update stacking for remaining pinned tooltips
-    this.#updateTooltipStacking();
+    this.#tooltipStackManager.removeFromPinnedOrder("domStats");
+    this.#tooltipStackManager.updateStacking();
   }
 
   /**
@@ -736,49 +672,6 @@ export class Toolbar {
       }
 
       this.#dragController.setPosition(position, corner);
-    }
-  }
-
-  /**
-   * Start FPS and memory display updates.
-   * @private
-   */
-  #startDisplayUpdates(): void {
-    this.#fpsMonitor.start();
-
-    // FPS updates
-    this.#fpsIntervalId = setInterval(() => {
-      if (this.#fpsValueElement) {
-        const fps = this.#fpsMonitor.getFPS();
-        this.#fpsValueElement.textContent = String(fps);
-        this.#fpsValueElement.style.color = this.#fpsMonitor.getColor();
-      }
-    }, CONFIG.intervals.fpsDisplay);
-
-    // Memory updates
-    this.#memoryIntervalId = setInterval(() => {
-      if (this.#memoryValueElement) {
-        const info = this.#memoryMonitor.getInfo();
-        if (info) {
-          this.#memoryValueElement.textContent = String(info.usedMB);
-          this.#memoryValueElement.style.color = this.#memoryMonitor.getColor(info.percent);
-        }
-      }
-    }, CONFIG.intervals.memoryDisplay);
-  }
-
-  /**
-   * Stop display updates.
-   * @private
-   */
-  #stopDisplayUpdates(): void {
-    if (this.#fpsIntervalId) {
-      clearInterval(this.#fpsIntervalId);
-      this.#fpsIntervalId = null;
-    }
-    if (this.#memoryIntervalId) {
-      clearInterval(this.#memoryIntervalId);
-      this.#memoryIntervalId = null;
     }
   }
 }

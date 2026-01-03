@@ -1908,7 +1908,7 @@
     }
   }
 
-  // devtools/ui.ts
+  // devtools/ui/tooltip-manager.ts
   var TooltipState = {
     IDLE: "idle",
     PINNED: "pinned",
@@ -2101,7 +2101,7 @@
       }
     }
   }
-
+  // devtools/ui/drag-controller.ts
   class DragController {
     #element = null;
     #isDragging = false;
@@ -2137,6 +2137,9 @@
       this.#element = element;
       element.addEventListener("pointerdown", (e) => this.#handlePointerDown(e));
     }
+    attach(element) {
+      this.init(element);
+    }
     setPosition(position, corner) {
       this.#position = { ...position };
       if (corner)
@@ -2160,6 +2163,13 @@
       const savedCorner = this.#collapsed.corner;
       this.#collapsed = null;
       this.#onExpand?.(savedCorner);
+    }
+    destroy() {
+      if (this.#transitionTimeoutId) {
+        clearTimeout(this.#transitionTimeoutId);
+        this.#transitionTimeoutId = null;
+      }
+      this.#element = null;
     }
     #handlePointerDown(e) {
       const target = e.target;
@@ -2385,15 +2395,7 @@
         return { orientation: "vertical", corner: x < centerX ? "bottom-left" : "bottom-right" };
       }
     }
-    destroy() {
-      if (this.#transitionTimeoutId) {
-        clearTimeout(this.#transitionTimeoutId);
-        this.#transitionTimeoutId = null;
-      }
-      this.#element = null;
-    }
   }
-
   // devtools/toolbar/dom-stats-panel.ts
   class DomStatsPanel {
     #tooltipManager;
@@ -2648,6 +2650,120 @@
     }
   }
 
+  // devtools/toolbar/tooltip-stack-manager.ts
+  class TooltipStackManager {
+    #pinnedOrder = [];
+    #toolbar = null;
+    #tooltipManagers;
+    constructor(tooltipManagers) {
+      this.#tooltipManagers = tooltipManagers;
+    }
+    setToolbar(toolbar) {
+      this.#toolbar = toolbar;
+    }
+    get pinnedOrder() {
+      return this.#pinnedOrder;
+    }
+    addToPinnedOrder(id) {
+      if (!this.#pinnedOrder.includes(id)) {
+        this.#pinnedOrder.push(id);
+      }
+    }
+    removeFromPinnedOrder(id) {
+      this.#pinnedOrder = this.#pinnedOrder.filter((pinnedId) => pinnedId !== id);
+    }
+    isPinned(id) {
+      return this.#pinnedOrder.includes(id);
+    }
+    updateStacking() {
+      const lagRadarTooltip = this.#tooltipManagers.lagRadar.getElement();
+      const domStatsTooltip = this.#tooltipManagers.domStats.getElement();
+      if (lagRadarTooltip && this.#pinnedOrder.includes("lagRadar")) {
+        lagRadarTooltip.classList.remove("stacked-1", "stacked-2");
+        lagRadarTooltip.style.removeProperty("bottom");
+        lagRadarTooltip.style.removeProperty("top");
+      }
+      if (domStatsTooltip && this.#pinnedOrder.includes("domStats")) {
+        domStatsTooltip.classList.remove("stacked-1", "stacked-2");
+        domStatsTooltip.style.removeProperty("bottom");
+        domStatsTooltip.style.removeProperty("top");
+      }
+      const isTop = this.#toolbar?.classList.contains("corner-top") ?? false;
+      const baseGap = 8;
+      const tooltipGap = 8;
+      let accumulatedOffset = baseGap;
+      this.#pinnedOrder.forEach((id, index) => {
+        const stackClass = `stacked-${index + 1}`;
+        let tooltip = null;
+        if (id === "lagRadar" && lagRadarTooltip) {
+          tooltip = lagRadarTooltip;
+        } else if (id === "domStats" && domStatsTooltip) {
+          tooltip = domStatsTooltip;
+        }
+        if (tooltip) {
+          tooltip.classList.add(stackClass);
+          if (isTop) {
+            tooltip.style.top = `calc(100% + ${accumulatedOffset}px)`;
+          } else {
+            tooltip.style.bottom = `calc(100% + ${accumulatedOffset}px)`;
+          }
+          const tooltipHeight = tooltip.offsetHeight || CONFIG.dimensions.tooltipMinHeight;
+          accumulatedOffset += tooltipHeight + tooltipGap;
+        }
+      });
+    }
+  }
+
+  // devtools/toolbar/display-updater.ts
+  class DisplayUpdater {
+    #fpsMonitor;
+    #memoryMonitor;
+    #elements;
+    #fpsIntervalId = null;
+    #memoryIntervalId = null;
+    constructor(fpsMonitor, memoryMonitor, elements) {
+      this.#fpsMonitor = fpsMonitor;
+      this.#memoryMonitor = memoryMonitor;
+      this.#elements = elements;
+    }
+    setElements(elements) {
+      this.#elements = elements;
+    }
+    start() {
+      this.#fpsMonitor.start();
+      this.#fpsIntervalId = setInterval(() => {
+        if (this.#elements.fpsValue) {
+          const fps = this.#fpsMonitor.getFPS();
+          this.#elements.fpsValue.textContent = String(fps);
+          this.#elements.fpsValue.style.color = this.#fpsMonitor.getColor();
+        }
+      }, CONFIG.intervals.fpsDisplay);
+      this.#memoryIntervalId = setInterval(() => {
+        if (this.#elements.memoryValue) {
+          const info = this.#memoryMonitor.getInfo();
+          if (info) {
+            this.#elements.memoryValue.textContent = String(info.usedMB);
+            this.#elements.memoryValue.style.color = this.#memoryMonitor.getColor(info.percent);
+          }
+        }
+      }, CONFIG.intervals.memoryDisplay);
+    }
+    stop() {
+      if (this.#fpsIntervalId) {
+        clearInterval(this.#fpsIntervalId);
+        this.#fpsIntervalId = null;
+      }
+      if (this.#memoryIntervalId) {
+        clearInterval(this.#memoryIntervalId);
+        this.#memoryIntervalId = null;
+      }
+    }
+    destroy() {
+      this.stop();
+      this.#fpsMonitor.stop();
+    }
+  }
+
   // devtools/toolbar/elements.ts
   function createExpandButton(onExpand) {
     const btn = document.createElement("button");
@@ -2749,31 +2865,34 @@
     #positionManager = null;
     #lagRadarPanel = null;
     #domStatsPanel = null;
-    #fpsIntervalId = null;
-    #memoryIntervalId = null;
     #fpsMeterElement = null;
-    #pinnedOrder = [];
     #resizeHandler = null;
+    #tooltipStackManager;
+    #displayUpdater = null;
     #onScanningToggle = null;
     #onInspectToggle = null;
     constructor(options = {}) {
       this.#onScanningToggle = options.onScanningToggle ?? null;
       this.#onInspectToggle = options.onInspectToggle ?? null;
+      this.#tooltipStackManager = new TooltipStackManager({
+        lagRadar: this.#lagRadarTooltipManager,
+        domStats: this.#domStatsTooltipManager
+      });
       this.#dragController = new DragController({
         onDragStart: () => {
           this.#tooltipManager.suspend();
           this.#lagRadarTooltipManager.suspend();
           this.#domStatsTooltipManager.suspend();
           this.#fpsMonitor.pause();
-          this.#stopDisplayUpdates();
+          this.#displayUpdater?.stop();
         },
         onDragEnd: () => {
           this.#fpsMonitor.resume();
-          this.#startDisplayUpdates();
+          this.#displayUpdater?.start();
         },
         onPositionChange: (position, corner) => {
           StorageManager.setToolbarPosition(corner, position);
-          this.#updateTooltipStacking();
+          this.#tooltipStackManager.updateStacking();
           setTimeout(() => {
             this.#tooltipManager.resume();
             this.#lagRadarTooltipManager.resume();
@@ -2807,18 +2926,20 @@
       this.#shadowRoot.appendChild(style);
       this.#toolbar = this.#createToolbar();
       this.#shadowRoot.appendChild(this.#toolbar);
+      this.#tooltipStackManager.setToolbar(this.#toolbar);
       document.documentElement.appendChild(this.#root);
+      this.#displayUpdater = new DisplayUpdater(this.#fpsMonitor, this.#memoryMonitor, { fpsValue: this.#fpsValueElement, memoryValue: this.#memoryValueElement });
       requestAnimationFrame(() => {
         this.#initPosition();
-        this.#updateTooltipStacking();
+        this.#tooltipStackManager.updateStacking();
       });
       this.#resizeHandler = () => this.#handleResize();
       window.addEventListener("resize", this.#resizeHandler);
-      this.#startDisplayUpdates();
+      this.#displayUpdater.start();
     }
     unmount() {
-      this.#stopDisplayUpdates();
-      this.#fpsMonitor.stop();
+      this.#displayUpdater?.destroy();
+      this.#displayUpdater = null;
       this.#tooltipManager.destroy();
       this.#lagRadarTooltipManager.destroy();
       this.#domStatsTooltipManager.destroy();
@@ -2906,60 +3027,21 @@
       }
       return container;
     }
-    #updateTooltipStacking() {
-      const lagRadarTooltip = this.#lagRadarTooltipManager.getElement();
-      const domStatsTooltip = this.#domStatsTooltipManager.getElement();
-      if (lagRadarTooltip && this.#pinnedOrder.includes("lagRadar")) {
-        lagRadarTooltip.classList.remove("stacked-1", "stacked-2");
-        lagRadarTooltip.style.removeProperty("bottom");
-        lagRadarTooltip.style.removeProperty("top");
-      }
-      if (domStatsTooltip && this.#pinnedOrder.includes("domStats")) {
-        domStatsTooltip.classList.remove("stacked-1", "stacked-2");
-        domStatsTooltip.style.removeProperty("bottom");
-        domStatsTooltip.style.removeProperty("top");
-      }
-      const isTop = this.#toolbar?.classList.contains("corner-top") ?? false;
-      const baseGap = 8;
-      const tooltipGap = 8;
-      let accumulatedOffset = baseGap;
-      this.#pinnedOrder.forEach((id, index) => {
-        const stackClass = `stacked-${index + 1}`;
-        let tooltip = null;
-        if (id === "lagRadar" && lagRadarTooltip) {
-          tooltip = lagRadarTooltip;
-        } else if (id === "domStats" && domStatsTooltip) {
-          tooltip = domStatsTooltip;
-        }
-        if (tooltip) {
-          tooltip.classList.add(stackClass);
-          if (isTop) {
-            tooltip.style.top = `calc(100% + ${accumulatedOffset}px)`;
-          } else {
-            tooltip.style.bottom = `calc(100% + ${accumulatedOffset}px)`;
-          }
-          const tooltipHeight = tooltip.offsetHeight || CONFIG.dimensions.tooltipMinHeight;
-          accumulatedOffset += tooltipHeight + tooltipGap;
-        }
-      });
-    }
     #pinLagRadar() {
       if (!this.#fpsMeterElement || !this.#lagRadarPanel)
         return;
       this.#lagRadarPanel.pin();
       this.#fpsMeterElement.classList.add("active");
-      if (!this.#pinnedOrder.includes("lagRadar")) {
-        this.#pinnedOrder.push("lagRadar");
-      }
-      this.#updateTooltipStacking();
+      this.#tooltipStackManager.addToPinnedOrder("lagRadar");
+      this.#tooltipStackManager.updateStacking();
     }
     #unpinLagRadar() {
       if (!this.#fpsMeterElement || !this.#lagRadarPanel)
         return;
       this.#lagRadarPanel.unpin();
       this.#fpsMeterElement.classList.remove("active");
-      this.#pinnedOrder = this.#pinnedOrder.filter((id) => id !== "lagRadar");
-      this.#updateTooltipStacking();
+      this.#tooltipStackManager.removeFromPinnedOrder("lagRadar");
+      this.#tooltipStackManager.updateStacking();
     }
     #toggleLagRadarPin() {
       if (this.#lagRadarPanel?.isPinned) {
@@ -3002,18 +3084,16 @@
         return;
       this.#domStatsPanel.pin();
       btn.classList.add("active");
-      if (!this.#pinnedOrder.includes("domStats")) {
-        this.#pinnedOrder.push("domStats");
-      }
-      this.#updateTooltipStacking();
+      this.#tooltipStackManager.addToPinnedOrder("domStats");
+      this.#tooltipStackManager.updateStacking();
     }
     #unpinDomStats(btn) {
       if (!this.#domStatsPanel)
         return;
       this.#domStatsPanel.unpin();
       btn.classList.remove("active");
-      this.#pinnedOrder = this.#pinnedOrder.filter((id) => id !== "domStats");
-      this.#updateTooltipStacking();
+      this.#tooltipStackManager.removeFromPinnedOrder("domStats");
+      this.#tooltipStackManager.updateStacking();
     }
     #toggleDomStatsPin(btn) {
       if (this.#domStatsPanel?.isPinned) {
@@ -3160,35 +3240,6 @@
             break;
         }
         this.#dragController.setPosition(position, corner);
-      }
-    }
-    #startDisplayUpdates() {
-      this.#fpsMonitor.start();
-      this.#fpsIntervalId = setInterval(() => {
-        if (this.#fpsValueElement) {
-          const fps = this.#fpsMonitor.getFPS();
-          this.#fpsValueElement.textContent = String(fps);
-          this.#fpsValueElement.style.color = this.#fpsMonitor.getColor();
-        }
-      }, CONFIG.intervals.fpsDisplay);
-      this.#memoryIntervalId = setInterval(() => {
-        if (this.#memoryValueElement) {
-          const info = this.#memoryMonitor.getInfo();
-          if (info) {
-            this.#memoryValueElement.textContent = String(info.usedMB);
-            this.#memoryValueElement.style.color = this.#memoryMonitor.getColor(info.percent);
-          }
-        }
-      }, CONFIG.intervals.memoryDisplay);
-    }
-    #stopDisplayUpdates() {
-      if (this.#fpsIntervalId) {
-        clearInterval(this.#fpsIntervalId);
-        this.#fpsIntervalId = null;
-      }
-      if (this.#memoryIntervalId) {
-        clearInterval(this.#memoryIntervalId);
-        this.#memoryIntervalId = null;
       }
     }
   }
