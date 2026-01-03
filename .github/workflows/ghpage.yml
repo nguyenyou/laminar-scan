@@ -31,7 +31,7 @@ jobs:
           java-version: '21'
 
       - name: Build ScalaJS
-        run: ./mill www.fullLinkJS
+        run: ./mill www.fastLinkJS
 
       - name: Build Vite
         run: bun run build

@@ -10,10 +10,13 @@
     "fix": "./mill __.fix",
     "fmt": "./mill mill.scalalib.scalafmt/",
     "typecheck": "tsgo --noEmit",
-    "build:devtools": "bun build devtools/index.ts --outfile devtools.js --format iife"
+    "build:devtools": "bun build devtools/index.ts --outfile devtools.js --format iife",
+    "lint": "bunx oxlint --type-aware"
   },
   "devDependencies": {
     "jsdom": "^27.0.0",
+    "oxlint": "1.36.0",
+    "oxlint-tsgolint": "0.10.1",
     "vite": "8.0.0-beta.5"
   },
   "dependencies": {
