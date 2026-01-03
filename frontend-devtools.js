@@ -1541,6 +1541,14 @@ function property(options) {
     return typeof nameOrContext === "object" ? standardProperty(options, protoOrTarget, nameOrContext) : legacyProperty(options, protoOrTarget, nameOrContext);
   };
 }
+// node_modules/@lit/reactive-element/development/decorators/state.js
+function state(options) {
+  return property({
+    ...options,
+    state: true,
+    attribute: false
+  });
+}
 // node_modules/@lit/reactive-element/development/decorators/query.js
 var DEV_MODE5 = true;
 var issueWarning5;
@@ -1554,107 +1562,512 @@ if (DEV_MODE5) {
     }
   };
 }
-// frontend-devtools/frontend-devtools.ts
-class FrontendDevtools extends LitElement {
+// frontend-devtools/ui/dt-switch.ts
+class DtSwitch extends LitElement {
   constructor() {
     super(...arguments);
-    this.docsHint = "Click on the Vite and Lit logos to learn more";
-    this.count = 0;
+    this.checked = false;
+    this.disabled = false;
+    this.label = "";
+  }
+  _handleChange(e) {
+    const input = e.target;
+    this.checked = input.checked;
+    this.dispatchEvent(new CustomEvent("change", {
+      detail: { checked: this.checked },
+      bubbles: true,
+      composed: true
+    }));
   }
   render() {
     return html`
-      <div>
-      </div>
-      <slot></slot>
-      <div class="card">
-        <button @click=${this._onClick} part="button">
-          count is ${this.count}
-        </button>
-      </div>
-      <p class="read-the-docs">${this.docsHint}</p>
+      <label class="devtools-toggle" part="container">
+        <input
+          type="checkbox"
+          .checked=${this.checked}
+          ?disabled=${this.disabled}
+          @change=${this._handleChange}
+          part="input"
+        />
+        <span class="devtools-toggle-track" part="track">
+          <span class="devtools-toggle-thumb" part="thumb"></span>
+        </span>
+        ${this.label ? html`<span class="label" part="label">${this.label}</span>` : ""}
+      </label>
     `;
-  }
-  _onClick() {
-    this.count++;
   }
   static styles = css`
     :host {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 2rem;
-      text-align: center;
+      display: inline-flex;
     }
 
-    .logo {
-      height: 6em;
-      padding: 1.5em;
-      will-change: filter;
-      transition: filter 300ms;
-    }
-    .logo:hover {
-      filter: drop-shadow(0 0 2em #646cffaa);
-    }
-    .logo.lit:hover {
-      filter: drop-shadow(0 0 2em #325cffaa);
+    :host([disabled]) {
+      opacity: var(--dt-opacity-disabled);
+      pointer-events: none;
     }
 
-    .card {
-      padding: 2em;
-    }
-
-    .read-the-docs {
-      color: #888;
-    }
-
-    ::slotted(h1) {
-      font-size: 3.2em;
-      line-height: 1.1;
-    }
-
-    a {
-      font-weight: 500;
-      color: #646cff;
-      text-decoration: inherit;
-    }
-    a:hover {
-      color: #535bf2;
-    }
-
-    button {
-      border-radius: 8px;
-      border: 1px solid transparent;
-      padding: 0.6em 1.2em;
-      font-size: 1em;
-      font-weight: 500;
-      font-family: inherit;
-      background-color: #1a1a1a;
+    .devtools-toggle {
+      position: relative;
+      width: var(--dt-size-switch-width);
+      height: var(--dt-size-switch-height);
       cursor: pointer;
-      transition: border-color 0.25s;
-    }
-    button:hover {
-      border-color: #646cff;
-    }
-    button:focus,
-    button:focus-visible {
-      outline: 4px auto -webkit-focus-ring-color;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--dt-spacing-lg);
     }
 
-    @media (prefers-color-scheme: light) {
-      a:hover {
-        color: #747bff;
-      }
-      button {
-        background-color: #f9f9f9;
-      }
+    .devtools-toggle input {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: var(--dt-size-switch-width);
+      height: var(--dt-size-switch-height);
+      z-index: 1;
+      margin: 0;
+    }
+
+    .devtools-toggle-track {
+      position: relative;
+      width: var(--dt-size-switch-width);
+      height: var(--dt-size-switch-height);
+      background: var(--dt-color-gray-600);
+      border-radius: var(--dt-radius-full);
+      transition: background-color var(--dt-transition-base);
+      flex-shrink: 0;
+    }
+
+    .devtools-toggle input:checked + .devtools-toggle-track {
+      background: var(--dt-color-primary);
+    }
+
+    .devtools-toggle-thumb {
+      position: absolute;
+      top: 50%;
+      left: 2px;
+      transform: translateY(-50%);
+      width: var(--dt-size-switch-thumb);
+      height: var(--dt-size-switch-thumb);
+      background: var(--dt-color-white);
+      border-radius: var(--dt-radius-full);
+      box-shadow: var(--dt-shadow-sm);
+      transition: left var(--dt-transition-base) ease;
+    }
+
+    .devtools-toggle input:checked + .devtools-toggle-track .devtools-toggle-thumb {
+      left: calc(100% - 18px);
+    }
+
+    .label {
+      font-family: var(--dt-font-ui);
+      font-size: var(--dt-font-size-md);
+      color: var(--dt-color-white);
+      white-space: nowrap;
     }
   `;
 }
 __legacyDecorateClassTS([
-  property()
-], FrontendDevtools.prototype, "docsHint", undefined);
+  property({ type: Boolean, reflect: true })
+], DtSwitch.prototype, "checked", undefined);
+__legacyDecorateClassTS([
+  property({ type: Boolean, reflect: true })
+], DtSwitch.prototype, "disabled", undefined);
+__legacyDecorateClassTS([
+  property({ type: String })
+], DtSwitch.prototype, "label", undefined);
+DtSwitch = __legacyDecorateClassTS([
+  customElement("dt-switch")
+], DtSwitch);
+
+// frontend-devtools/ui/dt-button.ts
+class DtButton extends LitElement {
+  constructor() {
+    super(...arguments);
+    this.size = "default";
+    this.disabled = false;
+    this.active = false;
+    this.label = "";
+    this.tooltip = "";
+  }
+  _handleClick(e) {
+    if (this.disabled) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+  }
+  render() {
+    const ariaLabel = this.label || this.tooltip || undefined;
+    return html`
+      <button
+        class="devtools-btn"
+        ?disabled=${this.disabled}
+        aria-label=${ariaLabel ?? ""}
+        title=${this.tooltip}
+        @click=${this._handleClick}
+        part="button"
+      >
+        <slot></slot>
+      </button>
+    `;
+  }
+  static styles = css`
+    :host {
+      display: inline-flex;
+    }
+
+    :host([disabled]) {
+      opacity: var(--dt-opacity-disabled);
+      pointer-events: none;
+    }
+
+    .devtools-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--dt-spacing-md);
+      border: none;
+      border-radius: var(--dt-radius-lg);
+      font-family: var(--dt-font-ui);
+      font-weight: var(--dt-font-weight-semibold);
+      cursor: pointer;
+      transition: background var(--dt-transition-fast), border-color var(--dt-transition-fast), color var(--dt-transition-fast);
+      white-space: nowrap;
+      padding: var(--dt-spacing-md) var(--dt-spacing-xl);
+      font-size: var(--dt-font-size-md);
+      height: var(--dt-size-button-height);
+    }
+
+    /* ===== Base styles ===== */
+    .devtools-btn {
+      background: transparent;
+      color: var(--dt-color-gray-500);
+      box-shadow: none;
+    }
+
+    .devtools-btn:hover {
+      background: var(--dt-color-bg-hover);
+      color: var(--dt-color-white);
+    }
+
+    :host([active]) .devtools-btn {
+      color: var(--dt-color-primary-muted);
+    }
+
+    :host([active]) .devtools-btn:hover {
+      color: var(--dt-color-primary-muted-hover);
+    }
+
+    /* ===== Icon size ===== */
+    :host([size='icon']) .devtools-btn {
+      padding: 0;
+      border-radius: var(--dt-radius-md);
+      width: var(--dt-size-button-height);
+      height: var(--dt-size-button-height);
+    }
+
+    /* ===== Focus states ===== */
+    .devtools-btn:focus {
+      outline: none;
+    }
+
+    .devtools-btn:focus-visible {
+      outline: 2px solid var(--dt-color-primary);
+      outline-offset: 2px;
+    }
+
+    /* ===== Icon sizing ===== */
+    ::slotted(svg),
+    ::slotted(dt-icon) {
+      flex-shrink: 0;
+      width: var(--dt-size-button-icon);
+      height: var(--dt-size-button-icon);
+    }
+  `;
+}
+__legacyDecorateClassTS([
+  property({ type: String, reflect: true })
+], DtButton.prototype, "size", undefined);
+__legacyDecorateClassTS([
+  property({ type: Boolean, reflect: true })
+], DtButton.prototype, "disabled", undefined);
+__legacyDecorateClassTS([
+  property({ type: Boolean, reflect: true })
+], DtButton.prototype, "active", undefined);
+__legacyDecorateClassTS([
+  property({ type: String })
+], DtButton.prototype, "label", undefined);
+__legacyDecorateClassTS([
+  property({ type: String })
+], DtButton.prototype, "tooltip", undefined);
+DtButton = __legacyDecorateClassTS([
+  customElement("dt-button")
+], DtButton);
+
+// frontend-devtools/ui/dt-icon.ts
+var ICONS = {
+  inspect: svg`
+    <path d="M12.034 12.681a.498.498 0 0 1 .647-.647l9 3.5a.5.5 0 0 1-.033.943l-3.444 1.068a1 1 0 0 0-.66.66l-1.067 3.443a.5.5 0 0 1-.943.033z"/>
+    <path d="M5 3a2 2 0 0 0-2 2"/><path d="M19 3a2 2 0 0 1 2 2"/>
+    <path d="M5 21a2 2 0 0 1-2-2"/><path d="M9 3h1"/><path d="M9 21h2"/>
+    <path d="M14 3h1"/><path d="M3 9v1"/><path d="M21 9v2"/><path d="M3 14v1"/>
+  `,
+  close: svg`
+    <path d="M18 6L6 18"/><path d="M6 6l12 12"/>
+  `,
+  domTree: svg`
+    <rect x="16" y="16" width="6" height="6" rx="1"/>
+    <rect x="2" y="16" width="6" height="6" rx="1"/>
+    <rect x="9" y="2" width="6" height="6" rx="1"/>
+    <path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/>
+  `,
+  settings: svg`
+    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+    <circle cx="12" cy="12" r="3"/>
+  `
+};
+
+class DtIcon extends LitElement {
+  constructor() {
+    super(...arguments);
+    this.name = "inspect";
+    this.size = 16;
+  }
+  render() {
+    const iconContent = ICONS[this.name];
+    if (!iconContent) {
+      return nothing;
+    }
+    return html`
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        style="width: ${this.size}px; height: ${this.size}px;"
+        part="svg"
+      >
+        ${iconContent}
+      </svg>
+    `;
+  }
+  static styles = css`
+    :host {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: inherit;
+      line-height: 0;
+    }
+
+    svg {
+      display: block;
+    }
+  `;
+}
+__legacyDecorateClassTS([
+  property({ type: String, reflect: true })
+], DtIcon.prototype, "name", undefined);
 __legacyDecorateClassTS([
   property({ type: Number })
-], FrontendDevtools.prototype, "count", undefined);
+], DtIcon.prototype, "size", undefined);
+DtIcon = __legacyDecorateClassTS([
+  customElement("dt-icon")
+], DtIcon);
+
+// frontend-devtools/frontend-devtools.ts
+class FrontendDevtools extends LitElement {
+  constructor() {
+    super(...arguments);
+    this._enabled = false;
+    this._inspectActive = false;
+  }
+  _handleToggle(e) {
+    this._enabled = e.detail.checked;
+  }
+  _handleInspectClick() {
+    this._inspectActive = !this._inspectActive;
+  }
+  render() {
+    return html`
+      <div class="panel">
+        <dt-button
+          tooltip="Inspect component"
+          ?active=${this._inspectActive}
+          @click=${this._handleInspectClick}
+        >
+          <dt-icon name="inspect"></dt-icon>
+        </dt-button>
+        <dt-switch
+          .checked=${this._enabled}
+          @change=${this._handleToggle}
+        ></dt-switch>
+        <dt-button size="icon" tooltip="Settings">
+          <dt-icon name="settings"></dt-icon>
+        </dt-button>
+      </div>
+    `;
+  }
+  static styles = [
+    css`
+      :host {
+        /* ===== Color Tokens ===== */
+        --dt-color-primary: #7361e6;
+        --dt-color-primary-hover: #8571f0;
+        --dt-color-primary-active: #6351d6;
+        --dt-color-primary-muted: #8e61e3;
+        --dt-color-primary-muted-hover: #9f7af0;
+
+        --dt-color-black: #000;
+        --dt-color-white: #fff;
+        --dt-color-gray-900: #141414;
+        --dt-color-gray-800: #1a1a1a;
+        --dt-color-gray-700: #1f1f1f;
+        --dt-color-gray-600: #525252;
+        --dt-color-gray-500: #999;
+        --dt-color-gray-400: #f0f0f0;
+        --dt-color-gray-300: #888;
+        --dt-color-gray-200: #232326;
+
+        --dt-color-success: #22c55e;
+        --dt-color-success-light: #4ade80;
+        --dt-color-warning: #F59E0B;
+        --dt-color-error: #EF4444;
+        --dt-color-error-light: #f87171;
+
+        --dt-color-fps-good: rgb(214,132,245);
+        --dt-color-memory-healthy: #6EE7B7;
+
+        --dt-color-inspect-stroke: rgba(142, 97, 227, 0.5);
+        --dt-color-inspect-fill: rgba(173, 97, 230, 0.10);
+        --dt-color-inspect-pill-bg: rgba(37, 37, 38, 0.75);
+        --dt-color-inspect-pill-text: white;
+        --dt-color-inspect-marked-stroke: rgba(79, 192, 255, 0.6);
+        --dt-color-inspect-marked-fill: rgba(79, 192, 255, 0.10);
+        --dt-color-inspect-marked-pill-bg: rgba(20, 60, 80, 0.85);
+        --dt-color-inspect-marked-pill-text: #79c0ff;
+        --dt-color-inspect-react-stroke: rgba(97, 218, 251, 0.6);
+        --dt-color-inspect-react-fill: rgba(97, 218, 251, 0.10);
+        --dt-color-inspect-react-pill-bg: rgba(20, 44, 52, 0.90);
+        --dt-color-inspect-react-pill-text: #61dafb;
+
+        --dt-color-text: #fff;
+        --dt-color-text-muted: rgba(255, 255, 255, 0.5);
+        --dt-color-text-muted-light: rgba(255, 255, 255, 0.3);
+        --dt-color-text-muted-lighter: rgba(255, 255, 255, 0.6);
+        --dt-color-text-muted-lightest: rgba(255, 255, 255, 0.9);
+        --dt-color-border: rgba(255, 255, 255, 0.08);
+        --dt-color-border-hover: rgba(255, 255, 255, 0.15);
+        --dt-color-border-active: rgba(142, 97, 230, 0.4);
+        --dt-color-bg-hover: rgba(255, 255, 255, 0.1);
+        --dt-color-bg-bar: rgba(255, 255, 255, 0.06);
+
+        /* ===== Font Tokens ===== */
+        --dt-font-ui: system-ui, -apple-system, sans-serif;
+        --dt-font-mono: 11px Menlo,Consolas,Monaco,Liberation Mono,Lucida Console,monospace;
+        --dt-font-mono-family: ui-monospace, monospace;
+
+        --dt-font-size-xs: 10px;
+        --dt-font-size-sm: 11px;
+        --dt-font-size-base: 12px;
+        --dt-font-size-md: 13px;
+        --dt-font-size-lg: 14px;
+        --dt-font-size-xl: 16px;
+        --dt-font-size-2xl: 28px;
+        --dt-font-size-3xl: 3.2em;
+
+        --dt-font-weight-normal: 400;
+        --dt-font-weight-medium: 500;
+        --dt-font-weight-semibold: 600;
+
+        /* ===== Spacing Tokens ===== */
+        --dt-spacing-xs: 2px;
+        --dt-spacing-sm: 4px;
+        --dt-spacing-md: 6px;
+        --dt-spacing-lg: 8px;
+        --dt-spacing-xl: 12px;
+        --dt-spacing-2xl: 16px;
+        --dt-spacing-3xl: 20px;
+
+        /* ===== Border Radius Tokens ===== */
+        --dt-radius-sm: 3px;
+        --dt-radius-md: 4px;
+        --dt-radius-lg: 6px;
+        --dt-radius-xl: 8px;
+        --dt-radius-full: 9999px;
+
+        /* ===== Shadow Tokens ===== */
+        --dt-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+        --dt-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+        --dt-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08);
+        --dt-shadow-inset: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+        --dt-shadow-inset-hover: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+
+        /* ===== Transition Tokens ===== */
+        --dt-transition-fast: 0.15s;
+        --dt-transition-base: 0.2s;
+        --dt-transition-slow: 0.3s;
+        --dt-transition-slower: 0.4s;
+        --dt-transition-ease-out: ease-out;
+        --dt-transition-ease-in-out: ease-in-out;
+        --dt-transition-cubic: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+        /* ===== Size Tokens ===== */
+        --dt-size-button-height: 28px;
+        --dt-size-button-height-sm: 24px;
+        --dt-size-button-padding-x: 12px;
+        --dt-size-button-padding-y: 6px;
+        --dt-size-button-icon: 16px;
+        --dt-size-button-icon-sm: 14px;
+        --dt-size-button-icon-lg: 18px;
+
+        --dt-size-switch-width: 36px;
+        --dt-size-switch-height: 20px;
+        --dt-size-switch-thumb: 16px;
+
+        --dt-size-icon-sm: 14px;
+        --dt-size-icon-md: 16px;
+        --dt-size-icon-lg: 18px;
+
+        --dt-size-meter-height: 24px;
+        --dt-size-meter-min-width: 24px;
+        --dt-size-meter-memory-min-width: 38px;
+
+        --dt-size-radar-legend-dot: 8px;
+
+        /* ===== Opacity Tokens ===== */
+        --dt-opacity-disabled: 0.5;
+        --dt-opacity-hover: 0.1;
+        --dt-opacity-muted: 0.3;
+        --dt-opacity-semitransparent: 0.75;
+        --dt-opacity-almost-opaque: 0.9;
+        --dt-opacity-almost-transparent: 0.1;
+      }
+
+      .panel {
+        position: fixed;
+        top: var(--dt-spacing-2xl);
+        right: var(--dt-spacing-2xl);
+        display: flex;
+        align-items: center;
+        gap: var(--dt-spacing-lg);
+        padding: var(--dt-spacing-lg) var(--dt-spacing-xl);
+        background: var(--dt-color-black);
+        border-radius: var(--dt-radius-xl);
+        box-shadow: var(--dt-shadow-md);
+      }
+    `
+  ];
+}
+__legacyDecorateClassTS([
+  state()
+], FrontendDevtools.prototype, "_enabled", undefined);
+__legacyDecorateClassTS([
+  state()
+], FrontendDevtools.prototype, "_inspectActive", undefined);
 FrontendDevtools = __legacyDecorateClassTS([
   customElement("frontend-devtools")
 ], FrontendDevtools);

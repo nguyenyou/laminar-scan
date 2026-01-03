@@ -1,28 +1,14 @@
 import { LitElement, css, html } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 
-/**
- * A toggle switch component styled for devtools.
- *
- * @fires change - Fired when the switch is toggled
- */
 @customElement('dt-switch')
 export class DtSwitch extends LitElement {
-  /**
-   * Whether the switch is checked/on.
-   */
   @property({ type: Boolean, reflect: true })
   checked = false
 
-  /**
-   * Whether the switch is disabled.
-   */
   @property({ type: Boolean, reflect: true })
   disabled = false
 
-  /**
-   * Optional label for the switch.
-   */
   @property({ type: String })
   label = ''
 
@@ -62,18 +48,18 @@ export class DtSwitch extends LitElement {
     }
 
     :host([disabled]) {
-      opacity: 0.5;
+      opacity: var(--dt-opacity-disabled);
       pointer-events: none;
     }
 
     .devtools-toggle {
       position: relative;
-      width: 36px;
-      height: 20px;
+      width: var(--dt-size-switch-width);
+      height: var(--dt-size-switch-height);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--dt-spacing-lg);
     }
 
     .devtools-toggle input {
@@ -82,19 +68,19 @@ export class DtSwitch extends LitElement {
       top: 0;
       opacity: 0;
       cursor: pointer;
-      width: 36px;
-      height: 20px;
+      width: var(--dt-size-switch-width);
+      height: var(--dt-size-switch-height);
       z-index: 1;
       margin: 0;
     }
 
     .devtools-toggle-track {
       position: relative;
-      width: 36px;
-      height: 20px;
-      background: #525252;
-      border-radius: 9999px;
-      transition: background-color 0.2s;
+      width: var(--dt-size-switch-width);
+      height: var(--dt-size-switch-height);
+      background: var(--dt-color-gray-600);
+      border-radius: var(--dt-radius-full);
+      transition: background-color var(--dt-transition-base);
       flex-shrink: 0;
     }
 
@@ -107,12 +93,12 @@ export class DtSwitch extends LitElement {
       top: 50%;
       left: 2px;
       transform: translateY(-50%);
-      width: 16px;
-      height: 16px;
-      background: #fff;
-      border-radius: 9999px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-      transition: left 0.2s ease;
+      width: var(--dt-size-switch-thumb);
+      height: var(--dt-size-switch-thumb);
+      background: var(--dt-color-white);
+      border-radius: var(--dt-radius-full);
+      box-shadow: var(--dt-shadow-sm);
+      transition: left var(--dt-transition-base) ease;
     }
 
     .devtools-toggle input:checked + .devtools-toggle-track .devtools-toggle-thumb {
@@ -120,9 +106,9 @@ export class DtSwitch extends LitElement {
     }
 
     .label {
-      font-family: system-ui, -apple-system, sans-serif;
-      font-size: 13px;
-      color: #fff;
+      font-family: var(--dt-font-ui);
+      font-size: var(--dt-font-size-md);
+      color: var(--dt-color-white);
       white-space: nowrap;
     }
   `

@@ -1,59 +1,20 @@
 import { LitElement, css, html } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 
-/**
- * A unified button component styled for devtools.
- * Supports regular buttons and icon-only buttons.
- *
- * @slot - Button content (text, icons, or both)
- * @fires click - Fired when the button is clicked
- *
- * @example
- * // Regular button
- * <dt-button>Click me</dt-button>
- *
- * // Icon-only button
- * <dt-button size="icon" tooltip="Settings">
- *   <dt-icon name="settings"></dt-icon>
- * </dt-button>
- *
- * // Button with icon and text
- * <dt-button>
- *   <dt-icon name="plus"></dt-icon>
- *   Add Item
- * </dt-button>
- */
 @customElement('dt-button')
 export class DtButton extends LitElement {
-  /**
-   * The button size.
-   * - default: Standard button with padding for text
-   * - icon: Square icon-only button (no padding)
-   */
   @property({ type: String, reflect: true })
   size: 'default' | 'icon' = 'default'
 
-  /**
-   * Whether the button is disabled.
-   */
   @property({ type: Boolean, reflect: true })
   disabled = false
 
-  /**
-   * Whether the button is in an active/pressed state.
-   */
   @property({ type: Boolean, reflect: true })
   active = false
 
-  /**
-   * Accessible label (for icon-only buttons).
-   */
   @property({ type: String })
   label = ''
 
-  /**
-   * Tooltip text shown on hover.
-   */
   @property({ type: String })
   tooltip = ''
 
@@ -88,7 +49,7 @@ export class DtButton extends LitElement {
     }
 
     :host([disabled]) {
-      opacity: 0.5;
+      opacity: var(--dt-opacity-disabled);
       pointer-events: none;
     }
 
@@ -96,29 +57,29 @@ export class DtButton extends LitElement {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: var(--dt-spacing-md);
       border: none;
-      border-radius: 6px;
-      font-family: system-ui, -apple-system, sans-serif;
-      font-weight: 500;
+      border-radius: var(--dt-radius-lg);
+      font-family: var(--dt-font-ui);
+      font-weight: var(--dt-font-weight-semibold);
       cursor: pointer;
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      transition: background var(--dt-transition-fast), border-color var(--dt-transition-fast), color var(--dt-transition-fast);
       white-space: nowrap;
-      padding: 6px 12px;
-      font-size: 13px;
-      height: 28px;
+      padding: var(--dt-spacing-md) var(--dt-spacing-xl);
+      font-size: var(--dt-font-size-md);
+      height: var(--dt-size-button-height);
     }
 
     /* ===== Base styles ===== */
     .devtools-btn {
       background: transparent;
-      color: #999;
+      color: var(--dt-color-gray-500);
       box-shadow: none;
     }
 
     .devtools-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
+      background: var(--dt-color-bg-hover);
+      color: var(--dt-color-white);
     }
 
     :host([active]) .devtools-btn {
@@ -132,9 +93,9 @@ export class DtButton extends LitElement {
     /* ===== Icon size ===== */
     :host([size='icon']) .devtools-btn {
       padding: 0;
-      border-radius: 4px;
-      width: 28px;
-      height: 28px;
+      border-radius: var(--dt-radius-md);
+      width: var(--dt-size-button-height);
+      height: var(--dt-size-button-height);
     }
 
     /* ===== Focus states ===== */
@@ -151,8 +112,8 @@ export class DtButton extends LitElement {
     ::slotted(svg),
     ::slotted(dt-icon) {
       flex-shrink: 0;
-      width: 16px;
-      height: 16px;
+      width: var(--dt-size-button-icon);
+      height: var(--dt-size-button-icon);
     }
   `
 }
