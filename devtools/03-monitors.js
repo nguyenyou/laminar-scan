@@ -186,16 +186,19 @@ class FPSMonitor {
 }
 
 /**
- * Renders an animated lag radar visualization.
- * Based on lag-radar by @mobz - colors based on frame delta time.
- * Green = smooth (small delta), Red = laggy (large delta).
+ * Renders an animated lag radar visualization using SVG.
+ * Based on lag-radar by @mobz (Dan Abramov version).
+ * Colors based on frame delta time: Green = smooth, Red = laggy.
  */
 class LagRadar {
-  /** @type {HTMLCanvasElement | null} Canvas element */
-  #canvas = null;
+  /** @type {SVGSVGElement | null} SVG root element */
+  #root = null;
 
-  /** @type {CanvasRenderingContext2D | null} Canvas 2D context */
-  #ctx = null;
+  /** @type {SVGPathElement | null} Hand/sweep line element */
+  #hand = null;
+
+  /** @type {SVGPathElement[]} Arc path elements */
+  #arcs = [];
 
   /** @type {number | null} RAF ID for animation loop */
   #animationId = null;
@@ -207,10 +210,13 @@ class LagRadar {
   #running = false;
 
   /** @type {number} Number of arc frames to keep */
-  #frames = 60;
+  #frames = 50;
 
   /** @type {number} Sweep speed in radians per millisecond */
   #speed = 0.0017;
+
+  /** @type {number} Circle inset in pixels */
+  #inset = 3;
 
   /** @type {{ rotation: number, now: number, tx: number, ty: number }} Last frame state */
   #last = null;
@@ -218,46 +224,82 @@ class LagRadar {
   /** @type {number} Current frame pointer */
   #framePtr = 0;
 
-  /** @type {{ path: Path2D, hue: number }[]} Arc frame buffer */
-  #arcBuffer = [];
+  /** @type {number} Middle point of the radar */
+  #middle = 0;
+
+  /** @type {number} Radius of the radar */
+  #radius = 0;
 
   /**
-   * Create a new FPSRadar (lag radar style).
+   * Create a new LagRadar (SVG-based).
    * @param {FPSMonitor} _fpsMonitor - Unused, kept for API compatibility
-   * @param {{ size?: number, frames?: number, speed?: number }} [options] - Configuration options
+   * @param {{ size?: number, frames?: number, speed?: number, inset?: number }} [options] - Configuration options
    */
   constructor(_fpsMonitor, options = {}) {
     this.#size = options.size || 200;
-    this.#frames = options.frames || 60;
+    this.#frames = options.frames || 50;
     this.#speed = options.speed || 0.0017;
+    this.#inset = options.inset || 3;
+    this.#middle = this.#size / 2;
+    this.#radius = this.#middle - this.#inset;
   }
 
   /**
-   * Create and return the canvas element.
-   * @returns {HTMLCanvasElement} The radar canvas
+   * Create an SVG element with attributes.
+   * @private
+   */
+  #svg(tag, props = {}, children = []) {
+    const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    Object.keys(props).forEach((prop) => el.setAttribute(prop, props[prop]));
+    children.forEach((child) => el.appendChild(child));
+    return el;
+  }
+
+  /**
+   * Create and return the SVG element.
+   * @returns {SVGSVGElement} The radar SVG
    */
   create() {
-    if (this.#canvas) return this.#canvas;
+    if (this.#root) return this.#root;
 
-    const canvas = document.createElement("canvas");
-    const dpr = window.devicePixelRatio || 1;
-    
-    canvas.width = this.#size * dpr;
-    canvas.height = this.#size * dpr;
-    canvas.style.width = `${this.#size}px`;
-    canvas.style.height = `${this.#size}px`;
-    canvas.style.display = "block";
-    canvas.style.margin = "0 auto";
-    canvas.style.borderRadius = "50%";
+    const styles = document.createTextNode(`
+      .lagRadar-sweep > * {
+        shape-rendering: crispEdges;
+      }
+      .lagRadar-face {
+        fill: transparent;
+      }
+      .lagRadar-hand {
+        stroke-width: 4px;
+        stroke-linecap: round;
+      }
+    `);
 
-    this.#canvas = canvas;
-    this.#ctx = canvas.getContext("2d");
-    this.#ctx.scale(dpr, dpr);
+    this.#hand = this.#svg("path", { class: "lagRadar-hand" });
+    this.#arcs = new Array(this.#frames).fill("path").map(() => this.#svg("path"));
 
-    // Initialize arc buffer
-    this.#arcBuffer = new Array(this.#frames).fill(null).map(() => ({ path: null, hue: 120 }));
+    this.#root = this.#svg(
+      "svg",
+      {
+        class: "lagRadar",
+        height: this.#size,
+        width: this.#size,
+        style: "display: block; margin: 0 auto;",
+      },
+      [
+        this.#svg("style", { type: "text/css" }, [styles]),
+        this.#svg("g", { class: "lagRadar-sweep" }, this.#arcs),
+        this.#hand,
+        this.#svg("circle", {
+          class: "lagRadar-face",
+          cx: this.#middle,
+          cy: this.#middle,
+          r: this.#radius,
+        }),
+      ]
+    );
 
-    return canvas;
+    return this.#root;
   }
 
   /**
@@ -266,19 +308,16 @@ class LagRadar {
   start() {
     if (this.#running) return;
     this.#running = true;
-    
-    const middle = this.#size / 2;
-    const radius = middle - 4;
-    
+
     this.#last = {
       rotation: 0,
-      now: performance.now(),
-      tx: middle + radius,
-      ty: middle,
+      now: Date.now(),
+      tx: this.#middle + this.#radius,
+      ty: this.#middle,
     };
     this.#framePtr = 0;
-    
-    this.#animationId = requestAnimationFrame(() => this.#draw());
+
+    this.#animate();
   }
 
   /**
@@ -297,9 +336,12 @@ class LagRadar {
    */
   destroy() {
     this.stop();
-    this.#canvas = null;
-    this.#ctx = null;
-    this.#arcBuffer = [];
+    if (this.#root) {
+      this.#root.remove();
+    }
+    this.#root = null;
+    this.#hand = null;
+    this.#arcs = [];
   }
 
   /**
@@ -318,82 +360,39 @@ class LagRadar {
   }
 
   /**
-   * Main draw loop - lag-radar style.
-   * Each frame draws an arc from last position to current position.
+   * Main animation loop - lag-radar style with SVG.
    * @private
    */
-  #draw() {
-    if (!this.#running || !this.#ctx || !this.#canvas) return;
+  #animate() {
+    if (!this.#running) return;
 
-    const ctx = this.#ctx;
-    const size = this.#size;
-    const middle = size / 2;
-    const radius = middle - 4;
     const PI2 = Math.PI * 2;
+    const middle = this.#middle;
+    const radius = this.#radius;
+    const frames = this.#frames;
 
-    const now = performance.now();
-    const timeDelta = now - this.#last.now;
-    const rdelta = Math.min(PI2 - this.#speed, this.#speed * timeDelta);
+    const now = Date.now();
+    const rdelta = Math.min(PI2 - this.#speed, this.#speed * (now - this.#last.now));
     const rotation = (this.#last.rotation + rdelta) % PI2;
     const tx = middle + radius * Math.cos(rotation);
     const ty = middle + radius * Math.sin(rotation);
+    const bigArc = rdelta < Math.PI ? "0" : "1";
+    const path = `M${tx} ${ty}A${radius} ${radius} 0 ${bigArc} 0 ${this.#last.tx} ${this.#last.ty}L${middle} ${middle}`;
+    const hue = this.#calcHue(rdelta / this.#speed);
 
-    // Calculate hue based on frame delta
-    const hue = this.#calcHue(timeDelta);
+    this.#arcs[this.#framePtr % frames].setAttribute("d", path);
+    this.#arcs[this.#framePtr % frames].setAttribute("fill", `hsl(${hue}, 80%, 40%)`);
+    this.#hand.setAttribute("d", `M${middle} ${middle}L${tx} ${ty}`);
+    this.#hand.setAttribute("stroke", `hsl(${hue}, 80%, 60%)`);
 
-    // Create arc path from current to last position
-    const arcPath = new Path2D();
-    arcPath.moveTo(middle, middle);
-    arcPath.lineTo(tx, ty);
-    // Arc from current to last
-    const bigArc = rdelta < Math.PI ? 0 : 1;
-    arcPath.arc(middle, middle, radius, rotation, this.#last.rotation, true);
-    arcPath.closePath();
-
-    // Store arc in buffer
-    const bufferIdx = this.#framePtr % this.#frames;
-    this.#arcBuffer[bufferIdx] = { path: arcPath, hue };
-
-    // Clear and draw background
-    ctx.clearRect(0, 0, size, size);
-    ctx.beginPath();
-    ctx.arc(middle, middle, radius, 0, PI2);
-    ctx.fillStyle = "#000";
-    ctx.fill();
-
-    // Draw all arcs with fading opacity
-    for (let i = 0; i < this.#frames; i++) {
-      const idx = (this.#frames + this.#framePtr - i) % this.#frames;
-      const arc = this.#arcBuffer[idx];
-      if (!arc || !arc.path) continue;
-
-      const opacity = 1 - (i / this.#frames);
-      ctx.fillStyle = `hsla(${arc.hue}, 80%, 50%, ${opacity})`;
-      ctx.fill(arc.path);
+    for (let i = 0; i < frames; i++) {
+      this.#arcs[(frames + this.#framePtr - i) % frames].style.fillOpacity = 1 - i / frames;
     }
 
-    // Draw sweep line (hand)
-    ctx.beginPath();
-    ctx.moveTo(middle, middle);
-    ctx.lineTo(tx, ty);
-    ctx.strokeStyle = `hsl(${hue}, 80%, 60%)`;
-    ctx.lineWidth = 4;
-    ctx.lineCap = "round";
-    ctx.stroke();
-
-    // Draw circle outline
-    ctx.beginPath();
-    ctx.arc(middle, middle, radius, 0, PI2);
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    // Update state
     this.#framePtr++;
     this.#last = { now, rotation, tx, ty };
 
-    // Continue animation
-    this.#animationId = requestAnimationFrame(() => this.#draw());
+    this.#animationId = requestAnimationFrame(() => this.#animate());
   }
 }
 

@@ -489,8 +489,8 @@ class DragController {
    * @param {PointerEvent} e - Pointer event
    */
   #handlePointerDown(e) {
-    // Don't drag if clicking on buttons or inputs
-    if (e.target.closest("button") || e.target.closest("input") || e.target.closest("label")) {
+    // Don't drag if clicking on interactive elements
+    if (e.target.closest("button") || e.target.closest("input") || e.target.closest("label") || e.target.closest(".clickable")) {
       return;
     }
 
