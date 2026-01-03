@@ -560,16 +560,21 @@ class Toolbar {
     // Remove from pinned order
     this.#pinnedOrder = this.#pinnedOrder.filter((id) => id !== "lagRadar");
 
-    // Stop and destroy radar
-    if (this.#lagRadar) {
-      this.#lagRadar.destroy();
-      this.#lagRadar = null;
-    }
-
+    // Unpin first to start the fade-out animation
     this.#lagRadarTooltipManager.unpin();
 
     // Update stacking for remaining pinned tooltips
     this.#updateTooltipStacking();
+
+    // Destroy radar after fade-out animation completes
+    // so the canvas doesn't disappear before the container fades
+    if (this.#lagRadar) {
+      const radar = this.#lagRadar;
+      this.#lagRadar = null;
+      setTimeout(() => {
+        radar.destroy();
+      }, CONFIG.animation.tooltipFadeMs);
+    }
   }
 
   /**
