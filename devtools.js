@@ -1,6 +1,6 @@
 (() => {
-  // devtools/00-config.js
-  var CONFIG2 = {
+  // devtools/00-config.ts
+  var CONFIG = {
     colors: {
       primary: { r: 115, g: 97, b: 230 },
       fpsGood: "rgb(214,132,245)",
@@ -116,7 +116,7 @@
     padding: 8px 12px;
     background: #000;
     border-radius: 8px;
-    font-family: ${CONFIG2.fonts.ui};
+    font-family: ${CONFIG.fonts.ui};
     font-size: 13px;
     color: #fff;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
@@ -124,7 +124,7 @@
     user-select: none;
     cursor: grab;
     touch-action: none;
-    width: ${CONFIG2.dimensions.toolbarWidth}px;
+    width: ${CONFIG.dimensions.toolbarWidth}px;
     box-sizing: border-box;
     will-change: transform;
     transform: translate3d(0, 0, 0);
@@ -272,8 +272,8 @@
     position: absolute;
     left: 0;
     bottom: calc(100% + 8px);
-    width: ${CONFIG2.dimensions.toolbarWidth}px;
-    min-height: ${CONFIG2.dimensions.tooltipMinHeight}px;
+    width: ${CONFIG.dimensions.toolbarWidth}px;
+    min-height: ${CONFIG.dimensions.tooltipMinHeight}px;
     padding: 12px;
     background: rgba(35, 35, 38, 0.98);
     color: #f0f0f0;
@@ -677,13 +677,13 @@
   }
 
   .devtools-toolbar.collapsed.collapsed-horizontal {
-    width: ${CONFIG2.dimensions.collapsedHorizontal.width}px;
-    height: ${CONFIG2.dimensions.collapsedHorizontal.height}px;
+    width: ${CONFIG.dimensions.collapsedHorizontal.width}px;
+    height: ${CONFIG.dimensions.collapsedHorizontal.height}px;
   }
 
   .devtools-toolbar.collapsed.collapsed-vertical {
-    width: ${CONFIG2.dimensions.collapsedVertical.width}px;
-    height: ${CONFIG2.dimensions.collapsedVertical.height}px;
+    width: ${CONFIG.dimensions.collapsedVertical.width}px;
+    height: ${CONFIG.dimensions.collapsedVertical.height}px;
   }
 
   .devtools-toolbar.collapsed.edge-left {
@@ -738,7 +738,7 @@
   }
 `;
 
-  // devtools/01-utilities.js
+  // devtools/01-utilities.ts
   function debounce(fn, delay) {
     let timeoutId = null;
     const debounced = (...args) => {
@@ -763,7 +763,7 @@
   function getScalaComponent(element) {
     if (!element)
       return null;
-    const attr = CONFIG2.attributes.scalaComponent;
+    const attr = CONFIG.attributes.scalaComponent;
     const closest = element.closest(`[${attr}]`);
     if (!closest)
       return null;
@@ -775,14 +775,15 @@
   function getComponentSourceInfo(element) {
     if (!element)
       return null;
-    const props = CONFIG2.properties;
+    const props = CONFIG.properties;
+    const el = element;
     return {
-      sourcePath: element[props.sourcePath] || null,
-      sourceLine: element[props.sourceLine] !== undefined ? String(element[props.sourceLine]) : null,
-      filename: element[props.filename] || null,
-      scalaName: element[props.name] || null,
-      isMarked: element[props.markAsComponent] === "true",
-      displayName: element.getAttribute(CONFIG2.attributes.scalaComponent)
+      sourcePath: el[props.sourcePath] || null,
+      sourceLine: el[props.sourceLine] !== undefined ? String(el[props.sourceLine]) : null,
+      filename: el[props.filename] || null,
+      scalaName: el[props.name] || null,
+      isMarked: el[props.markAsComponent] === "true",
+      displayName: element.getAttribute(CONFIG.attributes.scalaComponent)
     };
   }
   function openInIDE(sourcePath, sourceLine = null) {
@@ -798,7 +799,7 @@
     window.open(uri, "_blank");
   }
 
-  // devtools/01-react-inspector.js
+  // devtools/01-react-inspector.ts
   function getReactFiber(domNode) {
     try {
       if (!domNode)
@@ -899,7 +900,7 @@
     }
   }
 
-  // devtools/02-storage.js
+  // devtools/02-storage.ts
   class StorageManager {
     static get(key, defaultValue = null) {
       try {
@@ -943,41 +944,41 @@
       }
     }
     static isDevtoolsEnabled() {
-      return this.getString(CONFIG2.storageKeys.enabled) !== "false";
+      return this.getString(CONFIG.storageKeys.enabled) !== "false";
     }
     static isScanningEnabled() {
-      return this.getString(CONFIG2.storageKeys.scanning) === "true";
+      return this.getString(CONFIG.storageKeys.scanning) === "true";
     }
     static setScanningEnabled(enabled) {
-      this.setString(CONFIG2.storageKeys.scanning, enabled ? "true" : "false");
+      this.setString(CONFIG.storageKeys.scanning, enabled ? "true" : "false");
     }
     static getToolbarPosition() {
-      return this.get(CONFIG2.storageKeys.position, null);
+      return this.get(CONFIG.storageKeys.position, null);
     }
     static setToolbarPosition(corner, position) {
-      this.set(CONFIG2.storageKeys.position, { corner, position });
+      this.set(CONFIG.storageKeys.position, { corner, position });
     }
     static getCollapsedState() {
-      return this.get(CONFIG2.storageKeys.collapsed, null);
+      return this.get(CONFIG.storageKeys.collapsed, null);
     }
     static setCollapsedState(state) {
-      this.set(CONFIG2.storageKeys.collapsed, state);
+      this.set(CONFIG.storageKeys.collapsed, state);
     }
     static isDomStatsPinned() {
-      return this.getString(CONFIG2.storageKeys.domStatsPinned) === "true";
+      return this.getString(CONFIG.storageKeys.domStatsPinned) === "true";
     }
     static setDomStatsPinned(pinned) {
-      this.setString(CONFIG2.storageKeys.domStatsPinned, pinned ? "true" : "false");
+      this.setString(CONFIG.storageKeys.domStatsPinned, pinned ? "true" : "false");
     }
     static isLagRadarPinned() {
-      return this.getString(CONFIG2.storageKeys.lagRadarPinned) === "true";
+      return this.getString(CONFIG.storageKeys.lagRadarPinned) === "true";
     }
     static setLagRadarPinned(pinned) {
-      this.setString(CONFIG2.storageKeys.lagRadarPinned, pinned ? "true" : "false");
+      this.setString(CONFIG.storageKeys.lagRadarPinned, pinned ? "true" : "false");
     }
   }
 
-  // devtools/03-monitors.js
+  // devtools/03-monitors.ts
   var FPS_HISTORY_SIZE = 360;
 
   class FPSMonitor {
@@ -1102,7 +1103,7 @@
     }
     #svg(tag, props = {}, children = []) {
       const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
-      Object.keys(props).forEach((prop) => el.setAttribute(prop, props[prop]));
+      Object.entries(props).forEach(([prop, value]) => el.setAttribute(prop, value));
       children.forEach((child) => el.appendChild(child));
       return el;
     }
@@ -1110,37 +1111,17 @@
       if (this.#root)
         return this.#root;
       const styles = document.createTextNode(`
-      .lagRadar-sweep > * {
-        shape-rendering: crispEdges;
-      }
-      .lagRadar-face {
-        fill: transparent;
-        stroke: rgba(255, 255, 255, 0.85);
-        stroke-width: 4px;
-      }
-      .lagRadar-hand {
-        stroke: rgba(255, 255, 255, 0.85);
-        stroke-width: 4px;
-        stroke-linecap: round;
-      }
+      .lagRadar-sweep > * { shape-rendering: crispEdges; }
+      .lagRadar-face { fill: transparent; stroke: rgba(255, 255, 255, 0.85); stroke-width: 4px; }
+      .lagRadar-hand { stroke: rgba(255, 255, 255, 0.85); stroke-width: 4px; stroke-linecap: round; }
     `);
       this.#hand = this.#svg("path", { class: "lagRadar-hand" });
       this.#arcs = new Array(this.#frames).fill("path").map(() => this.#svg("path"));
-      this.#root = this.#svg("svg", {
-        class: "lagRadar",
-        height: this.#size,
-        width: this.#size,
-        style: "display: block; margin: 0 auto;"
-      }, [
+      this.#root = this.#svg("svg", { class: "lagRadar", height: String(this.#size), width: String(this.#size), style: "display: block; margin: 0 auto;" }, [
         this.#svg("style", { type: "text/css" }, [styles]),
         this.#svg("g", { class: "lagRadar-sweep" }, this.#arcs),
         this.#hand,
-        this.#svg("circle", {
-          class: "lagRadar-face",
-          cx: this.#middle,
-          cy: this.#middle,
-          r: this.#radius
-        })
+        this.#svg("circle", { class: "lagRadar-face", cx: String(this.#middle), cy: String(this.#middle), r: String(this.#radius) })
       ]);
       return this.#root;
     }
@@ -1148,12 +1129,7 @@
       if (this.#running)
         return;
       this.#running = true;
-      this.#last = {
-        rotation: 0,
-        now: Date.now(),
-        tx: this.#middle + this.#radius,
-        ty: this.#middle
-      };
+      this.#last = { rotation: 0, now: Date.now(), tx: this.#middle + this.#radius, ty: this.#middle };
       this.#framePtr = 0;
       this.#animate();
     }
@@ -1166,27 +1142,21 @@
     }
     destroy() {
       this.stop();
-      if (this.#root) {
+      if (this.#root)
         this.#root.remove();
-      }
       this.#root = null;
       this.#hand = null;
       this.#arcs = [];
     }
     #calcHue(msDelta) {
-      const maxHue = 120;
-      const maxMs = 1000;
-      const logF = 10;
+      const maxHue = 120, maxMs = 1000, logF = 10;
       const mult = maxHue / Math.log(maxMs / logF);
       return maxHue - Math.max(0, Math.min(mult * Math.log(msDelta / logF), maxHue));
     }
     #animate() {
-      if (!this.#running)
+      if (!this.#running || !this.#last)
         return;
-      const PI2 = Math.PI * 2;
-      const middle = this.#middle;
-      const radius = this.#radius;
-      const frames = this.#frames;
+      const PI2 = Math.PI * 2, middle = this.#middle, radius = this.#radius, frames = this.#frames;
       const now = Date.now();
       const rdelta = Math.min(PI2 - this.#speed, this.#speed * (now - this.#last.now));
       const rotation = (this.#last.rotation + rdelta) % PI2;
@@ -1195,11 +1165,14 @@
       const bigArc = rdelta < Math.PI ? "0" : "1";
       const path = `M${tx} ${ty}A${radius} ${radius} 0 ${bigArc} 0 ${this.#last.tx} ${this.#last.ty}L${middle} ${middle}`;
       const hue = this.#calcHue(rdelta / this.#speed);
-      this.#arcs[this.#framePtr % frames].setAttribute("d", path);
-      this.#arcs[this.#framePtr % frames].setAttribute("fill", `hsl(${hue}, 80%, 40%)`);
-      this.#hand.setAttribute("d", `M${middle} ${middle}L${tx} ${ty}`);
+      this.#arcs[this.#framePtr % frames]?.setAttribute("d", path);
+      this.#arcs[this.#framePtr % frames]?.setAttribute("fill", `hsl(${hue}, 80%, 40%)`);
+      if (this.#hand)
+        this.#hand.setAttribute("d", `M${middle} ${middle}L${tx} ${ty}`);
       for (let i = 0;i < frames; i++) {
-        this.#arcs[(frames + this.#framePtr - i) % frames].style.fillOpacity = 1 - i / frames;
+        const arc = this.#arcs[(frames + this.#framePtr - i) % frames];
+        if (arc)
+          arc.style.fillOpacity = String(1 - i / frames);
       }
       this.#framePtr++;
       this.#last = { now, rotation, tx, ty };
@@ -1213,9 +1186,8 @@
     }
     getInfo() {
       const memory = performance.memory;
-      if (!memory || typeof memory.usedJSHeapSize !== "number") {
+      if (!memory || typeof memory.usedJSHeapSize !== "number")
         return null;
-      }
       const bytesToMB = (bytes) => Math.round(bytes / (1024 * 1024));
       const usedMB = bytesToMB(memory.usedJSHeapSize);
       const totalMB = bytesToMB(memory.totalJSHeapSize);
@@ -1225,11 +1197,7 @@
     }
     getColor(percent) {
       const { memoryCritical, memoryWarning } = CONFIG.thresholds;
-      const {
-        memoryCritical: criticalColor,
-        memoryWarning: warningColor,
-        memoryHealthy: healthyColor
-      } = CONFIG.colors;
+      const { memoryCritical: criticalColor, memoryWarning: warningColor, memoryHealthy: healthyColor } = CONFIG.colors;
       if (percent > memoryCritical)
         return criticalColor;
       if (percent > memoryWarning)
@@ -1238,7 +1206,7 @@
     }
   }
 
-  // devtools/04-canvas.js
+  // devtools/04-canvas.ts
   class HighlightCanvas {
     #canvas = null;
     #ctx = null;
@@ -1248,7 +1216,7 @@
     create() {
       if (this.#canvas)
         return this.#canvas;
-      const existing = document.querySelector(`[${CONFIG2.attributes.devtools}="highlight-canvas"]`);
+      const existing = document.querySelector(`[${CONFIG.attributes.devtools}="highlight-canvas"]`);
       if (existing) {
         console.warn("Devtools: Highlight canvas already exists in DOM, reusing");
         this.#canvas = existing;
@@ -1256,7 +1224,7 @@
         return existing;
       }
       const canvas = document.createElement("canvas");
-      canvas.setAttribute(CONFIG2.attributes.devtools, "highlight-canvas");
+      canvas.setAttribute(CONFIG.attributes.devtools, "highlight-canvas");
       const dpr = getDevicePixelRatio();
       Object.assign(canvas.style, {
         position: "fixed",
@@ -1273,7 +1241,7 @@
       this.#canvas = canvas;
       this.#ctx = canvas.getContext("2d");
       this.#ctx.scale(dpr, dpr);
-      this.#resizeHandler = debounce(() => this.#handleResize(), CONFIG2.intervals.resizeDebounce);
+      this.#resizeHandler = debounce(() => this.#handleResize(), CONFIG.intervals.resizeDebounce);
       window.addEventListener("resize", this.#resizeHandler);
       return canvas;
     }
@@ -1368,9 +1336,9 @@
       this.#clearCanvas();
       const toRemove = [];
       const labelMap = new Map;
-      const { r, g, b } = CONFIG2.colors.primary;
+      const { r, g, b } = CONFIG.colors.primary;
       const reactColor = { r: 97, g: 218, b: 251 };
-      const totalFrames = CONFIG2.animation.totalFrames;
+      const totalFrames = CONFIG.animation.totalFrames;
       for (const [element, highlight] of this.#highlights) {
         if (!element.isConnected) {
           toRemove.push(element);
@@ -1404,7 +1372,7 @@
             existing.alpha = alpha;
         }
       }
-      this.#ctx.font = CONFIG2.fonts.mono;
+      this.#ctx.font = CONFIG.fonts.mono;
       for (const [, { x, y, name, count, alpha, isReact }] of labelMap) {
         const color = isReact ? reactColor : { r, g, b };
         const displayName = isReact ? `⚛ ${name}` : name;
@@ -1450,7 +1418,7 @@
     create() {
       if (this.#canvas)
         return this.#canvas;
-      const existing = document.querySelector(`[${CONFIG2.attributes.devtools}="inspect-canvas"]`);
+      const existing = document.querySelector(`[${CONFIG.attributes.devtools}="inspect-canvas"]`);
       if (existing) {
         console.warn("Devtools: Inspect canvas already exists in DOM, reusing");
         this.#canvas = existing;
@@ -1458,7 +1426,7 @@
         return existing;
       }
       const canvas = document.createElement("canvas");
-      canvas.setAttribute(CONFIG2.attributes.devtools, "inspect-canvas");
+      canvas.setAttribute(CONFIG.attributes.devtools, "inspect-canvas");
       const dpr = getDevicePixelRatio();
       Object.assign(canvas.style, {
         position: "fixed",
@@ -1550,7 +1518,7 @@
         return;
       const isMarked = info?.isMarked || false;
       const isReact = info?.isReact || false;
-      const colors = CONFIG2.colors;
+      const colors = CONFIG.colors;
       let strokeColor, fillColor, pillBg, pillText;
       if (isReact) {
         strokeColor = colors.inspectReactStroke;
@@ -1616,7 +1584,7 @@
     }
   }
 
-  // devtools/05-core.js
+  // devtools/05-core.ts
   class MutationScanner {
     #observer = null;
     #canvas = null;
@@ -1776,13 +1744,13 @@
       }
     }
     #createEventCatcher() {
-      const existing = document.querySelector(`[${CONFIG2.attributes.devtools}="event-catcher"]`);
+      const existing = document.querySelector(`[${CONFIG.attributes.devtools}="event-catcher"]`);
       if (existing) {
         console.warn("Devtools: Event catcher already exists in DOM, reusing");
         return existing;
       }
       const div = document.createElement("div");
-      div.setAttribute(CONFIG2.attributes.devtools, "event-catcher");
+      div.setAttribute(CONFIG.attributes.devtools, "event-catcher");
       Object.assign(div.style, {
         position: "fixed",
         top: "0",
@@ -1884,7 +1852,7 @@
     }
   }
 
-  // devtools/06-hotkeys.js
+  // devtools/06-hotkeys.ts
   class HotkeyManager {
     #handlers = new Map;
     #active = false;
@@ -1938,7 +1906,7 @@
     }
   }
 
-  // devtools/07-ui.js
+  // devtools/07-ui.ts
   var TooltipState = Object.freeze({
     IDLE: "idle",
     PINNED: "pinned",
@@ -1989,7 +1957,7 @@
             this.#showTimeout = setTimeout(() => {
               this.#showContent(tooltipText, direction);
               this.#showTimeout = null;
-            }, CONFIG2.intervals.tooltipShowDelay || 300);
+            }, CONFIG.intervals.tooltipShowDelay || 300);
           }
         };
         const handleMouseLeave = () => {
@@ -1999,7 +1967,7 @@
           this.#hideTimeout = setTimeout(() => {
             this.#hideTooltip();
             this.#hideTimeout = null;
-          }, CONFIG2.intervals.tooltipHideDelay || 200);
+          }, CONFIG.intervals.tooltipHideDelay || 200);
         };
         el.addEventListener("mouseenter", handleMouseEnter);
         el.addEventListener("mouseleave", handleMouseLeave);
@@ -2087,7 +2055,7 @@
       }
       const slideOutX = direction === "left" ? "15px" : "-15px";
       const slideInX = direction === "left" ? "-15px" : "15px";
-      const slideMs = CONFIG2.animation.tooltipSlideMs;
+      const slideMs = CONFIG.animation.tooltipSlideMs;
       content.style.transition = `transform ${slideMs}ms ease-out, opacity ${slideMs}ms ease-out`;
       content.style.transform = `translateX(${slideOutX})`;
       content.style.opacity = "0";
@@ -2223,7 +2191,7 @@
         rafId = requestAnimationFrame(() => {
           const deltaX = lastMouseX - initialMouseX;
           const deltaY = lastMouseY - initialMouseY;
-          if (!hasMoved && (Math.abs(deltaX) > CONFIG2.thresholds.dragStart || Math.abs(deltaY) > CONFIG2.thresholds.dragStart)) {
+          if (!hasMoved && (Math.abs(deltaX) > CONFIG.thresholds.dragStart || Math.abs(deltaY) > CONFIG.thresholds.dragStart)) {
             hasMoved = true;
             this.#isDragging = true;
             toolbar.classList.add("dragging");
@@ -2256,12 +2224,12 @@
         const totalDeltaX = Math.abs(lastMouseX - initialMouseX);
         const totalDeltaY = Math.abs(lastMouseY - initialMouseY);
         const totalMovement = Math.sqrt(totalDeltaX * totalDeltaX + totalDeltaY * totalDeltaY);
-        if (totalMovement < CONFIG2.thresholds.snapDistance) {
+        if (totalMovement < CONFIG.thresholds.snapDistance) {
           this.#position = this.#calculatePosition(this.#corner, toolbar.offsetWidth, toolbar.offsetHeight);
           this.#applyPosition(true);
           return;
         }
-        const toolbarWidth = CONFIG2.dimensions.toolbarWidth;
+        const toolbarWidth = CONFIG.dimensions.toolbarWidth;
         const toolbarHeight = toolbar.offsetHeight || 40;
         if (this.#shouldCollapse(currentX, currentY, toolbarWidth, toolbarHeight)) {
           const target = this.#getCollapseTarget(currentX, currentY, toolbarWidth, toolbarHeight);
@@ -2294,7 +2262,7 @@
           return;
         const deltaX = moveEvent.clientX - initialMouseX;
         const deltaY = moveEvent.clientY - initialMouseY;
-        const threshold = CONFIG2.thresholds.expandDragDistance;
+        const threshold = CONFIG.thresholds.expandDragDistance;
         let shouldExpand = false;
         if (orientation === "horizontal") {
           if (corner.endsWith("left") && deltaX > threshold)
@@ -2331,21 +2299,21 @@
         if (this.#transitionTimeoutId) {
           clearTimeout(this.#transitionTimeoutId);
         }
-        style.transition = `transform ${CONFIG2.animation.snapTransitionMs}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+        style.transition = `transform ${CONFIG.animation.snapTransitionMs}ms cubic-bezier(0.4, 0, 0.2, 1)`;
         requestAnimationFrame(() => {
           style.transform = `translate3d(${this.#position.x}px, ${this.#position.y}px, 0)`;
         });
         this.#transitionTimeoutId = setTimeout(() => {
           style.transition = "none";
           this.#transitionTimeoutId = null;
-        }, CONFIG2.animation.snapTransitionMs + 50);
+        }, CONFIG.animation.snapTransitionMs + 50);
       } else {
         style.transition = "none";
         style.transform = `translate3d(${this.#position.x}px, ${this.#position.y}px, 0)`;
       }
     }
     #calculatePosition(corner, width, height) {
-      const safeArea = CONFIG2.dimensions.safeArea;
+      const safeArea = CONFIG.dimensions.safeArea;
       const rightX = window.innerWidth - width - safeArea;
       const bottomY = window.innerHeight - height - safeArea;
       switch (corner) {
@@ -2391,7 +2359,7 @@
       const verticalOutside = Math.min(height, outsideTop + outsideBottom);
       const areaOutside = horizontalOutside * height + verticalOutside * width - horizontalOutside * verticalOutside;
       const totalArea = width * height;
-      return areaOutside > totalArea * CONFIG2.thresholds.collapseRatio;
+      return areaOutside > totalArea * CONFIG.thresholds.collapseRatio;
     }
     #getCollapseTarget(x, y, width, height) {
       const outsideLeft = -x;
@@ -2422,7 +2390,7 @@
     }
   }
 
-  // devtools/08-toolbar.js
+  // devtools/08-toolbar.ts
   class Toolbar {
     #root = null;
     #shadowRoot = null;
@@ -2497,7 +2465,7 @@
       }
       this.#root = document.createElement("div");
       this.#root.id = "devtools-root";
-      this.#root.setAttribute(CONFIG2.attributes.devtools, "toolbar");
+      this.#root.setAttribute(CONFIG.attributes.devtools, "toolbar");
       this.#shadowRoot = this.#root.attachShadow({ mode: "open" });
       const style = document.createElement("style");
       style.textContent = STYLES;
@@ -2655,7 +2623,7 @@
       const container = document.createElement("div");
       container.className = "devtools-radar-container";
       this.#lagRadar = new LagRadar(this.#fpsMonitor, {
-        size: CONFIG2.dimensions.radarSize
+        size: CONFIG.dimensions.radarSize
       });
       const canvas = this.#lagRadar.create();
       container.appendChild(canvas);
@@ -2710,7 +2678,7 @@
           } else {
             tooltip.style.bottom = `calc(100% + ${accumulatedOffset}px)`;
           }
-          const tooltipHeight = tooltip.offsetHeight || CONFIG2.dimensions.tooltipMinHeight;
+          const tooltipHeight = tooltip.offsetHeight || CONFIG.dimensions.tooltipMinHeight;
           accumulatedOffset += tooltipHeight + tooltipGap;
         }
       });
@@ -2743,7 +2711,7 @@
         this.#lagRadar = null;
         setTimeout(() => {
           radar.destroy();
-        }, CONFIG2.animation.tooltipFadeMs);
+        }, CONFIG.animation.tooltipFadeMs);
       }
     }
     #toggleLagRadarPin() {
@@ -2984,7 +2952,7 @@
       if (saved?.corner) {
         corner = saved.corner;
       }
-      const safeArea = CONFIG2.dimensions.safeArea;
+      const safeArea = CONFIG.dimensions.safeArea;
       const rightX = window.innerWidth - width - safeArea;
       const bottomY = window.innerHeight - height - safeArea;
       let position;
@@ -3020,8 +2988,8 @@
       } else {
         this.#toolbar.classList.add(corner.startsWith("top") ? "edge-top" : "edge-bottom");
       }
-      const collapsedSize = orientation === "horizontal" ? CONFIG2.dimensions.collapsedHorizontal : CONFIG2.dimensions.collapsedVertical;
-      const safeArea = CONFIG2.dimensions.safeArea;
+      const collapsedSize = orientation === "horizontal" ? CONFIG.dimensions.collapsedHorizontal : CONFIG.dimensions.collapsedVertical;
+      const safeArea = CONFIG.dimensions.safeArea;
       let position;
       switch (corner) {
         case "top-left":
@@ -3055,7 +3023,7 @@
         this.#expandButton.style.display = "none";
       requestAnimationFrame(() => {
         const rect = this.#toolbar.getBoundingClientRect();
-        this.#dragController.snapToCorner(savedCorner, CONFIG2.dimensions.toolbarWidth, rect.height || 40);
+        this.#dragController.snapToCorner(savedCorner, CONFIG.dimensions.toolbarWidth, rect.height || 40);
         StorageManager.setToolbarPosition(savedCorner, this.#dragController.position);
         StorageManager.setCollapsedState(null);
         this.#updateCornerClasses();
@@ -3085,7 +3053,7 @@
       } else {
         const rect = this.#toolbar.getBoundingClientRect();
         const corner = this.#dragController.corner;
-        const safeArea = CONFIG2.dimensions.safeArea;
+        const safeArea = CONFIG.dimensions.safeArea;
         const rightX = window.innerWidth - rect.width - safeArea;
         const bottomY = window.innerHeight - rect.height - safeArea;
         let position;
@@ -3115,7 +3083,7 @@
           this.#fpsValueElement.textContent = fps;
           this.#fpsValueElement.style.color = this.#fpsMonitor.getColor();
         }
-      }, CONFIG2.intervals.fpsDisplay);
+      }, CONFIG.intervals.fpsDisplay);
       this.#memoryIntervalId = setInterval(() => {
         if (this.#memoryValueElement) {
           const info = this.#memoryMonitor.getInfo();
@@ -3124,7 +3092,7 @@
             this.#memoryValueElement.style.color = this.#memoryMonitor.getColor(info.percent);
           }
         }
-      }, CONFIG2.intervals.memoryDisplay);
+      }, CONFIG.intervals.memoryDisplay);
     }
     #stopDisplayUpdates() {
       if (this.#fpsIntervalId) {
@@ -3138,21 +3106,21 @@
     }
   }
 
-  // devtools/09-api.js
+  // devtools/09-api.ts
   var Devtools = {
     _scanner: null,
     _inspector: null,
     _toolbar: null,
     _hotkeys: null,
     enable() {
-      StorageManager.setString(CONFIG2.storageKeys.enabled, "true");
+      StorageManager.setString(CONFIG.storageKeys.enabled, "true");
       if (!this._toolbar) {
         this.init();
       }
       console.log("Devtools: Enabled. Toolbar is now visible.");
     },
     disable() {
-      StorageManager.setString(CONFIG2.storageKeys.enabled, "false");
+      StorageManager.setString(CONFIG.storageKeys.enabled, "false");
       this.destroy();
       console.log("Devtools: Disabled. Toolbar hidden.");
     },
@@ -3235,7 +3203,7 @@
   };
   window.Devtools = Devtools;
 
-  // devtools/10-init.js
+  // devtools/10-init.ts
   function initDevtools() {
     if (StorageManager.isDevtoolsEnabled()) {
       Devtools.init();

@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "fix": "./mill __.fix",
     "fmt": "./mill mill.scalalib.scalafmt/",
-    "build:devtools": "bun build devtools/index.js --outfile devtools.js --format iife"
+    "build:devtools": "bun build devtools/index.ts --outfile devtools.js --format iife"
   },
   "devDependencies": {
     "jsdom": "^27.0.0",
