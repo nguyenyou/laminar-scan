@@ -6,6 +6,43 @@
 
 import { CONFIG } from "./config";
 
+// ----------------------------------------------------------------------------
+// Extended Performance API types (non-standard / newer APIs)
+// ----------------------------------------------------------------------------
+
+/** Chrome-specific memory info from performance.memory */
+interface PerformanceMemory {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+}
+
+/** Attribution entry for memory breakdown */
+interface MemoryAttributionEntry {
+  url?: string;
+  scope?: string;
+  container?: {
+    id?: string;
+    src?: string;
+  };
+}
+
+/** Result from performance.measureUserAgentSpecificMemory() */
+interface MeasureUserAgentSpecificMemoryResult {
+  bytes: number;
+  breakdown: Array<{
+    bytes: number;
+    attribution: MemoryAttributionEntry[];
+    types: string[];
+  }>;
+}
+
+/** Extended Performance interface with non-standard APIs */
+interface ExtendedPerformance extends Performance {
+  memory?: PerformanceMemory;
+  measureUserAgentSpecificMemory?: () => Promise<MeasureUserAgentSpecificMemoryResult>;
+}
+
 /** Number of FPS samples to keep for radar history (one full rotation) */
 const FPS_HISTORY_SIZE = 360;
 
@@ -249,21 +286,86 @@ export class LagRadar {
 
 /**
  * Monitors JavaScript heap memory usage.
+ * Prefers measureUserAgentSpecificMemory API when available, falls back to performance.memory.
  */
 export class MemoryMonitor {
+  private cachedMemoryInfo: MemoryInfo | null = null;
+  private lastMeasureTime = 0;
+  private static readonly MEASURE_INTERVAL_MS = 1000; // Minimum interval between async measurements
+
+  /** Get typed reference to performance with extended APIs */
+  private static get perf(): ExtendedPerformance {
+    return performance as ExtendedPerformance;
+  }
+
   static isSupported(): boolean {
-    return !!((performance as any).memory && typeof (performance as any).memory.usedJSHeapSize === "number");
+    const p = MemoryMonitor.perf;
+    return !!(
+      typeof p.measureUserAgentSpecificMemory === "function" ||
+      (p.memory && typeof p.memory.usedJSHeapSize === "number")
+    );
+  }
+
+  private static canUseMeasureUserAgentSpecificMemory(): boolean {
+    return typeof MemoryMonitor.perf.measureUserAgentSpecificMemory === "function";
+  }
+
+  private static canUseLegacyMemory(): boolean {
+    const memory = MemoryMonitor.perf.memory;
+    return !!(memory && typeof memory.usedJSHeapSize === "number");
+  }
+
+  /**
+   * Triggers an async memory measurement if measureUserAgentSpecificMemory is available.
+   * Updates the cached memory info when the measurement completes.
+   */
+  private triggerAsyncMeasurement(): void {
+    const now = Date.now();
+    if (now - this.lastMeasureTime < MemoryMonitor.MEASURE_INTERVAL_MS) return;
+    this.lastMeasureTime = now;
+
+    const p = MemoryMonitor.perf;
+    p.measureUserAgentSpecificMemory!().then((result) => {
+      const bytesToMB = (bytes: number) => Math.round(bytes / (1024 * 1024));
+      const usedBytes = result.bytes ?? 0;
+      // measureUserAgentSpecificMemory doesn't provide total/limit, estimate from legacy if available
+      const legacyMemory = p.memory;
+      const limitBytes = legacyMemory?.jsHeapSizeLimit ?? usedBytes * 2; // Fallback estimate
+      const totalBytes = legacyMemory?.totalJSHeapSize ?? usedBytes;
+
+      const usedMB = bytesToMB(usedBytes);
+      const totalMB = bytesToMB(totalBytes);
+      const limitMB = bytesToMB(limitBytes);
+      const percent = limitBytes > 0 ? Math.round((usedBytes / limitBytes) * 100) : 0;
+
+      this.cachedMemoryInfo = { usedMB, totalMB, limitMB, percent };
+    }).catch(() => {
+      // Silently ignore errors (e.g., cross-origin isolation requirements not met)
+    });
   }
 
   getInfo(): MemoryInfo | null {
-    const memory = (performance as any).memory;
-    if (!memory || typeof memory.usedJSHeapSize !== "number") return null;
-    const bytesToMB = (bytes: number) => Math.round(bytes / (1024 * 1024));
-    const usedMB = bytesToMB(memory.usedJSHeapSize);
-    const totalMB = bytesToMB(memory.totalJSHeapSize);
-    const limitMB = bytesToMB(memory.jsHeapSizeLimit);
-    const percent = Math.round((memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100);
-    return { usedMB, totalMB, limitMB, percent };
+    // Try measureUserAgentSpecificMemory first (async, uses cached result)
+    if (MemoryMonitor.canUseMeasureUserAgentSpecificMemory()) {
+      this.triggerAsyncMeasurement();
+      // Return cached result if available, otherwise fall through to legacy
+      if (this.cachedMemoryInfo) {
+        return this.cachedMemoryInfo;
+      }
+    }
+
+    // Fallback to legacy performance.memory (synchronous)
+    if (MemoryMonitor.canUseLegacyMemory()) {
+      const memory = MemoryMonitor.perf.memory!;
+      const bytesToMB = (bytes: number) => Math.round(bytes / (1024 * 1024));
+      const usedMB = bytesToMB(memory.usedJSHeapSize);
+      const totalMB = bytesToMB(memory.totalJSHeapSize);
+      const limitMB = bytesToMB(memory.jsHeapSizeLimit);
+      const percent = Math.round((memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100);
+      return { usedMB, totalMB, limitMB, percent };
+    }
+
+    return null;
   }
 
   getColor(percent: number): string {
