@@ -71,9 +71,20 @@ export class FdToggleButton extends LitElement {
       align-items: center;
       justify-content: center;
     }
+
     .toggle-button:hover {
       color: #fff;
       background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* ===== Focus states ===== */
+    .toggle-button:focus {
+      outline: none;
+    }
+
+    .toggle-button:focus-visible {
+      outline: 2px solid #7361e6;
+      outline-offset: 2px;
     }
   `
 }
