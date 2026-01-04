@@ -12,9 +12,9 @@ interface ExtendedPerformance extends Performance {
   memory?: PerformanceMemory
 }
 
-const MAX_POINTS = 60
+const MAX_POINTS = 120
 const SAMPLE_INTERVAL = 1000 // 1 second
-const Y_AXIS_WIDTH = 40 // Width reserved for Y-axis labels (supports 4 digits)
+const Y_AXIS_WIDTH = 48 // Width reserved for Y-axis labels (supports up to 9999MB)
 const CHART_PADDING = 2
 const CHART_TOP_MARGIN = 10 // Extra top margin for axis label visibility
 
@@ -101,6 +101,15 @@ export class FdMemChart extends LitElement {
     // Shift data and add new point
     const newData = [...this._dataPoints.slice(1), usedMB]
     this._dataPoints = newData
+
+    // Dispatch event with current memory value
+    this.dispatchEvent(
+      new CustomEvent('memory-update', {
+        detail: { memoryMB: usedMB },
+        bubbles: true,
+        composed: true,
+      })
+    )
   }
 
   private _getMinMax(): { min: number; max: number } {
@@ -162,7 +171,7 @@ export class FdMemChart extends LitElement {
   }
 
   private _formatMB(value: number): string {
-    if (value >= 1000) {
+    if (value >= 10000) {
       return `${(value / 1000).toFixed(1)}G`
     }
     return `${Math.round(value)}`

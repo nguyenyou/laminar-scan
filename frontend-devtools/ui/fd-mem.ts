@@ -6,6 +6,9 @@ export class FdMem extends LitElement {
   @property({ type: Boolean, reflect: true })
   active = false
 
+  @property({ type: Number })
+  memoryMB = 0
+
   private _handleClick(): void {
     this.active = !this.active
     this.dispatchEvent(
@@ -20,7 +23,7 @@ export class FdMem extends LitElement {
   render() {
     return html`
       <button class="devtools-meter" @click=${this._handleClick}>
-        <span class="devtools-meter-value memory">16</span>
+        <span class="devtools-meter-value memory">${Math.round(this.memoryMB)}</span>
         <span class="devtools-meter-label">MB</span>
       </button>
     `
@@ -57,7 +60,7 @@ export class FdMem extends LitElement {
       transition: color 0.15s ease-in-out;
       min-width: 24px;
       text-align: center;
-      color: #fff;
+      color: rgb(214, 132, 245);
       font-family: var(--fd-font-mono);
     }
 
