@@ -3,11 +3,41 @@ import { customElement, property, state } from 'lit/decorators.js'
 
 export type PanelPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 
+interface Position {
+  x: number
+  y: number
+}
+
+// Drag configuration (ported from DragController)
+const DRAG_CONFIG = {
+  thresholds: {
+    dragStart: 5,      // Pixels to move before drag initiates
+    snapDistance: 60,  // If moved less than this, return to original corner
+    directionThreshold: 40  // Threshold for determining drag direction
+  },
+  animation: {
+    snapTransitionMs: 300
+  },
+  dimensions: {
+    safeArea: 16  // Padding from viewport edges
+  }
+}
+
 /**
  * dt-panel: Positioning container for devtools UI
  *
  * Responsibility: Fixed positioning, z-index layering, drag and snap behavior.
  * Does NOT handle visual styling (background, shadows) - that's the toolbar's job.
+ *
+ * Features ported from DragController:
+ * - PointerEvent support (mouse, touch, pen)
+ * - Pointer capture for reliable tracking
+ * - RAF-optimized movement updates
+ * - GPU-accelerated transforms (translate3d)
+ * - Movement threshold before drag starts
+ * - Snap threshold - small movements return to original corner
+ * - Direction-aware corner snapping
+ * - Ignores interactive elements (buttons, inputs)
  */
 @customElement('dt-panel')
 export class DtPanel extends LitElement {
@@ -20,107 +50,218 @@ export class DtPanel extends LitElement {
   @state()
   private _isDragging = false
 
-  @state()
-  private _dragOffset = { x: 0, y: 0 }
-
-  @state()
-  private _currentPos = { x: 0, y: 0 }
-
-  private _boundHandleMouseMove: (e: MouseEvent) => void
-  private _boundHandleMouseUp: (e: MouseEvent) => void
-
-  constructor() {
-    super()
-    this._boundHandleMouseMove = this._handleMouseMove.bind(this)
-    this._boundHandleMouseUp = this._handleMouseUp.bind(this)
-  }
+  // Transform-based position (GPU accelerated)
+  private _transformPos: Position = { x: 0, y: 0 }
+  private _transitionTimeoutId: ReturnType<typeof setTimeout> | null = null
 
   connectedCallback() {
     super.connectedCallback()
-    this._updatePositionFromAttribute()
+    // Initialize position based on corner
+    this._updateTransformFromCorner()
   }
 
-  private _updatePositionFromAttribute() {
-    // Reset to corner position based on attribute
-    this._currentPos = { x: 0, y: 0 }
+  disconnectedCallback() {
+    super.disconnectedCallback()
+    if (this._transitionTimeoutId) {
+      clearTimeout(this._transitionTimeoutId)
+      this._transitionTimeoutId = null
+    }
   }
 
-  private _handleMouseDown(e: MouseEvent) {
+  private _updateTransformFromCorner() {
+    const rect = this.getBoundingClientRect()
+    this._transformPos = this._calculatePositionForCorner(
+      this.position,
+      rect.width || 0,
+      rect.height || 0
+    )
+    this._applyTransform(false)
+  }
+
+  private _calculatePositionForCorner(corner: PanelPosition, width: number, height: number): Position {
+    const safeArea = DRAG_CONFIG.dimensions.safeArea
+    const rightX = window.innerWidth - width - safeArea
+    const bottomY = window.innerHeight - height - safeArea
+
+    switch (corner) {
+      case 'top-left':
+        return { x: safeArea, y: safeArea }
+      case 'top-right':
+        return { x: rightX, y: safeArea }
+      case 'bottom-left':
+        return { x: safeArea, y: bottomY }
+      case 'bottom-right':
+      default:
+        return { x: rightX, y: bottomY }
+    }
+  }
+
+  private _handlePointerDown(e: PointerEvent) {
     if (!this.draggable) return
 
+    // Ignore clicks on interactive elements
+    const target = e.target as HTMLElement
+    if (target.closest('button') || target.closest('input') || target.closest('label') || target.closest('.clickable')) {
+      return
+    }
+
     e.preventDefault()
-    this._isDragging = true
-    this.setAttribute('dragging', '')
 
-    const rect = this.getBoundingClientRect()
-    this._dragOffset = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
+    const initialMouseX = e.clientX
+    const initialMouseY = e.clientY
+    const initialX = this._transformPos.x
+    const initialY = this._transformPos.y
+
+    let currentX = initialX
+    let currentY = initialY
+    let lastMouseX = initialMouseX
+    let lastMouseY = initialMouseY
+    let hasMoved = false
+    let rafId: number | null = null
+
+    // Capture pointer for reliable tracking
+    this.setPointerCapture(e.pointerId)
+    const pointerId = e.pointerId
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      lastMouseX = moveEvent.clientX
+      lastMouseY = moveEvent.clientY
+
+      // Throttle with RAF
+      if (rafId) return
+
+      rafId = requestAnimationFrame(() => {
+        const deltaX = lastMouseX - initialMouseX
+        const deltaY = lastMouseY - initialMouseY
+
+        // Check if we've moved enough to start dragging
+        if (!hasMoved && (Math.abs(deltaX) > DRAG_CONFIG.thresholds.dragStart || Math.abs(deltaY) > DRAG_CONFIG.thresholds.dragStart)) {
+          hasMoved = true
+          this._isDragging = true
+          this.dispatchEvent(new CustomEvent('drag-start', { bubbles: true, composed: true }))
+        }
+
+        if (hasMoved) {
+          currentX = initialX + deltaX
+          currentY = initialY + deltaY
+          this.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`
+        }
+
+        rafId = null
+      })
     }
 
-    // Store current position when starting drag
-    this._currentPos = {
-      x: rect.left,
-      y: rect.top
+    const handlePointerEnd = () => {
+      if (this.hasPointerCapture(pointerId)) {
+        this.releasePointerCapture(pointerId)
+      }
+
+      document.removeEventListener('pointermove', handlePointerMove)
+      document.removeEventListener('pointerup', handlePointerEnd)
+      document.removeEventListener('pointercancel', handlePointerEnd)
+
+      if (rafId) {
+        cancelAnimationFrame(rafId)
+        rafId = null
+      }
+
+      this._isDragging = false
+      this.dispatchEvent(new CustomEvent('drag-end', { bubbles: true, composed: true }))
+
+      if (!hasMoved) return
+
+      // Calculate total movement
+      const totalDeltaX = Math.abs(lastMouseX - initialMouseX)
+      const totalDeltaY = Math.abs(lastMouseY - initialMouseY)
+      const totalMovement = Math.sqrt(totalDeltaX * totalDeltaX + totalDeltaY * totalDeltaY)
+
+      // If moved less than snap threshold, return to original corner
+      if (totalMovement < DRAG_CONFIG.thresholds.snapDistance) {
+        this._transformPos = this._calculatePositionForCorner(
+          this.position,
+          this.offsetWidth,
+          this.offsetHeight
+        )
+        this._applyTransform(true)
+        return
+      }
+
+      // Determine best corner based on drag direction and position
+      const newCorner = this._getBestCorner(lastMouseX, lastMouseY, initialMouseX, initialMouseY)
+      const oldPosition = this.position
+      this.position = newCorner
+      this._transformPos = this._calculatePositionForCorner(newCorner, this.offsetWidth, this.offsetHeight)
+      this._applyTransform(true)
+
+      if (oldPosition !== newCorner) {
+        this.dispatchEvent(new CustomEvent('position-change', {
+          detail: { position: newCorner, previousPosition: oldPosition },
+          bubbles: true,
+          composed: true
+        }))
+      }
     }
 
-    document.addEventListener('mousemove', this._boundHandleMouseMove)
-    document.addEventListener('mouseup', this._boundHandleMouseUp)
+    document.addEventListener('pointermove', handlePointerMove)
+    document.addEventListener('pointerup', handlePointerEnd)
+    document.addEventListener('pointercancel', handlePointerEnd)
   }
 
-  private _handleMouseMove(e: MouseEvent) {
-    if (!this._isDragging) return
+  private _getBestCorner(mouseX: number, mouseY: number, initialMouseX: number, initialMouseY: number): PanelPosition {
+    const deltaX = mouseX - initialMouseX
+    const deltaY = mouseY - initialMouseY
+    const threshold = DRAG_CONFIG.thresholds.directionThreshold
 
-    this._currentPos = {
-      x: e.clientX - this._dragOffset.x,
-      y: e.clientY - this._dragOffset.y
+    const centerX = window.innerWidth / 2
+    const centerY = window.innerHeight / 2
+
+    const movingRight = deltaX > threshold
+    const movingLeft = deltaX < -threshold
+    const movingDown = deltaY > threshold
+    const movingUp = deltaY < -threshold
+
+    // Prioritize horizontal movement
+    if (movingRight || movingLeft) {
+      const isBottom = mouseY > centerY
+      return movingRight
+        ? (isBottom ? 'bottom-right' : 'top-right')
+        : (isBottom ? 'bottom-left' : 'top-left')
     }
 
-    this.requestUpdate()
+    // Then vertical movement
+    if (movingDown || movingUp) {
+      const isRight = mouseX > centerX
+      return movingDown
+        ? (isRight ? 'bottom-right' : 'bottom-left')
+        : (isRight ? 'top-right' : 'top-left')
+    }
+
+    // Fallback to quadrant-based
+    return mouseX > centerX
+      ? (mouseY > centerY ? 'bottom-right' : 'top-right')
+      : (mouseY > centerY ? 'bottom-left' : 'top-left')
   }
 
-  private _handleMouseUp(_e: MouseEvent) {
-    if (!this._isDragging) return
+  private _applyTransform(animate: boolean) {
+    if (animate) {
+      if (this._transitionTimeoutId) {
+        clearTimeout(this._transitionTimeoutId)
+      }
 
-    document.removeEventListener('mousemove', this._boundHandleMouseMove)
-    document.removeEventListener('mouseup', this._boundHandleMouseUp)
+      this.style.transition = `transform ${DRAG_CONFIG.animation.snapTransitionMs}ms cubic-bezier(0.4, 0, 0.2, 1)`
 
-    this._isDragging = false
-    this.removeAttribute('dragging')
-    this._snapToCorner()
-  }
+      requestAnimationFrame(() => {
+        this.style.transform = `translate3d(${this._transformPos.x}px, ${this._transformPos.y}px, 0)`
+      })
 
-  private _snapToCorner() {
-    const rect = this.getBoundingClientRect()
-    const centerX = rect.left + rect.width / 2
-    const centerY = rect.top + rect.height / 2
-
-    const viewportWidth = window.innerWidth
-    const viewportHeight = window.innerHeight
-
-    const isLeft = centerX < viewportWidth / 2
-    const isTop = centerY < viewportHeight / 2
-
-    let newPosition: PanelPosition
-    if (isTop && isLeft) {
-      newPosition = 'top-left'
-    } else if (isTop && !isLeft) {
-      newPosition = 'top-right'
-    } else if (!isTop && isLeft) {
-      newPosition = 'bottom-left'
+      this._transitionTimeoutId = setTimeout(() => {
+        this.style.transition = 'none'
+        this._transitionTimeoutId = null
+      }, DRAG_CONFIG.animation.snapTransitionMs + 50)
     } else {
-      newPosition = 'bottom-right'
+      this.style.transition = 'none'
+      this.style.transform = `translate3d(${this._transformPos.x}px, ${this._transformPos.y}px, 0)`
     }
-
-    // Reset drag position and update corner
-    this._currentPos = { x: 0, y: 0 }
-    this.position = newPosition
-
-    this.dispatchEvent(new CustomEvent('position-change', {
-      detail: { position: newPosition },
-      bubbles: true,
-      composed: true
-    }))
   }
 
   render() {
@@ -129,18 +270,13 @@ export class DtPanel extends LitElement {
 
   updated(changedProperties: Map<string, unknown>) {
     super.updated(changedProperties)
-
-    if (this._isDragging) {
-      this.style.left = `${this._currentPos.x}px`
-      this.style.top = `${this._currentPos.y}px`
-      this.style.right = 'auto'
-      this.style.bottom = 'auto'
-    } else {
-      // Clear inline styles when not dragging, let CSS handle positioning
-      this.style.left = ''
-      this.style.top = ''
-      this.style.right = ''
-      this.style.bottom = ''
+    // Sync dragging state with attribute for CSS styling
+    if (changedProperties.has('_isDragging')) {
+      if (this._isDragging) {
+        this.setAttribute('dragging', '')
+      } else {
+        this.removeAttribute('dragging')
+      }
     }
   }
 
@@ -148,47 +284,30 @@ export class DtPanel extends LitElement {
     :host {
       display: block;
       position: fixed;
+      left: 0;
+      top: 0;
       z-index: 9999;
-      transition: top var(--dt-transition-base) var(--dt-transition-ease-out),
-                  right var(--dt-transition-base) var(--dt-transition-ease-out),
-                  bottom var(--dt-transition-base) var(--dt-transition-ease-out),
-                  left var(--dt-transition-base) var(--dt-transition-ease-out);
+      will-change: transform;
+      transform: translate3d(0, 0, 0);
+      backface-visibility: hidden;
     }
 
     :host([dragging]) {
-      transition: none;
-    }
-
-    /* Position variants */
-    :host([position='top-right']) {
-      top: var(--dt-spacing-2xl);
-      right: var(--dt-spacing-2xl);
-    }
-
-    :host([position='top-left']) {
-      top: var(--dt-spacing-2xl);
-      left: var(--dt-spacing-2xl);
-    }
-
-    :host([position='bottom-right']) {
-      bottom: var(--dt-spacing-2xl);
-      right: var(--dt-spacing-2xl);
-    }
-
-    :host([position='bottom-left']) {
-      bottom: var(--dt-spacing-2xl);
-      left: var(--dt-spacing-2xl);
+      cursor: grabbing;
     }
 
     :host([draggable]) {
-      cursor: move;
+      cursor: grab;
       user-select: none;
+      touch-action: none;
     }
   `
 
   firstUpdated() {
     if (this.draggable) {
-      this.addEventListener('mousedown', this._handleMouseDown.bind(this))
+      this.addEventListener('pointerdown', this._handlePointerDown.bind(this))
+      // Initialize position after first render
+      requestAnimationFrame(() => this._updateTransformFromCorner())
     }
   }
 }
