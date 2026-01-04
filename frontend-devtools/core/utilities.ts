@@ -7,12 +7,6 @@
 export const CONFIG = {
   colors: {
     primary: { r: 115, g: 97, b: 230 },
-    fpsGood: 'rgb(214,132,245)',
-    fpsWarning: '#F59E0B',
-    fpsCritical: '#EF4444',
-    memoryHealthy: '#6EE7B7',
-    memoryWarning: '#F59E0B',
-    memoryCritical: '#EF4444',
     inspectStroke: 'rgba(142, 97, 227, 0.5)',
     inspectFill: 'rgba(173, 97, 230, 0.10)',
     inspectPillBg: 'rgba(37, 37, 38, 0.75)',

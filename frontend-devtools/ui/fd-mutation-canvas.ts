@@ -157,7 +157,6 @@ export class FdMutationCanvas extends LitElement {
       `[${CONFIG.attributes.devtools}="mutation-canvas"]`,
     ) as HTMLCanvasElement | null
     if (existing) {
-      console.warn('FdMutationCanvas: Canvas already exists in DOM, reusing')
       this._canvas = existing
       this._ctx = existing.getContext('2d')
       return
