@@ -12,7 +12,7 @@ interface RadarLastState {
 @customElement('fd-lag-radar')
 export class FdLagRadar extends LitElement {
   /** Size of the radar in pixels */
-  @property({ type: Number }) size = 200
+  @property({ type: Number }) size = 220
 
   /** Number of arc segments to display */
   @property({ type: Number }) frames = 50
@@ -193,6 +193,7 @@ export class FdLagRadar extends LitElement {
   static styles = css`
     :host {
       display: block;
+      font-family: var(--fd-font);
     }
 
     .radar-container {
@@ -200,7 +201,7 @@ export class FdLagRadar extends LitElement {
       flex-direction: column;
       align-items: center;
       gap: 8px;
-      padding: 12px;
+      padding: 26px 12px;
       background: #141414;
       border-radius: 6px;
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
@@ -230,9 +231,8 @@ export class FdLagRadar extends LitElement {
       display: flex;
       justify-content: center;
       gap: 12px;
-      font-family: ui-monospace, monospace;
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.3);
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.6);
     }
 
     .radar-legend-item {

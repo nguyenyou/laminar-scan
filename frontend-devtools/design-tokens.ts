@@ -54,10 +54,9 @@ export const designTokens = css`
     --fd-color-bg-bar: rgba(255, 255, 255, 0.06);
 
     /* ===== Font Tokens ===== */
-    --fd-font-ui: system-ui, -apple-system, sans-serif;
+    --fd-font: system-ui, -apple-system, sans-serif;
     --fd-font-mono: 11px Menlo, Consolas, Monaco, Liberation Mono,
       Lucida Console, monospace;
-    --fd-font-mono-family: ui-monospace, monospace;
 
     --fd-font-size-xs: 10px;
     --fd-font-size-sm: 11px;
