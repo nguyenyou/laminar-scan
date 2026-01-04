@@ -80,7 +80,7 @@ export class FdDomStats extends LitElement {
   static styles = css`
     :host {
       display: block;
-      max-height: 200px;
+      max-height: 196px;
       overflow-y: auto;
       border-radius: 8px;
     }
