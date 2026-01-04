@@ -24,6 +24,7 @@
     "react-dom": "19.2.3"
   },
   "devDependencies": {
+    "esbuild": "0.27.2",
     "jsdom": "^27.0.0",
     "oxlint": "1.36.0",
     "oxlint-tsgolint": "0.10.1",

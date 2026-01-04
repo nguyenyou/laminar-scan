@@ -1,20 +1,23 @@
-import { build } from 'bun'
+import * as esbuild from 'esbuild'
 
-const result = await build({
-  entrypoints: ['./frontend-devtools-bootstrap.ts'],
-  outdir: '.',
-  naming: 'frontend-devtools.js',
-  format: 'esm' as const,
+const result = await esbuild.build({
+  entryPoints: ['./frontend-devtools-bootstrap.ts'],
+  outfile: './frontend-devtools.js',
+  bundle: true,
+  format: 'iife',
   minify: false,
-  sourcemap: 'none',
+  sourcemap: false,
+  target: 'es2022',
+  // Use production builds of Lit (not development)
+  conditions: ['browser', 'production'],
 })
 
-if (!result.success) {
-  console.error(`Build failed`)
-  for (const log of result.logs) {
-    console.error(log)
+if (result.errors.length > 0) {
+  console.error('Build failed')
+  for (const error of result.errors) {
+    console.error(error)
   }
   process.exit(1)
 }
 
-console.log(`Build successful`)
+console.log('Build successful')

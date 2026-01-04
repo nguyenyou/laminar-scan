@@ -5,4 +5,3 @@ import './frontend-devtools/frontend-devtools'
 if (!document.querySelector('frontend-devtools')) {
   document.body.appendChild(document.createElement('frontend-devtools'))
 }
-
