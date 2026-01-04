@@ -1,6 +1,6 @@
 import { LitElement, html } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
-import './ui/dt-switch'
+import './ui/dt-dom-mutation'
 import './ui/dt-button'
 import './ui/dt-icon'
 import './ui/dt-toolbar'
@@ -65,10 +65,10 @@ export class FrontendDevtools extends LitElement {
           </dt-button>
           <dt-fps></dt-fps>
           <dt-mem></dt-mem>
-          <dt-switch
+          <dt-dom-mutation
             .checked=${this._domMutationScan}
             @change=${this._toggleDomMutationScan}
-          ></dt-switch>
+          ></dt-dom-mutation>
           <dt-button size="icon" tooltip="DOM Statistics">
             <dt-icon name="domTree"></dt-icon>
           </dt-button>

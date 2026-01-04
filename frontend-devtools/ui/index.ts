@@ -1,6 +1,7 @@
 export { DtIcon } from './dt-icon'
 export type { IconName } from './dt-icon'
 export { DtSwitch } from './dt-switch'
+export { DtDomMutation } from './dt-dom-mutation'
 export { DtButton } from './dt-button'
 export { DtToolbar } from './dt-toolbar'
 export type { ToolbarOrientation } from './dt-toolbar'

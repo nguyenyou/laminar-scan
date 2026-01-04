@@ -72,7 +72,8 @@ export class DtPanel extends LitElement {
   private _handlePointerDown(e: PointerEvent) {
     // Ignore clicks on interactive elements
     const target = e.target as HTMLElement
-    if(target.tagName === "DT-SWITCH") {
+    
+    if(["DT-SWITCH", "DT-DOM-MUTATION"].includes(target.tagName)) {
       return
     }
 
