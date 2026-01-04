@@ -1,7 +1,7 @@
 import { build } from 'bun'
 
 const result = await build({
-  entrypoints: ['./frontend-devtools/frontend-devtools.ts'],
+  entrypoints: ['./frontend-devtools-bootstrap.ts'],
   outdir: '.',
   naming: 'frontend-devtools.js',
   format: 'esm' as const,

@@ -235,6 +235,5 @@ export function openInIDE(sourcePath: string | null, sourceLine: string | null =
     uri += `&line=${sourceLine}`
   }
 
-  console.log('Devtools: Opening file in IDE:', uri)
   window.open(uri, '_blank')
 }

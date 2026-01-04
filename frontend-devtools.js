@@ -2049,7 +2049,6 @@ class FdPanel extends LitElement {
   }
   _handlePointerDown(e) {
     const target = e.target;
-    console.log(target.tagName);
     if (COMPONENTS.includes(target.tagName)) {
       return;
     }
@@ -3122,7 +3121,6 @@ function openInIDE(sourcePath, sourceLine = null) {
   if (sourceLine) {
     uri += `&line=${sourceLine}`;
   }
-  console.log("Devtools: Opening file in IDE:", uri);
   window.open(uri, "_blank");
 }
 
@@ -4190,6 +4188,8 @@ __legacyDecorateClassTS([
 FrontendDevtools = __legacyDecorateClassTS([
   customElement("frontend-devtools")
 ], FrontendDevtools);
-export {
-  FrontendDevtools
-};
+
+// frontend-devtools-bootstrap.ts
+if (!document.querySelector("frontend-devtools")) {
+  document.body.appendChild(document.createElement("frontend-devtools"));
+}
