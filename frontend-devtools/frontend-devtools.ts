@@ -26,7 +26,7 @@ const DevtoolsAPI = {
 
 ;(window as any).Devtools = DevtoolsAPI
 
-type PanelWidget = 'LagRadar' | 'DomStats'
+type PanelWidget = 'LAG_RADAR' | 'DOM_STATS'
 
 @customElement('frontend-devtools')
 export class FrontendDevtools extends LitElement {
@@ -39,7 +39,7 @@ export class FrontendDevtools extends LitElement {
   private _inspectActive = false
 
   @state()
-  private _activeWidgets: PanelWidget[] = ['DomStats']
+  private _activeWidgets: PanelWidget[] = []
 
   constructor() {
     super()
@@ -63,18 +63,18 @@ export class FrontendDevtools extends LitElement {
   }
 
   private _handleFpsChange(e: CustomEvent<{ active: boolean }>) {
-    this._toggleWidget('LagRadar', e.detail.active)
+    this._toggleWidget('LAG_RADAR', e.detail.active)
   }
 
-  private _handleDomStatsChange(e: CustomEvent<{ active: boolean }>) {
-    this._toggleWidget('DomStats', e.detail.active)
+  private _handleDOM_STATSChange(e: CustomEvent<{ active: boolean }>) {
+    this._toggleWidget('DOM_STATS', e.detail.active)
   }
 
   private _renderWidget(widget: PanelWidget) {
     switch (widget) {
-      case 'LagRadar':
+      case 'LAG_RADAR':
         return html`<fd-lag-radar></fd-lag-radar>`
-      case 'DomStats':
+      case 'DOM_STATS':
         return html`<fd-dom-stats></fd-dom-stats>`
     }
   }
@@ -96,13 +96,13 @@ export class FrontendDevtools extends LitElement {
             @change=${this._toggleDomMutationScan}
           ></fd-dom-mutation>
           <fd-fps
-            .active=${this._activeWidgets.includes('LagRadar')}
+            .active=${this._activeWidgets.includes('LAG_RADAR')}
             @change=${this._handleFpsChange}
           ></fd-fps>
           <fd-mem></fd-mem>
           <fd-toggle-button
-            .active=${this._activeWidgets.includes('DomStats')}
-            @change=${this._handleDomStatsChange}
+            .active=${this._activeWidgets.includes('DOM_STATS')}
+            @change=${this._handleDOM_STATSChange}
           >
             <fd-icon name="domTree"></fd-icon>
           </fd-toggle-button>
