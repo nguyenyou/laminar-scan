@@ -6,6 +6,9 @@ export class FdSwitch extends LitElement {
   @property({ type: Boolean, reflect: true })
   checked = false
 
+  @property({ type: String })
+  title = ''
+
   private _handleChange(e: Event) {
     const input = e.target as HTMLInputElement
     this.checked = input.checked
@@ -25,6 +28,7 @@ export class FdSwitch extends LitElement {
           type="checkbox"
           .checked=${this.checked}
           @change=${this._handleChange}
+          title=${this.title}
           part="input"
         />
         <span class="devtools-toggle-track" part="track">

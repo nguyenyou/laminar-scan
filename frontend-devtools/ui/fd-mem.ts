@@ -38,7 +38,7 @@ export class FdMem extends LitElement {
 
   render() {
     return html`
-      <button class="devtools-meter" title="Show memory chart" @click=${this._handleClick}>
+      <button class="devtools-meter" title="Show Memory Chart" @click=${this._handleClick}>
         <span class="devtools-meter-value memory">${this._memoryMB}</span>
         <span class="devtools-meter-label">MB</span>
       </button>

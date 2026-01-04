@@ -31,7 +31,7 @@ const DevtoolsAPI = {
 
 type PanelWidget = 'LAG_RADAR' | 'DOM_STATS' | 'MEM_CHART'
 
-const DEFAULT_PANEL_POSITION: PanelPosition = 'top-right'
+const DEFAULT_PANEL_POSITION: PanelPosition = 'bottom-right'
 
 @customElement('frontend-devtools')
 export class FrontendDevtools extends LitElement {
@@ -122,6 +122,7 @@ export class FrontendDevtools extends LitElement {
             @change=${this._handleInspectChange}
           ></fd-inspect>
           <fd-switch
+            title="Highlight DOM mutations"
             .checked=${this._mutationScanActive}
             @change=${this._handleDomMutationChange}
           ></fd-switch>
@@ -134,7 +135,7 @@ export class FrontendDevtools extends LitElement {
             @change=${this._handleMemChange}
           ></fd-mem>
           <fd-toggle-button
-            tooltip="Show DOM stats"
+            tooltip="Show DOM Stats"
             .active=${this._activeWidgets.includes('DOM_STATS')}
             @change=${this._handleDomStatsChange}
           >

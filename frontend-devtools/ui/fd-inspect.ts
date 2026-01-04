@@ -22,7 +22,7 @@ export class FdInspect extends LitElement {
   render() {
     return html`
       <fd-toggle-button
-        tooltip="Inspect component"
+        tooltip="Inspect Component"
         ?active=${this.active}
         @change=${this._handleChange}
       >
