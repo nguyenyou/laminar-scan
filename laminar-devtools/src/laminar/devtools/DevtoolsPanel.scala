@@ -2,5 +2,14 @@ package laminar.devtools
 
 import com.raquo.laminar.api.L.*
 
+/*
+
+
+ */
 def DevtoolsPanel() =
-  div("Panel")
+  div(
+    cls("laminar-devtools"),
+    div(
+      cls("panel")
+    )
+  )

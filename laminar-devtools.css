@@ -1,0 +1,7 @@
+.laminar-devtools {
+  &_panel {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+  }
+}
