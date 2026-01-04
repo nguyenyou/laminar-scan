@@ -96,11 +96,12 @@ export class FdMemChart extends LitElement {
       return
     }
 
-    const usedMB = perf.memory.usedJSHeapSize / (1024 * 1024)
+    const usedMB = Math.round(perf.memory.usedJSHeapSize / (1024 * 1024))
 
     // Shift data and add new point
     const newData = [...this._dataPoints.slice(1), usedMB]
     this._dataPoints = newData
+    console.log(this._dataPoints)
 
     // Dispatch event with current memory value
     this.dispatchEvent(
@@ -254,7 +255,7 @@ export class FdMemChart extends LitElement {
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 16px 8px;
+      padding: 8px;
       background: #141414;
       border-radius: 6px;
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
