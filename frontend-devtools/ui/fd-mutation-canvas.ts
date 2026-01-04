@@ -123,36 +123,40 @@ export class FdMutationCanvas extends LitElement {
     const existing = document.querySelector(
       `[${CONFIG.attributes.devtools}="mutation-canvas"]`,
     ) as HTMLCanvasElement | null
+
     if (existing) {
       this._canvas = existing
       this._ctx = existing.getContext('2d')
-      return
+    } else {
+      const canvas = document.createElement('canvas')
+      canvas.setAttribute(CONFIG.attributes.devtools, 'mutation-canvas')
+
+      const dpr = getDevicePixelRatio()
+      Object.assign(canvas.style, {
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: `${window.innerWidth}px`,
+        height: `${window.innerHeight}px`,
+        pointerEvents: 'none',
+        zIndex: '2147483647',
+      })
+
+      canvas.width = window.innerWidth * dpr
+      canvas.height = window.innerHeight * dpr
+
+      document.body.appendChild(canvas)
+
+      this._canvas = canvas
+      this._ctx = canvas.getContext('2d')
+      this._ctx?.scale(dpr, dpr)
     }
 
-    const canvas = document.createElement('canvas')
-    canvas.setAttribute(CONFIG.attributes.devtools, 'mutation-canvas')
-
-    const dpr = getDevicePixelRatio()
-    Object.assign(canvas.style, {
-      position: 'fixed',
-      top: '0',
-      left: '0',
-      width: `${window.innerWidth}px`,
-      height: `${window.innerHeight}px`,
-      pointerEvents: 'none',
-      zIndex: '2147483647',
-    })
-
-    canvas.width = window.innerWidth * dpr
-    canvas.height = window.innerHeight * dpr
-
-    document.body.appendChild(canvas)
-
-    this._canvas = canvas
-    this._ctx = canvas.getContext('2d')
-    this._ctx?.scale(dpr, dpr)
-
-    // Setup resize handler
+    // Always setup resize handler regardless of canvas reuse
+    if (this._resizeHandler) {
+      this._resizeHandler.cancel()
+      window.removeEventListener('resize', this._resizeHandler)
+    }
     this._resizeHandler = debounce(() => this._handleResize(), CONFIG.intervals.resizeDebounce)
     window.addEventListener('resize', this._resizeHandler)
   }
