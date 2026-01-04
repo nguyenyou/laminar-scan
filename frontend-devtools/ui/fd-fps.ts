@@ -13,6 +13,17 @@ export class FdFps extends LitElement {
 
   @state() private _displayFps: number = 0
 
+  private _handleClick(): void {
+    this.active = !this.active
+    this.dispatchEvent(
+      new CustomEvent('change', {
+        detail: { active: this.active },
+        bubbles: true,
+        composed: true,
+      })
+    )
+  }
+
   connectedCallback(): void {
     super.connectedCallback()
     this._start()
@@ -65,7 +76,7 @@ export class FdFps extends LitElement {
 
   render() {
     return html`
-      <button class="devtools-meter" @click=${() => this.active = !this.active}>
+      <button class="devtools-meter" @click=${this._handleClick}>
         <span class="devtools-meter-value" style="color: ${this._getColor()}">${this._displayFps}</span>
         <span class="devtools-meter-label">FPS</span>
       </button>
@@ -83,15 +94,17 @@ export class FdFps extends LitElement {
       padding: 0 8px;
       height: 24px;
       border-radius: 6px;
+      white-space: nowrap;
       font-family: var(--fd-mono);
-      background: _141414;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      background: #141414;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s;
     }
 
     .devtools-meter:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: #1a1a1a;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
     }
 
     .devtools-meter-value {
@@ -117,8 +130,6 @@ export class FdFps extends LitElement {
       white-space: nowrap;
       transition: color 0.15s ease-in-out;
     }
-
-    /* Active state - similar to fd-button */
 
     :host([active]) .devtools-meter {
       box-shadow: inset 0 0 0 1px rgba(142, 97, 230, 0.4);

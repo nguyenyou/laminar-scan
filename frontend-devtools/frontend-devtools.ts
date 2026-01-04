@@ -51,6 +51,10 @@ export class FrontendDevtools extends LitElement {
     this._inspectActive = e.detail.active
   }
 
+  private _handleFpsChange(e: CustomEvent<{ active: boolean }>) {
+    this._showLagRadar = e.detail.active
+  }
+
   render() {
     if (!this._enabled) {
       return null
@@ -64,9 +68,8 @@ export class FrontendDevtools extends LitElement {
             @change=${this._handleInspectChange}
           ></fd-inspect>
           <fd-fps
-            @active-change=${(e: CustomEvent<{ active: boolean }>) => {
-              this._showLagRadar = e.detail.active
-            }}
+            .active=${this._showLagRadar}
+            @change=${this._handleFpsChange}
           ></fd-fps>
           <fd-mem></fd-mem>
           <fd-dom-mutation
