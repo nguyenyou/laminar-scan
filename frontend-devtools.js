@@ -4038,7 +4038,8 @@ var designTokens = css`
 var StorageKeys = {
   DEVTOOLS_ENABLED: "FRONTEND_DEVTOOLS_ENABLED",
   ACTIVE_WIDGETS: "FRONTEND_DEVTOOLS_ACTIVE_WIDGETS",
-  MUTATION_SCAN_ACTIVE: "FRONTEND_DEVTOOLS_MUTATION_SCAN_ACTIVE"
+  MUTATION_SCAN_ACTIVE: "FRONTEND_DEVTOOLS_MUTATION_SCAN_ACTIVE",
+  PANEL_POSITION: "FRONTEND_DEVTOOLS_PANEL_POSITION"
 };
 
 class PersistenceStorage {
@@ -4085,6 +4086,7 @@ var DevtoolsAPI = {
   }
 };
 window.Devtools = DevtoolsAPI;
+var DEFAULT_PANEL_POSITION = "top-right";
 
 class FrontendDevtools extends LitElement {
   _enabled;
@@ -4093,9 +4095,11 @@ class FrontendDevtools extends LitElement {
     this._inspectActive = false;
     this._mutationScanActive = false;
     this._activeWidgets = [];
+    this._panelPosition = DEFAULT_PANEL_POSITION;
     this._enabled = persistenceStorage.getBoolean(StorageKeys.DEVTOOLS_ENABLED);
     this._mutationScanActive = persistenceStorage.getBoolean(StorageKeys.MUTATION_SCAN_ACTIVE);
     this._activeWidgets = persistenceStorage.getArray(StorageKeys.ACTIVE_WIDGETS);
+    this._panelPosition = persistenceStorage.get(StorageKeys.PANEL_POSITION) || DEFAULT_PANEL_POSITION;
   }
   _handleDomMutationChange(e) {
     this._mutationScanActive = e.detail.checked;
@@ -4124,6 +4128,10 @@ class FrontendDevtools extends LitElement {
   _handleMemChange(e) {
     this._toggleWidget("MEM_CHART", e.detail.active);
   }
+  _handlePositionChange(e) {
+    this._panelPosition = e.detail.position;
+    persistenceStorage.set(StorageKeys.PANEL_POSITION, e.detail.position);
+  }
   _renderWidget(widget) {
     switch (widget) {
       case "LAG_RADAR":
@@ -4139,7 +4147,7 @@ class FrontendDevtools extends LitElement {
       return null;
     }
     return html`
-      <fd-panel position="top-right">
+      <fd-panel position=${this._panelPosition} @position-change=${this._handlePositionChange}>
         <fd-toolbar>
           <fd-inspect
             .active=${this._inspectActive}
@@ -4208,6 +4216,9 @@ __legacyDecorateClassTS([
 __legacyDecorateClassTS([
   state()
 ], FrontendDevtools.prototype, "_activeWidgets", undefined);
+__legacyDecorateClassTS([
+  state()
+], FrontendDevtools.prototype, "_panelPosition", undefined);
 FrontendDevtools = __legacyDecorateClassTS([
   customElement("frontend-devtools")
 ], FrontendDevtools);

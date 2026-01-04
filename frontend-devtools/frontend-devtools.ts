@@ -4,6 +4,7 @@ import './ui/fd-inspect'
 import './ui/fd-dom-stats'
 import './ui/fd-toolbar'
 import './ui/fd-panel'
+import type { PanelPosition } from './ui/fd-panel'
 import './ui/fd-fps'
 import './ui/fd-mem'
 import './ui/fd-lag-radar'
@@ -30,6 +31,8 @@ const DevtoolsAPI = {
 
 type PanelWidget = 'LAG_RADAR' | 'DOM_STATS' | 'MEM_CHART'
 
+const DEFAULT_PANEL_POSITION: PanelPosition = 'top-right'
+
 @customElement('frontend-devtools')
 export class FrontendDevtools extends LitElement {
   private _enabled: boolean
@@ -43,11 +46,16 @@ export class FrontendDevtools extends LitElement {
   @state()
   private _activeWidgets: PanelWidget[] = []
 
+  @state()
+  private _panelPosition: PanelPosition = DEFAULT_PANEL_POSITION
+
   constructor() {
     super()
     this._enabled = persistenceStorage.getBoolean(StorageKeys.DEVTOOLS_ENABLED)
     this._mutationScanActive = persistenceStorage.getBoolean(StorageKeys.MUTATION_SCAN_ACTIVE)
     this._activeWidgets = persistenceStorage.getArray<PanelWidget>(StorageKeys.ACTIVE_WIDGETS)
+    this._panelPosition =
+      (persistenceStorage.get(StorageKeys.PANEL_POSITION) as PanelPosition) || DEFAULT_PANEL_POSITION
   }
 
   private _handleDomMutationChange(e: CustomEvent<{ checked: boolean }>) {
@@ -85,6 +93,11 @@ export class FrontendDevtools extends LitElement {
     this._toggleWidget('MEM_CHART', e.detail.active)
   }
 
+  private _handlePositionChange(e: CustomEvent<{ position: PanelPosition }>) {
+    this._panelPosition = e.detail.position
+    persistenceStorage.set(StorageKeys.PANEL_POSITION, e.detail.position)
+  }
+
   private _renderWidget(widget: PanelWidget) {
     switch (widget) {
       case 'LAG_RADAR':
@@ -102,7 +115,7 @@ export class FrontendDevtools extends LitElement {
     }
 
     return html`
-      <fd-panel position="top-right">
+      <fd-panel position=${this._panelPosition} @position-change=${this._handlePositionChange}>
         <fd-toolbar>
           <fd-inspect
             .active=${this._inspectActive}
