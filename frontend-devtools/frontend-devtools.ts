@@ -40,7 +40,7 @@ export class FrontendDevtools extends LitElement {
   private _showLagRadar = false
 
   @state()
-  private _showDomStats = false
+  private _showDomStats = true
 
   constructor() {
     super()
