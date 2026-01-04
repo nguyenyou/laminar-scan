@@ -1,26 +1,13 @@
 import { LitElement, css, html } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
+import { calculatePositionForCorner } from '../core/utils'
+import { DRAG_CONFIG } from '../core/config'
 
 export type PanelPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 
-interface Position {
+export interface Position {
   x: number
   y: number
-}
-
-// Drag configuration (ported from DragController)
-const DRAG_CONFIG = {
-  thresholds: {
-    dragStart: 5,      // Pixels to move before drag initiates
-    snapDistance: 60,  // If moved less than this, return to original corner
-    directionThreshold: 40  // Threshold for determining drag direction
-  },
-  animation: {
-    snapTransitionMs: 300
-  },
-  dimensions: {
-    safeArea: 16  // Padding from viewport edges
-  }
 }
 
 /**
@@ -44,61 +31,73 @@ export class DtPanel extends LitElement {
   @property({ type: String, reflect: true })
   position: PanelPosition = 'top-right'
 
-  @property({ type: Boolean, reflect: true })
-  draggable = false
-
   @state()
   private _isDragging = false
+
+  @state()
+  private _panelSize: { width: number; height: number } = { width: 0, height: 0 }
 
   // Transform-based position (GPU accelerated)
   private _transformPos: Position = { x: 0, y: 0 }
   private _transitionTimeoutId: ReturnType<typeof setTimeout> | null = null
+  private _panelResizeObserver: ResizeObserver | null = null
 
   connectedCallback() {
     super.connectedCallback()
-    // Initialize position based on corner
-    this._updateTransformFromCorner()
+    this.addEventListener('pointerdown', this._handlePointerDown)
+
+    // Use ResizeObserver to set initial position once slotted content is laid out
+    this._panelResizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (!entry) return
+
+      // const { width, height } = entry
+      // this._panelSize = { width, height }
+      this._handlePanelResize(entry)
+      // if (width > 0 && height > 0) {
+      //   this._panelSize = { width, height }
+      //   this._updateTransformFromCorner()
+      //   // Disconnect after initial position is set - we don't need to track further resizes
+      //   this._resizeObserver?.disconnect()
+      // }
+    })
+    this._panelResizeObserver.observe(this)
   }
 
   disconnectedCallback() {
     super.disconnectedCallback()
+    this.removeEventListener('pointerdown', this._handlePointerDown)
     if (this._transitionTimeoutId) {
       clearTimeout(this._transitionTimeoutId)
       this._transitionTimeoutId = null
     }
+    if (this._panelResizeObserver) {
+      this._panelResizeObserver.disconnect()
+      this._panelResizeObserver = null
+    }
+  }
+
+  private _handlePanelResize(entry: ResizeObserverEntry) {
+    const borderBoxSize = entry.borderBoxSize[0]
+    if(borderBoxSize) {
+      this._panelSize = {
+        width: borderBoxSize.inlineSize,
+        height: borderBoxSize.blockSize
+      }
+    }
+    this._updateTransformFromCorner()
   }
 
   private _updateTransformFromCorner() {
-    const rect = this.getBoundingClientRect()
-    this._transformPos = this._calculatePositionForCorner(
+    this._transformPos = calculatePositionForCorner(
       this.position,
-      rect.width || 0,
-      rect.height || 0
+      this._panelSize.width,
+      this._panelSize.height
     )
     this._applyTransform(false)
   }
 
-  private _calculatePositionForCorner(corner: PanelPosition, width: number, height: number): Position {
-    const safeArea = DRAG_CONFIG.dimensions.safeArea
-    const rightX = window.innerWidth - width - safeArea
-    const bottomY = window.innerHeight - height - safeArea
-
-    switch (corner) {
-      case 'top-left':
-        return { x: safeArea, y: safeArea }
-      case 'top-right':
-        return { x: rightX, y: safeArea }
-      case 'bottom-left':
-        return { x: safeArea, y: bottomY }
-      case 'bottom-right':
-      default:
-        return { x: rightX, y: bottomY }
-    }
-  }
-
   private _handlePointerDown(e: PointerEvent) {
-    if (!this.draggable) return
-
     // Ignore clicks on interactive elements
     const target = e.target as HTMLElement
     if (target.closest('button') || target.closest('input') || target.closest('label') || target.closest('.clickable')) {
@@ -177,7 +176,7 @@ export class DtPanel extends LitElement {
 
       // If moved less than snap threshold, return to original corner
       if (totalMovement < DRAG_CONFIG.thresholds.snapDistance) {
-        this._transformPos = this._calculatePositionForCorner(
+        this._transformPos = calculatePositionForCorner(
           this.position,
           this.offsetWidth,
           this.offsetHeight
@@ -190,7 +189,7 @@ export class DtPanel extends LitElement {
       const newCorner = this._getBestCorner(lastMouseX, lastMouseY, initialMouseX, initialMouseY)
       const oldPosition = this.position
       this.position = newCorner
-      this._transformPos = this._calculatePositionForCorner(newCorner, this.offsetWidth, this.offsetHeight)
+      this._transformPos = calculatePositionForCorner(newCorner, this.offsetWidth, this.offsetHeight)
       this._applyTransform(true)
 
       if (oldPosition !== newCorner) {
@@ -296,20 +295,14 @@ export class DtPanel extends LitElement {
       cursor: grabbing;
     }
 
-    :host([draggable]) {
+    :host {
       cursor: grab;
       user-select: none;
       touch-action: none;
     }
   `
 
-  firstUpdated() {
-    if (this.draggable) {
-      this.addEventListener('pointerdown', this._handlePointerDown.bind(this))
-      // Initialize position after first render
-      requestAnimationFrame(() => this._updateTransformFromCorner())
-    }
-  }
+
 }
 
 declare global {
