@@ -67,8 +67,12 @@ export class FrontendDevtools extends LitElement {
     this._toggleWidget('LAG_RADAR', e.detail.active)
   }
 
-  private _handleDOM_STATSChange(e: CustomEvent<{ active: boolean }>) {
+  private _handleDomStatsChange(e: CustomEvent<{ active: boolean }>) {
     this._toggleWidget('DOM_STATS', e.detail.active)
+  }
+
+  private _handleMemChange(e: CustomEvent<{ active: boolean }>) {
+    this._toggleWidget('MEM_CHART', e.detail.active)
   }
 
   private _renderWidget(widget: PanelWidget) {
@@ -102,10 +106,13 @@ export class FrontendDevtools extends LitElement {
             .active=${this._activeWidgets.includes('LAG_RADAR')}
             @change=${this._handleFpsChange}
           ></fd-fps>
-          <fd-mem></fd-mem>
+          <fd-mem
+            .active=${this._activeWidgets.includes('MEM_CHART')}
+            @change=${this._handleMemChange}
+          ></fd-mem>
           <fd-toggle-button
             .active=${this._activeWidgets.includes('DOM_STATS')}
-            @change=${this._handleDOM_STATSChange}
+            @change=${this._handleDomStatsChange}
           >
             <fd-icon name="domTree"></fd-icon>
           </fd-toggle-button>

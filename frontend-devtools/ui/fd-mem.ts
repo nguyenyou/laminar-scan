@@ -1,28 +1,53 @@
 import { LitElement, css, html } from 'lit'
-import { customElement } from 'lit/decorators.js'
+import { customElement, property } from 'lit/decorators.js'
 
 @customElement('fd-mem')
 export class FdMem extends LitElement {
+  @property({ type: Boolean, reflect: true })
+  active = false
+
+  private _handleClick(): void {
+    this.active = !this.active
+    this.dispatchEvent(
+      new CustomEvent('change', {
+        detail: { active: this.active },
+        bubbles: true,
+        composed: true,
+      })
+    )
+  }
+
   render() {
     return html`
-      <div class="devtools-meter">
+      <button class="devtools-meter" @click=${this._handleClick}>
         <span class="devtools-meter-value memory">16</span>
         <span class="devtools-meter-label">MB</span>
-      </div>
+      </button>
     `
   }
 
   static styles = css`
     .devtools-meter {
+      appearance: none;
+      border: none;
+      outline: none;
       display: flex;
       align-items: center;
       gap: 4px;
       padding: 0 8px;
       height: 24px;
       border-radius: 6px;
-      font-family: ui-monospace, monospace;
+      white-space: nowrap;
+      font-family: var(--fd-font-mono);
       background: #141414;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .devtools-meter:hover {
+      background: #1a1a1a;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
     }
 
     .devtools-meter-value {
@@ -33,6 +58,7 @@ export class FdMem extends LitElement {
       min-width: 24px;
       text-align: center;
       color: #fff;
+      font-family: var(--fd-font-mono);
     }
 
     .devtools-meter-value.memory {
@@ -46,6 +72,11 @@ export class FdMem extends LitElement {
       font-weight: 500;
       letter-spacing: 0.025em;
       white-space: nowrap;
+      transition: color 0.15s ease-in-out;
+    }
+
+    :host([active]) .devtools-meter {
+      box-shadow: inset 0 0 0 1px rgba(142, 97, 230, 0.4);
     }
   `
 }

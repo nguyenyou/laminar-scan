@@ -8,6 +8,7 @@ const COMPONENTS = [
   "FD-SWITCH",
   "FD-DOM-MUTATION",
   "FD-FPS",
+  "FD-MEM",
   "FD-TOGGLE-BUTTON",
 ];
 
