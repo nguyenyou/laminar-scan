@@ -12,12 +12,7 @@ import {
 import {
   getReactComponent,
   getReactComponentSourceInfo,
-  getAllReactComponentsFromNode,
 } from '../core/react-inspector'
-
-// ============================================================================
-// Types
-// ============================================================================
 
 interface RectType {
   left: number
@@ -31,16 +26,6 @@ interface OverlayInfo {
   isReact?: boolean
 }
 
-
-// ============================================================================
-// FdComponentInspector Component
-// ============================================================================
-
-/**
- * Component inspector overlay for inspecting Scala and React components.
- * When active, shows an overlay highlighting the component under the cursor.
- * Click to open source in IDE (for Scala) or log component info (for React).
- */
 @customElement('fd-component-inspector')
 export class FdComponentInspector extends LitElement {
   @property({ type: Boolean, reflect: true })
@@ -57,11 +42,6 @@ export class FdComponentInspector extends LitElement {
   private _eventCatcher: HTMLDivElement | null = null
   private _lastHovered: Element | null = null
 
-
-  // ============================================================================
-  // Lifecycle
-  // ============================================================================
-
   protected override updated(changedProperties: Map<string, unknown>): void {
     if (changedProperties.has('active')) {
       if (this.active) {
@@ -76,10 +56,6 @@ export class FdComponentInspector extends LitElement {
     super.disconnectedCallback()
     this._stop()
   }
-
-  // ============================================================================
-  // Private Methods - Lifecycle
-  // ============================================================================
 
   private _start(): void {
     this._createCanvas()
@@ -115,10 +91,6 @@ export class FdComponentInspector extends LitElement {
     )
   }
 
-  // ============================================================================
-  // Private Methods - Canvas Management
-  // ============================================================================
-
   private _createCanvas(): void {
     if (this._canvas) return
 
@@ -127,7 +99,6 @@ export class FdComponentInspector extends LitElement {
       `[${CONFIG.attributes.devtools}="inspect-canvas"]`,
     ) as HTMLCanvasElement | null
     if (existing) {
-      console.warn('FdComponentInspector: Canvas already exists in DOM, reusing')
       this._canvas = existing
       this._ctx = existing.getContext('2d')
       return
@@ -202,10 +173,6 @@ export class FdComponentInspector extends LitElement {
     }
   }
 
-  // ============================================================================
-  // Private Methods - Event Catcher
-  // ============================================================================
-
   private _createEventCatcher(): void {
     if (this._eventCatcher) return
 
@@ -214,7 +181,6 @@ export class FdComponentInspector extends LitElement {
       `[${CONFIG.attributes.devtools}="event-catcher"]`,
     ) as HTMLDivElement | null
     if (existing) {
-      console.warn('FdComponentInspector: Event catcher already exists in DOM, reusing')
       this._eventCatcher = existing
       return
     }
@@ -243,10 +209,6 @@ export class FdComponentInspector extends LitElement {
     this._eventCatcher = null
   }
 
-  // ============================================================================
-  // Private Methods - Event Listeners
-  // ============================================================================
-
   private _addEventListeners(): void {
     document.addEventListener('pointermove', this._handlePointerMove, {
       passive: true,
@@ -261,10 +223,6 @@ export class FdComponentInspector extends LitElement {
     document.removeEventListener('click', this._handleClick, { capture: true })
     document.removeEventListener('keydown', this._handleKeydown)
   }
-
-  // ============================================================================
-  // Private Methods - Overlay Drawing
-  // ============================================================================
 
   private _clearOverlay(): void {
     this._currentRect = null
@@ -409,10 +367,6 @@ export class FdComponentInspector extends LitElement {
     this._ctx.fillText(displayName, pillX + pillPadding, pillY + pillHeight / 2)
   }
 
-  // ============================================================================
-  // Private Methods - Event Handlers
-  // ============================================================================
-
   private _handlePointerMove = (e: PointerEvent) => {
     if (!this.active) return
 
@@ -508,28 +462,10 @@ export class FdComponentInspector extends LitElement {
         return
       }
 
-      // Otherwise log React component info to console
-      console.group(`%c⚛ React Component: ${reactComponent.name}`, 'color: #61dafb; font-weight: bold;')
-      console.log('Element:', reactComponent.element)
-      if (info?.props) {
-        console.log('Props:', info.props)
-      }
-      if (info?.fiber) {
-        console.log('Fiber:', info.fiber)
-      }
-      // Also log the full component hierarchy
-      const hierarchy = getAllReactComponentsFromNode(reactComponent.element)
-      if (hierarchy.length > 1) {
-        console.log('Component hierarchy:', hierarchy.map((c) => c.name).join(' → '))
-      }
-      console.groupEnd()
-
       // Exit inspect mode after logging
       this.active = false
       return
     }
-
-    console.warn('FdComponentInspector: No component found for element')
   }
 
   private _handleKeydown = (e: KeyboardEvent) => {
@@ -537,10 +473,6 @@ export class FdComponentInspector extends LitElement {
       this.active = false
     }
   }
-
-  // ============================================================================
-  // Styles - None needed as canvas is appended to body
-  // ============================================================================
 
   static styles = css`
     :host {
