@@ -444,7 +444,6 @@ export class FdComponentInspector extends LitElement {
       const info = getComponentSourceInfo(scalaComponent.element)
       if (info?.sourcePath) {
         openInIDE(info.sourcePath, info.sourceLine)
-        // Exit inspect mode after jumping to source
         this.active = false
         return
       }
@@ -462,7 +461,6 @@ export class FdComponentInspector extends LitElement {
         return
       }
 
-      // Exit inspect mode after logging
       this.active = false
       return
     }
