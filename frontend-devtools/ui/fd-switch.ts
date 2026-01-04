@@ -1,8 +1,8 @@
 import { LitElement, css, html } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 
-@customElement('dt-switch')
-export class DtSwitch extends LitElement {
+@customElement('fd-switch')
+export class FdSwitch extends LitElement {
   @property({ type: Boolean, reflect: true })
   checked = false
 
@@ -96,6 +96,6 @@ export class DtSwitch extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'dt-switch': DtSwitch
+    'fd-switch': FdSwitch
   }
 }

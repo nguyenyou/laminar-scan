@@ -4,13 +4,13 @@ import { customElement, property } from 'lit/decorators.js'
 export type ToolbarOrientation = 'horizontal' | 'vertical'
 
 /**
- * dt-toolbar: Visual container for devtools tools
+ * fd-toolbar: Visual container for devtools tools
  *
  * Responsibility: Visual styling (background, shadows, border-radius),
  * layout (flexbox), and collapsed/expanded states.
  */
-@customElement('dt-toolbar')
-export class DtToolbar extends LitElement {
+@customElement('fd-toolbar')
+export class FdToolbar extends LitElement {
   @property({ type: Boolean, reflect: true })
   collapsed = false
 
@@ -51,6 +51,6 @@ export class DtToolbar extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'dt-toolbar': DtToolbar
+    'fd-toolbar': FdToolbar
   }
 }

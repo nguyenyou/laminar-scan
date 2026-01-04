@@ -10,8 +10,8 @@ export interface Position {
   y: number
 }
 
-@customElement('dt-panel')
-export class DtPanel extends LitElement {
+@customElement('fd-panel')
+export class FdPanel extends LitElement {
   @property({ type: String, reflect: true })
   position: PanelPosition = 'top-right'
 
@@ -72,7 +72,7 @@ export class DtPanel extends LitElement {
   private _handlePointerDown(e: PointerEvent) {
     // Ignore clicks on interactive elements
     const target = e.target as HTMLElement
-    
+
     if(["DT-SWITCH", "DT-DOM-MUTATION"].includes(target.tagName)) {
       return
     }
@@ -232,6 +232,6 @@ export class DtPanel extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'dt-panel': DtPanel
+    'fd-panel': FdPanel
   }
 }

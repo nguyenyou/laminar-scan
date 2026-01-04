@@ -1,8 +1,8 @@
 import { LitElement, css, html } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { customElement } from 'lit/decorators.js'
 
-@customElement('dt-lag-radar')
-export class DtLagRadar extends LitElement {
+@customElement('fd-lag-radar')
+export class FdLagRadar extends LitElement {
   render() {
     return html`
       <div>lag</div>
@@ -17,6 +17,6 @@ export class DtLagRadar extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'dt-lag-radar': DtLagRadar
+    'fd-lag-radar': FdLagRadar
   }
 }

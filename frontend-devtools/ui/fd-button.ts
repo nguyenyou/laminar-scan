@@ -1,8 +1,8 @@
 import { LitElement, css, html } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 
-@customElement('dt-button')
-export class DtButton extends LitElement {
+@customElement('fd-button')
+export class FdButton extends LitElement {
   @property({ type: String, reflect: true })
   size: 'default' | 'icon' = 'default'
 
@@ -110,7 +110,7 @@ export class DtButton extends LitElement {
 
     /* ===== Icon sizing ===== */
     ::slotted(svg),
-    ::slotted(dt-icon) {
+    ::slotted(fd-icon) {
       flex-shrink: 0;
       width: 16px;
       height: 16px;
@@ -120,6 +120,6 @@ export class DtButton extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'dt-button': DtButton
+    'fd-button': FdButton
   }
 }

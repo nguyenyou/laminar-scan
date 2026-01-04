@@ -28,8 +28,8 @@ const ICONS = {
 
 export type IconName = keyof typeof ICONS
 
-@customElement('dt-icon')
-export class DtIcon extends LitElement {
+@customElement('fd-icon')
+export class FdIcon extends LitElement {
   @property({ type: String, reflect: true })
   name: IconName = 'inspect'
 
@@ -75,6 +75,6 @@ export class DtIcon extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'dt-icon': DtIcon
+    'fd-icon': FdIcon
   }
 }

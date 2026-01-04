@@ -1,8 +1,8 @@
 import { LitElement, css, html } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { customElement } from 'lit/decorators.js'
 
-@customElement('dt-fps')
-export class DtFps extends LitElement {
+@customElement('fd-fps')
+export class FdFps extends LitElement {
   render() {
     return html`
       <div class="devtools-meter">
@@ -53,6 +53,6 @@ export class DtFps extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'dt-fps': DtFps
+    'fd-fps': FdFps
   }
 }

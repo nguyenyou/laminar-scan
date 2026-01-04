@@ -1,13 +1,13 @@
 import { LitElement, html } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
-import './ui/dt-dom-mutation'
-import './ui/dt-button'
-import './ui/dt-icon'
-import './ui/dt-toolbar'
-import './ui/dt-panel'
-import './ui/dt-fps'
-import './ui/dt-mem'
-import './ui/dt-lag-radar'
+import './ui/fd-inspect'
+import './ui/fd-dom-mutation'
+import './ui/fd-dom-stats'
+import './ui/fd-toolbar'
+import './ui/fd-panel'
+import './ui/fd-fps'
+import './ui/fd-mem'
+import './ui/fd-lag-radar'
 import { designTokens } from './design-tokens'
 import { persistenceStorage } from './core/persistence-storage'
 
@@ -44,8 +44,8 @@ export class FrontendDevtools extends LitElement {
     this._domMutationScan = e.detail.checked
   }
 
-  private _handleInspectClick() {
-    this._inspectActive = !this._inspectActive
+  private _handleInspectChange(e: CustomEvent<{ active: boolean }>) {
+    this._inspectActive = e.detail.active
   }
 
   render() {
@@ -54,26 +54,21 @@ export class FrontendDevtools extends LitElement {
     }
 
     return html`
-      <dt-panel position="top-right">
-        <dt-toolbar>
-          <dt-button
-            tooltip="Inspect component"
-            ?active=${this._inspectActive}
-            @click=${this._handleInspectClick}
-          >
-            <dt-icon name="inspect"></dt-icon>
-          </dt-button>
-          <dt-fps></dt-fps>
-          <dt-mem></dt-mem>
-          <dt-dom-mutation
+      <fd-panel position="top-right">
+        <fd-toolbar>
+          <fd-inspect
+            .active=${this._inspectActive}
+            @change=${this._handleInspectChange}
+          ></fd-inspect>
+          <fd-fps></fd-fps>
+          <fd-mem></fd-mem>
+          <fd-dom-mutation
             .checked=${this._domMutationScan}
             @change=${this._toggleDomMutationScan}
-          ></dt-dom-mutation>
-          <dt-button size="icon" tooltip="DOM Statistics">
-            <dt-icon name="domTree"></dt-icon>
-          </dt-button>
-        </dt-toolbar>
-      </dt-panel>
+          ></fd-dom-mutation>
+          <fd-dom-stats></fd-dom-stats>
+        </fd-toolbar>
+      </fd-panel>
     `
   }
 

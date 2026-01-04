@@ -1,9 +1,9 @@
 import { LitElement, css, html } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
-import './dt-switch'
+import './fd-switch'
 
-@customElement('dt-dom-mutation')
-export class DtDomMutation extends LitElement {
+@customElement('fd-dom-mutation')
+export class FdDomMutation extends LitElement {
   @property({ type: Boolean, reflect: true })
   checked = false
 
@@ -20,10 +20,10 @@ export class DtDomMutation extends LitElement {
 
   render() {
     return html`
-      <dt-switch
+      <fd-switch
         .checked=${this.checked}
         @change=${this._handleChange}
-      ></dt-switch>
+      ></fd-switch>
     `
   }
 
@@ -37,6 +37,6 @@ export class DtDomMutation extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'dt-dom-mutation': DtDomMutation
+    'fd-dom-mutation': FdDomMutation
   }
 }

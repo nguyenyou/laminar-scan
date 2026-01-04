@@ -1,8 +1,8 @@
 import { LitElement, css, html } from 'lit'
 import { customElement } from 'lit/decorators.js'
 
-@customElement('dt-mem')
-export class DtMem extends LitElement {
+@customElement('fd-mem')
+export class FdMem extends LitElement {
   render() {
     return html`
       <div class="devtools-meter">
@@ -53,6 +53,6 @@ export class DtMem extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'dt-mem': DtMem
+    'fd-mem': FdMem
   }
 }

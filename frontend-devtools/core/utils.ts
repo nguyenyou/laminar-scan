@@ -1,5 +1,5 @@
 import { DRAG_CONFIG } from './config'
-import type { PanelPosition, Position } from '../ui/dt-panel'
+import type { PanelPosition, Position } from '../ui/fd-panel'
 
 export function calculatePositionForCorner(corner: PanelPosition, width: number, height: number): Position {
   const safeArea = DRAG_CONFIG.dimensions.safeArea
