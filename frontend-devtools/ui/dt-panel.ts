@@ -1,6 +1,6 @@
 import { LitElement, css, html } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
-import { calculatePositionForCorner } from '../core/utils'
+import { calculatePositionForCorner, getBestCorner } from '../core/utils'
 import { DRAG_CONFIG } from '../core/config'
 
 export type PanelPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
@@ -46,20 +46,10 @@ export class DtPanel extends LitElement {
     super.connectedCallback()
     this.addEventListener('pointerdown', this._handlePointerDown)
 
-    // Use ResizeObserver to set initial position once slotted content is laid out
     this._panelResizeObserver = new ResizeObserver((entries) => {
       const entry = entries[0]
       if (!entry) return
-
-      // const { width, height } = entry
-      // this._panelSize = { width, height }
       this._handlePanelResize(entry)
-      // if (width > 0 && height > 0) {
-      //   this._panelSize = { width, height }
-      //   this._updateTransformFromCorner()
-      //   // Disconnect after initial position is set - we don't need to track further resizes
-      //   this._resizeObserver?.disconnect()
-      // }
     })
     this._panelResizeObserver.observe(this)
   }
@@ -186,7 +176,7 @@ export class DtPanel extends LitElement {
       }
 
       // Determine best corner based on drag direction and position
-      const newCorner = this._getBestCorner(lastMouseX, lastMouseY, initialMouseX, initialMouseY)
+      const newCorner = getBestCorner(lastMouseX, lastMouseY, initialMouseX, initialMouseY)
       const oldPosition = this.position
       this.position = newCorner
       this._transformPos = calculatePositionForCorner(newCorner, this.offsetWidth, this.offsetHeight)
@@ -206,41 +196,6 @@ export class DtPanel extends LitElement {
     document.addEventListener('pointermove', handlePointerMove)
     document.addEventListener('pointerup', handlePointerEnd)
     document.addEventListener('pointercancel', handlePointerEnd)
-  }
-
-  private _getBestCorner(mouseX: number, mouseY: number, initialMouseX: number, initialMouseY: number): PanelPosition {
-    const deltaX = mouseX - initialMouseX
-    const deltaY = mouseY - initialMouseY
-    const threshold = DRAG_CONFIG.thresholds.directionThreshold
-
-    const centerX = window.innerWidth / 2
-    const centerY = window.innerHeight / 2
-
-    const movingRight = deltaX > threshold
-    const movingLeft = deltaX < -threshold
-    const movingDown = deltaY > threshold
-    const movingUp = deltaY < -threshold
-
-    // Prioritize horizontal movement
-    if (movingRight || movingLeft) {
-      const isBottom = mouseY > centerY
-      return movingRight ? (isBottom ? 'bottom-right' : 'top-right') : isBottom ? 'bottom-left' : 'top-left'
-    }
-
-    // Then vertical movement
-    if (movingDown || movingUp) {
-      const isRight = mouseX > centerX
-      return movingDown ? (isRight ? 'bottom-right' : 'bottom-left') : isRight ? 'top-right' : 'top-left'
-    }
-
-    // Fallback to quadrant-based
-    return mouseX > centerX
-      ? mouseY > centerY
-        ? 'bottom-right'
-        : 'top-right'
-      : mouseY > centerY
-        ? 'bottom-left'
-        : 'top-left'
   }
 
   private _applyTransform(animate: boolean) {
