@@ -41,5 +41,4 @@ export const ICONS: Record<string, string> = {
     <path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/>
     <path d="M12 12V8"/>
   </svg>`,
-};
-
+}

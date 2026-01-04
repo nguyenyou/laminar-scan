@@ -5,100 +5,100 @@
 // ============================================================================
 
 interface ColorConfig {
-  primary: { r: number; g: number; b: number };
-  fpsGood: string;
-  fpsWarning: string;
-  fpsCritical: string;
-  memoryHealthy: string;
-  memoryWarning: string;
-  memoryCritical: string;
-  inspectStroke: string;
-  inspectFill: string;
-  inspectPillBg: string;
-  inspectPillText: string;
-  inspectMarkedStroke: string;
-  inspectMarkedFill: string;
-  inspectMarkedPillBg: string;
-  inspectMarkedPillText: string;
-  inspectReactStroke: string;
-  inspectReactFill: string;
-  inspectReactPillBg: string;
-  inspectReactPillText: string;
+  primary: { r: number; g: number; b: number }
+  fpsGood: string
+  fpsWarning: string
+  fpsCritical: string
+  memoryHealthy: string
+  memoryWarning: string
+  memoryCritical: string
+  inspectStroke: string
+  inspectFill: string
+  inspectPillBg: string
+  inspectPillText: string
+  inspectMarkedStroke: string
+  inspectMarkedFill: string
+  inspectMarkedPillBg: string
+  inspectMarkedPillText: string
+  inspectReactStroke: string
+  inspectReactFill: string
+  inspectReactPillBg: string
+  inspectReactPillText: string
 }
 
 interface AnimationConfig {
-  totalFrames: number;
-  interpolationSpeed: number;
-  snapTransitionMs: number;
-  tooltipFadeMs: number;
-  tooltipSlideMs: number;
+  totalFrames: number
+  interpolationSpeed: number
+  snapTransitionMs: number
+  tooltipFadeMs: number
+  tooltipSlideMs: number
 }
 
 interface DimensionsConfig {
-  toolbarWidth: number;
-  tooltipMinHeight: number;
-  safeArea: number;
-  collapsedHorizontal: { width: number; height: number };
-  collapsedVertical: { width: number; height: number };
-  radarSize: number;
+  toolbarWidth: number
+  tooltipMinHeight: number
+  safeArea: number
+  collapsedHorizontal: { width: number; height: number }
+  collapsedVertical: { width: number; height: number }
+  radarSize: number
 }
 
 interface ThresholdsConfig {
-  dragStart: number;
-  snapDistance: number;
-  collapseRatio: number;
-  expandDragDistance: number;
-  fpsWarning: number;
-  fpsCritical: number;
-  memoryWarning: number;
-  memoryCritical: number;
+  dragStart: number
+  snapDistance: number
+  collapseRatio: number
+  expandDragDistance: number
+  fpsWarning: number
+  fpsCritical: number
+  memoryWarning: number
+  memoryCritical: number
 }
 
 interface IntervalsConfig {
-  fpsDisplay: number;
-  memoryDisplay: number;
-  resizeDebounce: number;
-  tooltipShowDelay: number;
-  tooltipHideDelay: number;
+  fpsDisplay: number
+  memoryDisplay: number
+  resizeDebounce: number
+  tooltipShowDelay: number
+  tooltipHideDelay: number
 }
 
 interface AttributesConfig {
-  scalaComponent: string;
-  devtools: string;
+  scalaComponent: string
+  devtools: string
 }
 
 interface PropertiesConfig {
-  sourcePath: string;
-  sourceLine: string;
-  filename: string;
-  name: string;
-  markAsComponent: string;
+  sourcePath: string
+  sourceLine: string
+  filename: string
+  name: string
+  markAsComponent: string
 }
 
 interface StorageKeysConfig {
-  position: string;
-  collapsed: string;
-  enabled: string;
-  scanning: string;
-  domStatsPinned: string;
-  lagRadarPinned: string;
+  position: string
+  collapsed: string
+  enabled: string
+  scanning: string
+  domStatsPinned: string
+  lagRadarPinned: string
 }
 
 interface FontsConfig {
-  mono: string;
-  ui: string;
+  mono: string
+  ui: string
 }
 
 interface ConfigType {
-  colors: ColorConfig;
-  animation: AnimationConfig;
-  dimensions: DimensionsConfig;
-  thresholds: ThresholdsConfig;
-  intervals: IntervalsConfig;
-  attributes: AttributesConfig;
-  properties: PropertiesConfig;
-  storageKeys: StorageKeysConfig;
-  fonts: FontsConfig;
+  colors: ColorConfig
+  animation: AnimationConfig
+  dimensions: DimensionsConfig
+  thresholds: ThresholdsConfig
+  intervals: IntervalsConfig
+  attributes: AttributesConfig
+  properties: PropertiesConfig
+  storageKeys: StorageKeysConfig
+  fonts: FontsConfig
 }
 
 /**
@@ -108,24 +108,24 @@ interface ConfigType {
 export const CONFIG: ConfigType = {
   colors: {
     primary: { r: 115, g: 97, b: 230 },
-    fpsGood: "rgb(214,132,245)",
-    fpsWarning: "#F59E0B",
-    fpsCritical: "#EF4444",
-    memoryHealthy: "#6EE7B7",
-    memoryWarning: "#F59E0B",
-    memoryCritical: "#EF4444",
-    inspectStroke: "rgba(142, 97, 227, 0.5)",
-    inspectFill: "rgba(173, 97, 230, 0.10)",
-    inspectPillBg: "rgba(37, 37, 38, 0.75)",
-    inspectPillText: "white",
-    inspectMarkedStroke: "rgba(79, 192, 255, 0.6)",
-    inspectMarkedFill: "rgba(79, 192, 255, 0.10)",
-    inspectMarkedPillBg: "rgba(20, 60, 80, 0.85)",
-    inspectMarkedPillText: "#79c0ff",
-    inspectReactStroke: "rgba(97, 218, 251, 0.6)",
-    inspectReactFill: "rgba(97, 218, 251, 0.10)",
-    inspectReactPillBg: "rgba(20, 44, 52, 0.90)",
-    inspectReactPillText: "#61dafb",
+    fpsGood: 'rgb(214,132,245)',
+    fpsWarning: '#F59E0B',
+    fpsCritical: '#EF4444',
+    memoryHealthy: '#6EE7B7',
+    memoryWarning: '#F59E0B',
+    memoryCritical: '#EF4444',
+    inspectStroke: 'rgba(142, 97, 227, 0.5)',
+    inspectFill: 'rgba(173, 97, 230, 0.10)',
+    inspectPillBg: 'rgba(37, 37, 38, 0.75)',
+    inspectPillText: 'white',
+    inspectMarkedStroke: 'rgba(79, 192, 255, 0.6)',
+    inspectMarkedFill: 'rgba(79, 192, 255, 0.10)',
+    inspectMarkedPillBg: 'rgba(20, 60, 80, 0.85)',
+    inspectMarkedPillText: '#79c0ff',
+    inspectReactStroke: 'rgba(97, 218, 251, 0.6)',
+    inspectReactFill: 'rgba(97, 218, 251, 0.10)',
+    inspectReactPillBg: 'rgba(20, 44, 52, 0.90)',
+    inspectReactPillText: '#61dafb',
   },
 
   animation: {
@@ -165,30 +165,29 @@ export const CONFIG: ConfigType = {
   },
 
   attributes: {
-    scalaComponent: "data-scala",
-    devtools: "data-frontend-devtools",
+    scalaComponent: 'data-scala',
+    devtools: 'data-frontend-devtools',
   },
 
   properties: {
-    sourcePath: "__scalasourcepath",
-    sourceLine: "__scalasourceline",
-    filename: "__scalafilename",
-    name: "__scalaname",
-    markAsComponent: "__markascomponent",
+    sourcePath: '__scalasourcepath',
+    sourceLine: '__scalasourceline',
+    filename: '__scalafilename',
+    name: '__scalaname',
+    markAsComponent: '__markascomponent',
   },
 
   storageKeys: {
-    position: "FRONTEND_DEVTOOLS_POSITION",
-    collapsed: "FRONTEND_DEVTOOLS_COLLAPSED",
-    enabled: "FRONTEND_DEVTOOLS_ENABLED",
-    scanning: "FRONTEND_DEVTOOLS_SCANNING",
-    domStatsPinned: "FRONTEND_DEVTOOLS_DOM_STATS_PINNED",
-    lagRadarPinned: "FRONTEND_DEVTOOLS_LAG_RADAR_PINNED",
+    position: 'FRONTEND_DEVTOOLS_POSITION',
+    collapsed: 'FRONTEND_DEVTOOLS_COLLAPSED',
+    enabled: 'FRONTEND_DEVTOOLS_ENABLED',
+    scanning: 'FRONTEND_DEVTOOLS_SCANNING',
+    domStatsPinned: 'FRONTEND_DEVTOOLS_DOM_STATS_PINNED',
+    lagRadarPinned: 'FRONTEND_DEVTOOLS_LAG_RADAR_PINNED',
   },
 
   fonts: {
-    mono: "11px Menlo,Consolas,Monaco,Liberation Mono,Lucida Console,monospace",
-    ui: "system-ui, -apple-system, sans-serif",
+    mono: '11px Menlo,Consolas,Monaco,Liberation Mono,Lucida Console,monospace',
+    ui: 'system-ui, -apple-system, sans-serif',
   },
-};
-
+}

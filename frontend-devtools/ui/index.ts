@@ -6,4 +6,3 @@ export { DtToolbar } from './dt-toolbar'
 export type { ToolbarOrientation } from './dt-toolbar'
 export { DtPanel } from './dt-panel'
 export type { PanelPosition } from './dt-panel'
-

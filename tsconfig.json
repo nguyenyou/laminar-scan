@@ -8,7 +8,6 @@
     // Lit
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
-    
 
     // Module Resolution
     "module": "ESNext",
@@ -42,19 +41,8 @@
     "noUncheckedSideEffectImports": true,
 
     // Completeness
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
-  "include": [
-    "devtools/**/*",
-    "frontend-devtools/**/*",
-    "*.js",
-    "*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "out",
-    ".git"
-  ]
+  "include": ["devtools/**/*", "frontend-devtools/**/*", "*.js", "*.ts"],
+  "exclude": ["node_modules", "dist", "out", ".git"]
 }
-

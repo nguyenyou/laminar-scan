@@ -4,16 +4,16 @@
 // Centralized localStorage operations with error handling.
 // ============================================================================
 
-import { CONFIG } from "./config";
+import { CONFIG } from './config'
 
 interface ToolbarPosition {
-  corner: string;
-  position: { x: number; y: number };
+  corner: string
+  position: { x: number; y: number }
 }
 
 interface CollapsedState {
-  corner: string;
-  orientation: string;
+  corner: string
+  orientation: string
 }
 
 /**
@@ -29,11 +29,11 @@ export class StorageManager {
    */
   static get<T = any>(key: string, defaultValue: T | null = null): T | null {
     try {
-      const value = localStorage.getItem(key);
-      if (value === null) return defaultValue;
-      return JSON.parse(value) as T;
+      const value = localStorage.getItem(key)
+      if (value === null) return defaultValue
+      return JSON.parse(value) as T
     } catch {
-      return defaultValue;
+      return defaultValue
     }
   }
 
@@ -43,11 +43,11 @@ export class StorageManager {
    * @param defaultValue - Default value if key doesn't exist
    * @returns Raw string value
    */
-  static getString(key: string, defaultValue: string = ""): string {
+  static getString(key: string, defaultValue: string = ''): string {
     try {
-      return localStorage.getItem(key) ?? defaultValue;
+      return localStorage.getItem(key) ?? defaultValue
     } catch {
-      return defaultValue;
+      return defaultValue
     }
   }
 
@@ -59,10 +59,10 @@ export class StorageManager {
    */
   static set(key: string, value: any): boolean {
     try {
-      localStorage.setItem(key, JSON.stringify(value));
-      return true;
+      localStorage.setItem(key, JSON.stringify(value))
+      return true
     } catch {
-      return false;
+      return false
     }
   }
 
@@ -74,10 +74,10 @@ export class StorageManager {
    */
   static setString(key: string, value: string): boolean {
     try {
-      localStorage.setItem(key, value);
-      return true;
+      localStorage.setItem(key, value)
+      return true
     } catch {
-      return false;
+      return false
     }
   }
 
@@ -88,10 +88,10 @@ export class StorageManager {
    */
   static remove(key: string): boolean {
     try {
-      localStorage.removeItem(key);
-      return true;
+      localStorage.removeItem(key)
+      return true
     } catch {
-      return false;
+      return false
     }
   }
 
@@ -101,7 +101,7 @@ export class StorageManager {
    * @returns True if enabled
    */
   static isDevtoolsEnabled(): boolean {
-    return this.getString(CONFIG.storageKeys.enabled) !== "false";
+    return this.getString(CONFIG.storageKeys.enabled) !== 'false'
   }
 
   /**
@@ -109,7 +109,7 @@ export class StorageManager {
    * @returns True if scanning is enabled
    */
   static isScanningEnabled(): boolean {
-    return this.getString(CONFIG.storageKeys.scanning) === "true";
+    return this.getString(CONFIG.storageKeys.scanning) === 'true'
   }
 
   /**
@@ -117,7 +117,7 @@ export class StorageManager {
    * @param enabled - Whether scanning is enabled
    */
   static setScanningEnabled(enabled: boolean): void {
-    this.setString(CONFIG.storageKeys.scanning, enabled ? "true" : "false");
+    this.setString(CONFIG.storageKeys.scanning, enabled ? 'true' : 'false')
   }
 
   /**
@@ -125,7 +125,7 @@ export class StorageManager {
    * @returns Toolbar position or null
    */
   static getToolbarPosition(): ToolbarPosition | null {
-    return this.get<ToolbarPosition>(CONFIG.storageKeys.position, null);
+    return this.get<ToolbarPosition>(CONFIG.storageKeys.position, null)
   }
 
   /**
@@ -134,7 +134,7 @@ export class StorageManager {
    * @param position - Position coordinates
    */
   static setToolbarPosition(corner: string, position: { x: number; y: number }): void {
-    this.set(CONFIG.storageKeys.position, { corner, position });
+    this.set(CONFIG.storageKeys.position, { corner, position })
   }
 
   /**
@@ -142,7 +142,7 @@ export class StorageManager {
    * @returns Collapsed state or null
    */
   static getCollapsedState(): CollapsedState | null {
-    return this.get<CollapsedState>(CONFIG.storageKeys.collapsed, null);
+    return this.get<CollapsedState>(CONFIG.storageKeys.collapsed, null)
   }
 
   /**
@@ -150,7 +150,7 @@ export class StorageManager {
    * @param state - Collapsed state or null
    */
   static setCollapsedState(state: CollapsedState | null): void {
-    this.set(CONFIG.storageKeys.collapsed, state);
+    this.set(CONFIG.storageKeys.collapsed, state)
   }
 
   /**
@@ -158,7 +158,7 @@ export class StorageManager {
    * @returns True if pinned
    */
   static isDomStatsPinned(): boolean {
-    return this.getString(CONFIG.storageKeys.domStatsPinned) === "true";
+    return this.getString(CONFIG.storageKeys.domStatsPinned) === 'true'
   }
 
   /**
@@ -166,7 +166,7 @@ export class StorageManager {
    * @param pinned - Whether DOM stats is pinned
    */
   static setDomStatsPinned(pinned: boolean): void {
-    this.setString(CONFIG.storageKeys.domStatsPinned, pinned ? "true" : "false");
+    this.setString(CONFIG.storageKeys.domStatsPinned, pinned ? 'true' : 'false')
   }
 
   /**
@@ -174,7 +174,7 @@ export class StorageManager {
    * @returns True if pinned
    */
   static isLagRadarPinned(): boolean {
-    return this.getString(CONFIG.storageKeys.lagRadarPinned) === "true";
+    return this.getString(CONFIG.storageKeys.lagRadarPinned) === 'true'
   }
 
   /**
@@ -182,7 +182,6 @@ export class StorageManager {
    * @param pinned - Whether lag radar is pinned
    */
   static setLagRadarPinned(pinned: boolean): void {
-    this.setString(CONFIG.storageKeys.lagRadarPinned, pinned ? "true" : "false");
+    this.setString(CONFIG.storageKeys.lagRadarPinned, pinned ? 'true' : 'false')
   }
 }
-

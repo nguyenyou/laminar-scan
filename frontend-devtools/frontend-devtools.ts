@@ -1,26 +1,26 @@
-import { LitElement, html } from "lit";
-import { customElement, state } from "lit/decorators.js";
-import "./ui/dt-switch";
-import "./ui/dt-button";
-import "./ui/dt-icon";
-import "./ui/dt-toolbar";
-import "./ui/dt-panel";
-import { designTokens } from "./design-tokens";
+import { LitElement, html } from 'lit'
+import { customElement, state } from 'lit/decorators.js'
+import './ui/dt-switch'
+import './ui/dt-button'
+import './ui/dt-icon'
+import './ui/dt-toolbar'
+import './ui/dt-panel'
+import { designTokens } from './design-tokens'
 
-@customElement("frontend-devtools")
+@customElement('frontend-devtools')
 export class FrontendDevtools extends LitElement {
   @state()
-  private _enabled = false;
+  private _enabled = false
 
   @state()
-  private _inspectActive = false;
+  private _inspectActive = false
 
   private _handleToggle(e: CustomEvent<{ checked: boolean }>) {
-    this._enabled = e.detail.checked;
+    this._enabled = e.detail.checked
   }
 
   private _handleInspectClick() {
-    this._inspectActive = !this._inspectActive;
+    this._inspectActive = !this._inspectActive
   }
 
   render() {
@@ -43,14 +43,14 @@ export class FrontendDevtools extends LitElement {
           </dt-button>
         </dt-toolbar>
       </dt-panel>
-    `;
+    `
   }
 
-  static styles = [designTokens];
+  static styles = [designTokens]
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    "frontend-devtools": FrontendDevtools;
+    'frontend-devtools': FrontendDevtools
   }
 }

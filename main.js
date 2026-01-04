@@ -1,2 +1,2 @@
-import "./style.css";
-import "./out/www/fastLinkJS.dest/main.js"
+import './style.css'
+import './out/www/fastLinkJS.dest/main.js'

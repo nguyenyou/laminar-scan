@@ -54,4 +54,3 @@ declare global {
     'dt-toolbar': DtToolbar
   }
 }
-

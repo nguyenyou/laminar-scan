@@ -79,28 +79,29 @@ export class DtPanel extends LitElement {
 
   private _handlePanelResize(entry: ResizeObserverEntry) {
     const borderBoxSize = entry.borderBoxSize[0]
-    if(borderBoxSize) {
+    if (borderBoxSize) {
       this._panelSize = {
         width: borderBoxSize.inlineSize,
-        height: borderBoxSize.blockSize
+        height: borderBoxSize.blockSize,
       }
     }
     this._updateTransformFromCorner()
   }
 
   private _updateTransformFromCorner() {
-    this._transformPos = calculatePositionForCorner(
-      this.position,
-      this._panelSize.width,
-      this._panelSize.height
-    )
+    this._transformPos = calculatePositionForCorner(this.position, this._panelSize.width, this._panelSize.height)
     this._applyTransform(false)
   }
 
   private _handlePointerDown(e: PointerEvent) {
     // Ignore clicks on interactive elements
     const target = e.target as HTMLElement
-    if (target.closest('button') || target.closest('input') || target.closest('label') || target.closest('.clickable')) {
+    if (
+      target.closest('button') ||
+      target.closest('input') ||
+      target.closest('label') ||
+      target.closest('.clickable')
+    ) {
       return
     }
 
@@ -134,7 +135,10 @@ export class DtPanel extends LitElement {
         const deltaY = lastMouseY - initialMouseY
 
         // Check if we've moved enough to start dragging
-        if (!hasMoved && (Math.abs(deltaX) > DRAG_CONFIG.thresholds.dragStart || Math.abs(deltaY) > DRAG_CONFIG.thresholds.dragStart)) {
+        if (
+          !hasMoved &&
+          (Math.abs(deltaX) > DRAG_CONFIG.thresholds.dragStart || Math.abs(deltaY) > DRAG_CONFIG.thresholds.dragStart)
+        ) {
           hasMoved = true
           this._isDragging = true
           this.dispatchEvent(new CustomEvent('drag-start', { bubbles: true, composed: true }))
@@ -176,11 +180,7 @@ export class DtPanel extends LitElement {
 
       // If moved less than snap threshold, return to original corner
       if (totalMovement < DRAG_CONFIG.thresholds.snapDistance) {
-        this._transformPos = calculatePositionForCorner(
-          this.position,
-          this.offsetWidth,
-          this.offsetHeight
-        )
+        this._transformPos = calculatePositionForCorner(this.position, this.offsetWidth, this.offsetHeight)
         this._applyTransform(true)
         return
       }
@@ -193,11 +193,13 @@ export class DtPanel extends LitElement {
       this._applyTransform(true)
 
       if (oldPosition !== newCorner) {
-        this.dispatchEvent(new CustomEvent('position-change', {
-          detail: { position: newCorner, previousPosition: oldPosition },
-          bubbles: true,
-          composed: true
-        }))
+        this.dispatchEvent(
+          new CustomEvent('position-change', {
+            detail: { position: newCorner, previousPosition: oldPosition },
+            bubbles: true,
+            composed: true,
+          }),
+        )
       }
     }
 
@@ -222,23 +224,23 @@ export class DtPanel extends LitElement {
     // Prioritize horizontal movement
     if (movingRight || movingLeft) {
       const isBottom = mouseY > centerY
-      return movingRight
-        ? (isBottom ? 'bottom-right' : 'top-right')
-        : (isBottom ? 'bottom-left' : 'top-left')
+      return movingRight ? (isBottom ? 'bottom-right' : 'top-right') : isBottom ? 'bottom-left' : 'top-left'
     }
 
     // Then vertical movement
     if (movingDown || movingUp) {
       const isRight = mouseX > centerX
-      return movingDown
-        ? (isRight ? 'bottom-right' : 'bottom-left')
-        : (isRight ? 'top-right' : 'top-left')
+      return movingDown ? (isRight ? 'bottom-right' : 'bottom-left') : isRight ? 'top-right' : 'top-left'
     }
 
     // Fallback to quadrant-based
     return mouseX > centerX
-      ? (mouseY > centerY ? 'bottom-right' : 'top-right')
-      : (mouseY > centerY ? 'bottom-left' : 'top-left')
+      ? mouseY > centerY
+        ? 'bottom-right'
+        : 'top-right'
+      : mouseY > centerY
+        ? 'bottom-left'
+        : 'top-left'
   }
 
   private _applyTransform(animate: boolean) {
@@ -301,8 +303,6 @@ export class DtPanel extends LitElement {
       touch-action: none;
     }
   `
-
-
 }
 
 declare global {
@@ -310,4 +310,3 @@ declare global {
     'dt-panel': DtPanel
   }
 }
-

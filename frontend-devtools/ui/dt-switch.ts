@@ -14,7 +14,7 @@ export class DtSwitch extends LitElement {
         detail: { checked: this.checked },
         bubbles: true,
         composed: true,
-      })
+      }),
     )
   }
 
@@ -99,4 +99,3 @@ declare global {
     'dt-switch': DtSwitch
   }
 }
-

@@ -28,10 +28,9 @@ const ICONS = {
 
 export type IconName = keyof typeof ICONS
 
-
 @customElement('dt-icon')
 export class DtIcon extends LitElement {
-  @property({type: String, reflect: true })
+  @property({ type: String, reflect: true })
   name: IconName = 'inspect'
 
   @property({ type: Number })
@@ -79,4 +78,3 @@ declare global {
     'dt-icon': DtIcon
   }
 }
-

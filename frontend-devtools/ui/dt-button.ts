@@ -123,4 +123,3 @@ declare global {
     'dt-button': DtButton
   }
 }
-

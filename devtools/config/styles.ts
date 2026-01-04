@@ -5,7 +5,7 @@
 // Injected into Shadow DOM for style isolation.
 // ============================================================================
 
-import { CONFIG } from "./constants";
+import { CONFIG } from './constants'
 
 /**
  * CSS styles for the toolbar and its components.
@@ -591,5 +591,4 @@ export const STYLES: string = `
   .devtools-toolbar.collapsed .devtools-tooltip {
     display: none;
   }
-`;
-
+`

@@ -1,4 +1,4 @@
-import { css } from "lit";
+import { css } from 'lit'
 
 export const designTokens = css`
   :host {
@@ -136,4 +136,4 @@ export const designTokens = css`
     --dt-opacity-almost-opaque: 0.9;
     --dt-opacity-almost-transparent: 0.1;
   }
-`;
+`
