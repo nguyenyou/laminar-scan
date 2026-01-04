@@ -7,6 +7,7 @@ import './ui/dt-toolbar'
 import './ui/dt-panel'
 import './ui/dt-fps'
 import './ui/dt-mem'
+import './ui/dt-lag-radar'
 import { designTokens } from './design-tokens'
 import { persistenceStorage } from './core/persistence-storage'
 
