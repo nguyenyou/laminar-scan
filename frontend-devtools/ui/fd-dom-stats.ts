@@ -11,9 +11,32 @@ export class FdDomStats extends LitElement {
   @state()
   private _tagCounts: TagCount[] = []
 
+  private _interval: number = 1000
+
+  private _updateIntervalId: ReturnType<typeof setInterval> | null = null
+
   connectedCallback() {
     super.connectedCallback()
     this._calculateDomStats()
+    this._startUpdateInterval()
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback()
+    this._stopUpdateInterval()
+  }
+
+  private _startUpdateInterval() {
+    this._updateIntervalId = setInterval(() => {
+      this._calculateDomStats()
+    }, this._interval)
+  }
+
+  private _stopUpdateInterval() {
+    if (this._updateIntervalId) {
+      clearInterval(this._updateIntervalId)
+      this._updateIntervalId = null
+    }
   }
 
   private _calculateDomStats() {
@@ -48,20 +71,20 @@ export class FdDomStats extends LitElement {
   static styles = css`
     :host {
       display: block;
-      background: #1a1a1a;
-      border-radius: 8px;
-      padding: 12px;
-      font-family: 11px Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
-      color: #e0e0e0;
       max-height: 400px;
-      overflow-y: auto;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 
     .dom-stats-container {
       display: flex;
       flex-direction: column;
       gap: 4px;
+      background: #1a1a1a;
+      border-radius: 8px;
+      padding: 12px;
+      color: #e0e0e0;
+      max-height: 100%;
+      overflow-y: auto;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 
     .dom-stats-row {
