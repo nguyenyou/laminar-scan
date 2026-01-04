@@ -1,19 +1,9 @@
 import { LitElement, css, html } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
-
-// Extend Performance interface for Chrome's memory API
-interface PerformanceMemory {
-  usedJSHeapSize: number
-  totalJSHeapSize: number
-  jsHeapSizeLimit: number
-}
-
-interface ExtendedPerformance extends Performance {
-  memory?: PerformanceMemory
-}
+import { FdMemObserver } from '../core/fd-mem-observer'
+import type { MemoryInfo } from '../core/fd-mem-observer'
 
 const MAX_POINTS = 120
-const SAMPLE_INTERVAL = 1000 // 1 second
 const Y_AXIS_WIDTH = 48 // Width reserved for Y-axis labels (supports up to 9999MB)
 const CHART_PADDING = 2
 const CHART_TOP_MARGIN = 10 // Extra top margin for axis label visibility
@@ -32,18 +22,21 @@ export class FdMemChart extends LitElement {
   @state()
   private _width = 200
 
-  private _intervalId: number | null = null
+  private _unsubscribe: (() => void) | null = null
   private _resizeObserver: ResizeObserver | null = null
 
   connectedCallback(): void {
     super.connectedCallback()
     this._initializeData()
-    this._startSampling()
+    this._unsubscribe = FdMemObserver.subscribe((info) => {
+      this._handleMemoryUpdate(info)
+    })
     this._setupResizeObserver()
   }
 
   disconnectedCallback(): void {
-    this._stopSampling()
+    this._unsubscribe?.()
+    this._unsubscribe = null
     this._cleanupResizeObserver()
     super.disconnectedCallback()
   }
@@ -71,46 +64,12 @@ export class FdMemChart extends LitElement {
   private _initializeData(): void {
     // Initialize with zeros
     this._dataPoints = new Array(MAX_POINTS).fill(0)
-    // Take initial sample
-    this._sampleMemory()
   }
 
-  private _startSampling(): void {
-    if (this._intervalId !== null) return
-    this._intervalId = window.setInterval(() => {
-      this._sampleMemory()
-    }, SAMPLE_INTERVAL)
-  }
-
-  private _stopSampling(): void {
-    if (this._intervalId !== null) {
-      clearInterval(this._intervalId)
-      this._intervalId = null
-    }
-  }
-
-  private _sampleMemory(): void {
-    const perf = performance as ExtendedPerformance
-    if (!perf.memory) {
-      // Fallback for browsers without memory API
-      return
-    }
-
-    const usedMB = Math.round(perf.memory.usedJSHeapSize / (1024 * 1024))
-
+  private _handleMemoryUpdate(info: MemoryInfo): void {
     // Shift data and add new point
-    const newData = [...this._dataPoints.slice(1), usedMB]
+    const newData = [...this._dataPoints.slice(1), info.usedMB]
     this._dataPoints = newData
-    console.log(this._dataPoints)
-
-    // Dispatch event with current memory value
-    this.dispatchEvent(
-      new CustomEvent('memory-update', {
-        detail: { memoryMB: usedMB },
-        bubbles: true,
-        composed: true,
-      })
-    )
   }
 
   private _getMinMax(): { min: number; max: number } {

@@ -47,9 +47,6 @@ export class FrontendDevtools extends LitElement {
   @state()
   private _activeWidgets: PanelWidget[] = [];
 
-  @state()
-  private _currentMemoryMB = 0;
-
   constructor() {
     super();
     this._enabled = persistenceStorage.getBoolean("FRONTEND_DEVTOOLS_ENABLED");
@@ -88,10 +85,6 @@ export class FrontendDevtools extends LitElement {
     this._toggleWidget("MEM_CHART", e.detail.active);
   }
 
-  private _handleMemoryUpdate(e: CustomEvent<{ memoryMB: number }>) {
-    this._currentMemoryMB = e.detail.memoryMB;
-  }
-
   private _renderWidget(widget: PanelWidget) {
     switch (widget) {
       case "LAG_RADAR":
@@ -99,9 +92,7 @@ export class FrontendDevtools extends LitElement {
       case "DOM_STATS":
         return html`<fd-dom-stats></fd-dom-stats>`;
       case "MEM_CHART":
-        return html`<fd-mem-chart
-          @memory-update=${this._handleMemoryUpdate}
-        ></fd-mem-chart>`;
+        return html`<fd-mem-chart></fd-mem-chart>`;
     }
   }
 
@@ -127,7 +118,6 @@ export class FrontendDevtools extends LitElement {
           ></fd-fps>
           <fd-mem
             .active=${this._activeWidgets.includes("MEM_CHART")}
-            .memoryMB=${this._currentMemoryMB}
             @change=${this._handleMemChange}
           ></fd-mem>
           <fd-toggle-button

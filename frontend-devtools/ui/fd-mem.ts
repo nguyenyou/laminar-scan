@@ -1,13 +1,29 @@
 import { LitElement, css, html } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { customElement, property, state } from 'lit/decorators.js'
+import { FdMemObserver } from '../core/fd-mem-observer'
 
 @customElement('fd-mem')
 export class FdMem extends LitElement {
   @property({ type: Boolean, reflect: true })
   active = false
 
-  @property({ type: Number })
-  memoryMB = 0
+  @state()
+  private _memoryMB = 0
+
+  private _unsubscribe: (() => void) | null = null
+
+  connectedCallback(): void {
+    super.connectedCallback()
+    this._unsubscribe = FdMemObserver.subscribe((info) => {
+      this._memoryMB = info.usedMB
+    })
+  }
+
+  disconnectedCallback(): void {
+    this._unsubscribe?.()
+    this._unsubscribe = null
+    super.disconnectedCallback()
+  }
 
   private _handleClick(): void {
     this.active = !this.active
@@ -23,7 +39,7 @@ export class FdMem extends LitElement {
   render() {
     return html`
       <button class="devtools-meter" @click=${this._handleClick}>
-        <span class="devtools-meter-value memory">${Math.round(this.memoryMB)}</span>
+        <span class="devtools-meter-value memory">${this._memoryMB}</span>
         <span class="devtools-meter-label">MB</span>
       </button>
     `
