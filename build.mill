@@ -28,14 +28,21 @@ object www extends ScalaJSModule, ScalafixModule {
     mvn"com.github.japgolly.scalajs-react::core::${Versions.sjsreact}"
   )
 
-  object test extends ScalaJSTests with TestModule.Utest {
-    def utestVersion = Versions.utest
-    def moduleKind = ModuleKind.NoModule
-  }
+  def moduleDeps = Seq(`laminar-devtools`)
 
-  def jsEnvConfig = Task {
-    JsEnvConfig.JsDom()
-  }
+  override def scalacOptions: Simple[Seq[String]] = Seq("-Wunused:all")
+}
+
+object `laminar-devtools` extends ScalaJSModule, ScalafixModule {
+  def scalaVersion = Versions.scala3
+  def scalaJSVersion = Versions.sjs
+  def moduleKind = ModuleKind.ESModule
+  def moduleSplitStyle = ModuleSplitStyle.FewestModules
+  
+  def mvnDeps = Seq(
+    mvn"com.raquo::laminar::${Versions.laminar}",
+    mvn"org.scala-js::scalajs-dom::${Versions.sjsdom}",
+  )
 
   override def scalacOptions: Simple[Seq[String]] = Seq("-Wunused:all")
 }

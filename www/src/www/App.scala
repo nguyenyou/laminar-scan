@@ -6,6 +6,7 @@ import base.LaminarComponent
 case class App() extends LaminarComponent {
   def render(): HtmlElement = {
     div(
+      laminar.devtools.Devtools,
       cls("w-screen h-screen grid place-items-center"),
       div(
         cls("flex gap-2"),
