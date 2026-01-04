@@ -14,6 +14,9 @@ interface ExtendedPerformance extends Performance {
 
 const MAX_POINTS = 60
 const SAMPLE_INTERVAL = 1000 // 1 second
+const Y_AXIS_WIDTH = 40 // Width reserved for Y-axis labels (supports 4 digits)
+const CHART_PADDING = 2
+const CHART_TOP_MARGIN = 10 // Extra top margin for axis label visibility
 
 @customElement('fd-mem-chart')
 export class FdMemChart extends LitElement {
@@ -21,13 +24,10 @@ export class FdMemChart extends LitElement {
   active = false
 
   @property({ type: Number })
-  height = 80
+  height = 200
 
   @state()
   private _dataPoints: number[] = []
-
-  @state()
-  private _currentMB = 0
 
   @state()
   private _width = 200
@@ -97,37 +97,44 @@ export class FdMemChart extends LitElement {
     }
 
     const usedMB = perf.memory.usedJSHeapSize / (1024 * 1024)
-    this._currentMB = usedMB
 
     // Shift data and add new point
     const newData = [...this._dataPoints.slice(1), usedMB]
     this._dataPoints = newData
   }
 
+  private _getMinMax(): { min: number; max: number } {
+    const validPoints = this._dataPoints.filter((v) => v > 0)
+    if (validPoints.length === 0) return { min: 0, max: 100 }
+
+    const min = Math.min(...validPoints) * 0.9
+    const max = Math.max(...validPoints) * 1.1
+    return { min, max }
+  }
+
+  private _getChartDimensions(): { chartWidth: number; chartHeight: number; chartLeft: number; chartTop: number } {
+    const chartLeft = Y_AXIS_WIDTH
+    const chartTop = CHART_TOP_MARGIN
+    const chartWidth = this._width - chartLeft - CHART_PADDING
+    const chartHeight = this.height - chartTop - CHART_PADDING
+    return { chartWidth, chartHeight, chartLeft, chartTop }
+  }
+
   private _getPathData(): string {
     const data = this._dataPoints
     if (data.length === 0) return ''
 
-    const padding = 2
-    const chartWidth = this._width - padding * 2
-    const chartHeight = this.height - padding * 2
-
-    // Find min/max for scaling
-    const validPoints = data.filter((v) => v > 0)
-    if (validPoints.length === 0) return ''
-
-    const min = Math.min(...validPoints) * 0.9
-    const max = Math.max(...validPoints) * 1.1
-
+    const { chartWidth, chartHeight, chartLeft, chartTop } = this._getChartDimensions()
+    const { min, max } = this._getMinMax()
     const range = max - min || 1
 
     // Generate path
     const points = data.map((value, index) => {
-      const x = padding + (index / (MAX_POINTS - 1)) * chartWidth
+      const x = chartLeft + (index / (MAX_POINTS - 1)) * chartWidth
       const y =
         value === 0
-          ? chartHeight + padding
-          : padding + chartHeight - ((value - min) / range) * chartHeight
+          ? chartTop + chartHeight
+          : chartTop + chartHeight - ((value - min) / range) * chartHeight
       return { x, y }
     })
 
@@ -147,14 +154,27 @@ export class FdMemChart extends LitElement {
     const linePath = this._getPathData()
     if (!linePath) return ''
 
-    const padding = 2
-    const chartWidth = this._width - padding * 2
+    const { chartWidth, chartHeight, chartLeft, chartTop } = this._getChartDimensions()
+    const bottom = chartTop + chartHeight
 
     // Close the path to create a filled area
-    return `${linePath} L ${padding + chartWidth} ${this.height - padding} L ${padding} ${this.height - padding} Z`
+    return `${linePath} L ${chartLeft + chartWidth} ${bottom} L ${chartLeft} ${bottom} Z`
+  }
+
+  private _formatMB(value: number): string {
+    if (value >= 1000) {
+      return `${(value / 1000).toFixed(1)}G`
+    }
+    return `${Math.round(value)}`
   }
 
   render() {
+    const { min, max } = this._getMinMax()
+    const { chartLeft, chartTop, chartHeight } = this._getChartDimensions()
+    const mid = (min + max) / 2
+    const bottom = chartTop + chartHeight
+    const middle = chartTop + chartHeight / 2
+
     return html`
       <div class="chart-container">
         <svg
@@ -163,23 +183,54 @@ export class FdMemChart extends LitElement {
           height="${this.height}"
           viewBox="0 0 ${this._width} ${this.height}"
         >
+          <!-- Y-axis labels -->
+          <text class="axis-label" x="${chartLeft - 4}" y="${chartTop + 4}" text-anchor="end">
+            ${this._formatMB(max)}
+          </text>
+          <text class="axis-label" x="${chartLeft - 4}" y="${middle + 3}" text-anchor="end">
+            ${this._formatMB(mid)}
+          </text>
+          <text class="axis-label" x="${chartLeft - 4}" y="${bottom}" text-anchor="end">
+            ${this._formatMB(min)}
+          </text>
+
           <!-- Grid lines -->
           <line
             class="grid-line"
-            x1="2"
-            y1="${this.height / 2}"
-            x2="${this._width - 2}"
-            y2="${this.height / 2}"
+            x1="${chartLeft}"
+            y1="${chartTop}"
+            x2="${this._width - CHART_PADDING}"
+            y2="${chartTop}"
           />
+          <line
+            class="grid-line"
+            x1="${chartLeft}"
+            y1="${middle}"
+            x2="${this._width - CHART_PADDING}"
+            y2="${middle}"
+          />
+          <line
+            class="grid-line"
+            x1="${chartLeft}"
+            y1="${bottom}"
+            x2="${this._width - CHART_PADDING}"
+            y2="${bottom}"
+          />
+
+          <!-- Y-axis line -->
+          <line
+            class="axis-line"
+            x1="${chartLeft}"
+            y1="${chartTop}"
+            x2="${chartLeft}"
+            y2="${bottom}"
+          />
+
           <!-- Area fill -->
           <path class="chart-area" d="${this._getAreaPath()}" />
           <!-- Line -->
           <path class="chart-line" d="${this._getPathData()}" />
         </svg>
-        <div class="chart-label">
-          <span class="chart-value">${Math.round(this._currentMB)}</span>
-          <span class="chart-unit">MB</span>
-        </div>
       </div>
     `
   }
@@ -194,8 +245,7 @@ export class FdMemChart extends LitElement {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
-      padding: 8px;
+      padding: 16px 8px;
       background: #141414;
       border-radius: 6px;
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
@@ -208,9 +258,20 @@ export class FdMemChart extends LitElement {
     }
 
     .grid-line {
-      stroke: rgba(255, 255, 255, 0.1);
+      stroke: rgba(255, 255, 255, 0.06);
       stroke-width: 1;
       stroke-dasharray: 2 2;
+    }
+
+    .axis-line {
+      stroke: rgba(255, 255, 255, 0.15);
+      stroke-width: 1;
+    }
+
+    .axis-label {
+      font-family: var(--fd-font-mono);
+      font-size: 9px;
+      fill: rgba(255, 255, 255, 0.4);
     }
 
     .chart-area {
@@ -223,24 +284,6 @@ export class FdMemChart extends LitElement {
       stroke-width: 1.5;
       stroke-linecap: round;
       stroke-linejoin: round;
-    }
-
-    .chart-label {
-      display: flex;
-      align-items: baseline;
-      gap: 2px;
-      font-family: var(--fd-font-mono);
-    }
-
-    .chart-value {
-      font-size: 12px;
-      font-weight: 600;
-      color: rgba(255, 255, 255, 0.9);
-    }
-
-    .chart-unit {
-      font-size: 10px;
-      color: rgba(255, 255, 255, 0.4);
     }
   `
 }
