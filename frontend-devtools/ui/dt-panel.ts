@@ -1,7 +1,7 @@
 import { LitElement, css, html } from 'lit'
-import { customElement, property, state } from 'lit/decorators.js'
-import { calculatePositionForCorner, getBestCorner } from '../core/utils'
+import { customElement, property } from 'lit/decorators.js'
 import { DRAG_CONFIG } from '../core/config'
+import { calculatePositionForCorner, getBestCorner } from '../core/utils'
 
 export type PanelPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 
@@ -10,31 +10,11 @@ export interface Position {
   y: number
 }
 
-/**
- * dt-panel: Positioning container for devtools UI
- *
- * Responsibility: Fixed positioning, z-index layering, drag and snap behavior.
- * Does NOT handle visual styling (background, shadows) - that's the toolbar's job.
- *
- * Features ported from DragController:
- * - PointerEvent support (mouse, touch, pen)
- * - Pointer capture for reliable tracking
- * - RAF-optimized movement updates
- * - GPU-accelerated transforms (translate3d)
- * - Movement threshold before drag starts
- * - Snap threshold - small movements return to original corner
- * - Direction-aware corner snapping
- * - Ignores interactive elements (buttons, inputs)
- */
 @customElement('dt-panel')
 export class DtPanel extends LitElement {
   @property({ type: String, reflect: true })
   position: PanelPosition = 'top-right'
 
-  @state()
-  private _isDragging = false
-
-  @state()
   private _panelSize: { width: number; height: number } = { width: 0, height: 0 }
 
   // Transform-based position (GPU accelerated)
@@ -130,7 +110,7 @@ export class DtPanel extends LitElement {
           (Math.abs(deltaX) > DRAG_CONFIG.thresholds.dragStart || Math.abs(deltaY) > DRAG_CONFIG.thresholds.dragStart)
         ) {
           hasMoved = true
-          this._isDragging = true
+          this.setAttribute('dragging', '')
           this.dispatchEvent(new CustomEvent('drag-start', { bubbles: true, composed: true }))
         }
 
@@ -158,7 +138,7 @@ export class DtPanel extends LitElement {
         rafId = null
       }
 
-      this._isDragging = false
+      this.removeAttribute('dragging')
       this.dispatchEvent(new CustomEvent('drag-end', { bubbles: true, composed: true }))
 
       if (!hasMoved) return
@@ -222,18 +202,6 @@ export class DtPanel extends LitElement {
 
   render() {
     return html`<slot></slot>`
-  }
-
-  updated(changedProperties: Map<string, unknown>) {
-    super.updated(changedProperties)
-    // Sync dragging state with attribute for CSS styling
-    if (changedProperties.has('_isDragging')) {
-      if (this._isDragging) {
-        this.setAttribute('dragging', '')
-      } else {
-        this.removeAttribute('dragging')
-      }
-    }
   }
 
   static styles = css`
