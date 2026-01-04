@@ -153,7 +153,24 @@ export class FrontendDevtools extends LitElement {
     designTokens,
     css`
       :host {
+        /* Prevent interference with parent layout */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 0;
+        overflow: visible;
+        pointer-events: none;
+        z-index: 2147483647; /* Max z-index */
+
+        /* CSS containment - isolates from parent */
+        contain: layout style;
+
         opacity: 0.95;
+      }
+
+      :host * {
+        pointer-events: auto;
       }
     `,
   ];
