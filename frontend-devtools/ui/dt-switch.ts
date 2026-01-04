@@ -6,12 +6,6 @@ export class DtSwitch extends LitElement {
   @property({ type: Boolean, reflect: true })
   checked = false
 
-  @property({ type: Boolean, reflect: true })
-  disabled = false
-
-  @property({ type: String })
-  label = ''
-
   private _handleChange(e: Event) {
     const input = e.target as HTMLInputElement
     this.checked = input.checked
@@ -30,14 +24,12 @@ export class DtSwitch extends LitElement {
         <input
           type="checkbox"
           .checked=${this.checked}
-          ?disabled=${this.disabled}
           @change=${this._handleChange}
           part="input"
         />
         <span class="devtools-toggle-track" part="track">
           <span class="devtools-toggle-thumb" part="thumb"></span>
         </span>
-        ${this.label ? html`<span class="label" part="label">${this.label}</span>` : ''}
       </label>
     `
   }
@@ -45,11 +37,6 @@ export class DtSwitch extends LitElement {
   static styles = css`
     :host {
       display: inline-flex;
-    }
-
-    :host([disabled]) {
-      opacity: var(--dt-opacity-disabled);
-      pointer-events: none;
     }
 
     .devtools-toggle {
@@ -103,13 +90,6 @@ export class DtSwitch extends LitElement {
 
     .devtools-toggle input:checked + .devtools-toggle-track .devtools-toggle-thumb {
       left: calc(100% - 18px);
-    }
-
-    .label {
-      font-family: var(--dt-font-ui);
-      font-size: var(--dt-font-size-md);
-      color: var(--dt-color-white);
-      white-space: nowrap;
     }
   `
 }

@@ -31,15 +31,9 @@ export type IconName = keyof typeof ICONS
 
 @customElement('dt-icon')
 export class DtIcon extends LitElement {
-  /**
-   * The name of the icon to display.
-   */
   @property({type: String, reflect: true })
   name: IconName = 'inspect'
 
-  /**
-   * The size of the icon in pixels.
-   */
   @property({ type: Number })
   size: number = 16
 
