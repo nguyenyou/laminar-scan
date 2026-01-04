@@ -24,7 +24,7 @@ interface HighlightData {
   targetY: number
   targetWidth: number
   targetHeight: number
-  frame: number
+  startTime: number
   count: number
   isReact: boolean
 }
@@ -75,7 +75,7 @@ export class FdMutationCanvas extends LitElement {
       existing.targetY = rect.top
       existing.targetWidth = rect.width
       existing.targetHeight = rect.height
-      existing.frame = 0
+      existing.startTime = performance.now()
       existing.count++
       existing.isReact = isReact
     } else {
@@ -89,7 +89,7 @@ export class FdMutationCanvas extends LitElement {
         targetY: rect.top,
         targetWidth: rect.width,
         targetHeight: rect.height,
-        frame: 0,
+        startTime: performance.now(),
         count: 1,
         isReact,
       })
@@ -227,7 +227,8 @@ export class FdMutationCanvas extends LitElement {
     const labelMap = new Map<string, HighlightData & { alpha: number }>()
     const { r, g, b } = CONFIG.colors.primary
     const reactColor = REACT_COLOR
-    const totalFrames = CONFIG.animation.totalFrames
+    const duration = CONFIG.animation.highlightDurationMs
+    const now = performance.now()
 
     // Draw all highlights
     for (const [element, highlight] of this._highlights) {
@@ -243,10 +244,12 @@ export class FdMutationCanvas extends LitElement {
       highlight.width = lerp(highlight.width, highlight.targetWidth)
       highlight.height = lerp(highlight.height, highlight.targetHeight)
 
-      const alpha = 1.0 - highlight.frame / totalFrames
-      highlight.frame++
+      // Time-based alpha calculation for consistent animation across refresh rates
+      const elapsed = now - highlight.startTime
+      const progress = Math.min(elapsed / duration, 1.0)
+      const alpha = 1.0 - progress
 
-      if (highlight.frame > totalFrames) {
+      if (progress >= 1.0) {
         toRemove.push(element)
         continue
       }

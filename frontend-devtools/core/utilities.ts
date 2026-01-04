@@ -23,6 +23,7 @@ export const CONFIG = {
 
   animation: {
     totalFrames: 45,
+    highlightDurationMs: 750,
     interpolationSpeed: 0.51,
     snapTransitionMs: 300,
     tooltipFadeMs: 200,
