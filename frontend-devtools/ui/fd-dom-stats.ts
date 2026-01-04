@@ -80,7 +80,9 @@ export class FdDomStats extends LitElement {
   static styles = css`
     :host {
       display: block;
-      max-height: 400px;
+      max-height: 200px;
+      overflow-y: auto;
+      border-radius: 8px;
     }
 
     .dom-stats-container {
@@ -88,8 +90,8 @@ export class FdDomStats extends LitElement {
       flex-direction: column;
       gap: 4px;
       background: #1a1a1a;
-      border-radius: 8px;
-      padding: 12px;
+      
+      padding: 8px;
       color: #e0e0e0;
       max-height: 100%;
       overflow-y: auto;

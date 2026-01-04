@@ -24,7 +24,7 @@ export class FdMemChart extends LitElement {
   active = false
 
   @property({ type: Number })
-  height = 200
+  height = 184
 
   @state()
   private _dataPoints: number[] = []

@@ -40,7 +40,7 @@ export class FrontendDevtools extends LitElement {
   private _inspectActive = false
 
   @state()
-  private _activeWidgets: PanelWidget[] = ["MEM_CHART"]
+  private _activeWidgets: PanelWidget[] = ["MEM_CHART", "DOM_STATS"]
 
   @state()
   private _currentMemoryMB = 0
