@@ -1743,7 +1743,7 @@ class FdInspect extends LitElement {
   render() {
     return html`
       <fd-toggle-button
-        tooltip="Inspect component"
+        tooltip="Inspect Component (Ctrl+Shift+C)"
         ?active=${this.active}
         @change=${this._handleChange}
       >
@@ -2245,7 +2245,7 @@ class FdFps extends LitElement {
   }
   render() {
     return html`
-      <button class="devtools-meter" @click=${this._handleClick}>
+      <button class="devtools-meter" title="Show Lag Radar" @click=${this._handleClick}>
         <span class="devtools-meter-value" style="color: ${this._getColor()}">${this._displayFps}</span>
         <span class="devtools-meter-label">FPS</span>
       </button>
@@ -2413,7 +2413,7 @@ class FdMem extends LitElement {
   }
   render() {
     return html`
-      <button class="devtools-meter" @click=${this._handleClick}>
+      <button class="devtools-meter" title="Show Memory Chart" @click=${this._handleClick}>
         <span class="devtools-meter-value memory">${this._memoryMB}</span>
         <span class="devtools-meter-label">MB</span>
       </button>
@@ -3567,6 +3567,7 @@ class FdSwitch extends LitElement {
   constructor() {
     super(...arguments);
     this.checked = false;
+    this.title = "";
   }
   _handleChange(e) {
     const input = e.target;
@@ -3584,6 +3585,7 @@ class FdSwitch extends LitElement {
           type="checkbox"
           .checked=${this.checked}
           @change=${this._handleChange}
+          title=${this.title}
           part="input"
         />
         <span class="devtools-toggle-track" part="track">
@@ -3664,6 +3666,9 @@ class FdSwitch extends LitElement {
 __legacyDecorateClassTS([
   property({ type: Boolean, reflect: true })
 ], FdSwitch.prototype, "checked", undefined);
+__legacyDecorateClassTS([
+  property({ type: String })
+], FdSwitch.prototype, "title", undefined);
 FdSwitch = __legacyDecorateClassTS([
   customElement("fd-switch")
 ], FdSwitch);
@@ -4086,10 +4091,11 @@ var DevtoolsAPI = {
   }
 };
 window.Devtools = DevtoolsAPI;
-var DEFAULT_PANEL_POSITION = "top-right";
+var DEFAULT_PANEL_POSITION = "bottom-right";
 
 class FrontendDevtools extends LitElement {
   _enabled;
+  _boundHandleKeydown;
   constructor() {
     super();
     this._inspectActive = false;
@@ -4100,6 +4106,24 @@ class FrontendDevtools extends LitElement {
     this._mutationScanActive = persistenceStorage.getBoolean(StorageKeys.MUTATION_SCAN_ACTIVE);
     this._activeWidgets = persistenceStorage.getArray(StorageKeys.ACTIVE_WIDGETS);
     this._panelPosition = persistenceStorage.get(StorageKeys.PANEL_POSITION) || DEFAULT_PANEL_POSITION;
+    this._boundHandleKeydown = this._handleKeydown.bind(this);
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    if (this._enabled) {
+      document.addEventListener("keydown", this._boundHandleKeydown, { capture: true });
+    }
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    document.removeEventListener("keydown", this._boundHandleKeydown, { capture: true });
+  }
+  _handleKeydown(e) {
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "c") {
+      e.preventDefault();
+      e.stopPropagation();
+      this._inspectActive = !this._inspectActive;
+    }
   }
   _handleDomMutationChange(e) {
     this._mutationScanActive = e.detail.checked;
@@ -4154,6 +4178,7 @@ class FrontendDevtools extends LitElement {
             @change=${this._handleInspectChange}
           ></fd-inspect>
           <fd-switch
+            title="Highlight DOM mutations"
             .checked=${this._mutationScanActive}
             @change=${this._handleDomMutationChange}
           ></fd-switch>
@@ -4166,7 +4191,7 @@ class FrontendDevtools extends LitElement {
             @change=${this._handleMemChange}
           ></fd-mem>
           <fd-toggle-button
-            tooltip="Show DOM stats"
+            tooltip="Show DOM Stats"
             .active=${this._activeWidgets.includes("DOM_STATS")}
             @change=${this._handleDomStatsChange}
           >

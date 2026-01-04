@@ -49,6 +49,8 @@ export class FrontendDevtools extends LitElement {
   @state()
   private _panelPosition: PanelPosition = DEFAULT_PANEL_POSITION
 
+  private _boundHandleKeydown: (e: KeyboardEvent) => void
+
   constructor() {
     super()
     this._enabled = persistenceStorage.getBoolean(StorageKeys.DEVTOOLS_ENABLED)
@@ -56,6 +58,28 @@ export class FrontendDevtools extends LitElement {
     this._activeWidgets = persistenceStorage.getArray<PanelWidget>(StorageKeys.ACTIVE_WIDGETS)
     this._panelPosition =
       (persistenceStorage.get(StorageKeys.PANEL_POSITION) as PanelPosition) || DEFAULT_PANEL_POSITION
+    this._boundHandleKeydown = this._handleKeydown.bind(this)
+  }
+
+  override connectedCallback(): void {
+    super.connectedCallback()
+    if (this._enabled) {
+      document.addEventListener('keydown', this._boundHandleKeydown, { capture: true })
+    }
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback()
+    document.removeEventListener('keydown', this._boundHandleKeydown, { capture: true })
+  }
+
+  private _handleKeydown(e: KeyboardEvent): void {
+    // Ctrl+Shift+C to toggle inspect mode
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'c') {
+      e.preventDefault()
+      e.stopPropagation()
+      this._inspectActive = !this._inspectActive
+    }
   }
 
   private _handleDomMutationChange(e: CustomEvent<{ checked: boolean }>) {
