@@ -7,19 +7,19 @@ import './fd-icon'
 export class FdDomStats extends LitElement {
   render() {
     return html`
-      <fd-button
-        size="icon"
-        tooltip="DOM Statistics"
-      >
-        <fd-icon name="domTree"></fd-icon>
-      </fd-button>
+      <div>Dom stats</div>
     `
   }
 
+  connectedCallback() {
+    super.connectedCallback()
+    document.querySelectorAll('*').forEach((el) => {
+      console.log(el.tagName)
+    })
+  }
+
   static styles = css`
-    :host {
-      display: inline-flex;
-    }
+    
   `
 }
 
