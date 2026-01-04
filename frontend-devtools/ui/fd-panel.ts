@@ -208,7 +208,9 @@ export class FdPanel extends LitElement {
 
   static styles = css`
     :host {
-      display: block;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
       position: fixed;
       left: 0;
       top: 0;
@@ -216,6 +218,12 @@ export class FdPanel extends LitElement {
       will-change: transform;
       transform: translate3d(0, 0, 0);
       backface-visibility: hidden;
+    }
+
+    /* Reverse flex direction for bottom positions */
+    :host([position='bottom-left']),
+    :host([position='bottom-right']) {
+      flex-direction: column-reverse;
     }
 
     :host([dragging]) {

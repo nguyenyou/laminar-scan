@@ -68,6 +68,7 @@ export class FrontendDevtools extends LitElement {
           ></fd-dom-mutation>
           <fd-dom-stats></fd-dom-stats>
         </fd-toolbar>
+        <fd-lag-radar></fd-lag-radar>
       </fd-panel>
     `
   }
