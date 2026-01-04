@@ -11,6 +11,7 @@ import "./ui/fd-toggle-button";
 import "./ui/fd-mem-chart";
 import "./ui/fd-mutation-canvas";
 import "./ui/fd-switch";
+import "./ui/fd-component-inspector";
 import { designTokens } from "./design-tokens";
 import { persistenceStorage } from "./core/persistence-storage";
 
@@ -57,6 +58,11 @@ export class FrontendDevtools extends LitElement {
   }
 
   private _handleInspectChange(e: CustomEvent<{ active: boolean }>) {
+    this._inspectActive = e.detail.active;
+  }
+
+  private _handleInspectorChange(e: CustomEvent<{ active: boolean }>) {
+    // Sync inspector state back to button when ESC is pressed or component is clicked
     this._inspectActive = e.detail.active;
   }
 
@@ -133,6 +139,10 @@ export class FrontendDevtools extends LitElement {
         </fd-toolbar>
         ${this._activeWidgets.map((widget) => this._renderWidget(widget))}
       </fd-panel>
+      <fd-component-inspector
+        .active=${this._inspectActive}
+        @change=${this._handleInspectorChange}
+      ></fd-component-inspector>
     `;
   }
 

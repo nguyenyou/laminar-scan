@@ -10,6 +10,7 @@ const COMPONENTS = [
   "FD-FPS",
   "FD-MEM",
   "FD-TOGGLE-BUTTON",
+  "FD-INSPECT"
 ];
 
 export type PanelPosition =
@@ -92,6 +93,7 @@ export class FdPanel extends LitElement {
   private _handlePointerDown(e: PointerEvent) {
     // Ignore clicks on interactive elements
     const target = e.target as HTMLElement;
+    console.log(target.tagName);
 
     if (COMPONENTS.includes(target.tagName)) {
       return;
