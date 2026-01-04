@@ -11,16 +11,8 @@ import {
 } from '../core/utilities'
 import { getReactComponentFromNode } from '../core/react-inspector'
 
-// ============================================================================
-// Local Constants
-// ============================================================================
-
 /** React color (cyan): rgb(97, 218, 251) */
 const REACT_COLOR = { r: 97, g: 218, b: 251 }
-
-// ============================================================================
-// Types
-// ============================================================================
 
 interface HighlightData {
   name: string
@@ -37,32 +29,18 @@ interface HighlightData {
   isReact: boolean
 }
 
-// ============================================================================
-// FdMutationCanvas Component
-// ============================================================================
-
-/**
- * Canvas overlay component for visualizing DOM mutations.
- * Observes DOM mutations and renders animated highlights on a canvas.
- */
 @customElement('fd-mutation-canvas')
 export class FdMutationCanvas extends LitElement {
   @property({ type: Boolean, reflect: true })
   active = false
 
-  // Canvas state
   private _canvas: HTMLCanvasElement | null = null
   private _ctx: CanvasRenderingContext2D | null = null
   private _animationId: number | null = null
   private _highlights: Map<Element, HighlightData> = new Map()
   private _resizeHandler: DebouncedFunction<() => void> | null = null
 
-  // MutationObserver state
   private _observer: MutationObserver | null = null
-
-  // ============================================================================
-  // Lifecycle
-  // ============================================================================
 
   protected override updated(changedProperties: Map<string, unknown>): void {
     if (changedProperties.has('active')) {
@@ -79,9 +57,6 @@ export class FdMutationCanvas extends LitElement {
     this._stop()
   }
 
-  // ============================================================================
-  // Public API
-  // ============================================================================
 
   /**
    * Manually highlight an element (useful for external integrations).
@@ -131,10 +106,6 @@ export class FdMutationCanvas extends LitElement {
     this._clearCanvas()
   }
 
-  // ============================================================================
-  // Private Methods - Lifecycle
-  // ============================================================================
-
   private _start(): void {
     this._createCanvas()
     this._startObserver()
@@ -144,10 +115,6 @@ export class FdMutationCanvas extends LitElement {
     this._stopObserver()
     this._destroyCanvas()
   }
-
-  // ============================================================================
-  // Private Methods - Canvas Management
-  // ============================================================================
 
   private _createCanvas(): void {
     if (this._canvas) return
@@ -218,10 +185,6 @@ export class FdMutationCanvas extends LitElement {
     this._canvas.height = window.innerHeight * dpr
     this._ctx.scale(dpr, dpr)
   }
-
-  // ============================================================================
-  // Private Methods - Animation
-  // ============================================================================
 
   private _startAnimation(): void {
     if (this._animationId) return
@@ -341,10 +304,6 @@ export class FdMutationCanvas extends LitElement {
       this._animationId = null
     }
   }
-
-  // ============================================================================
-  // Private Methods - Mutation Observer
-  // ============================================================================
 
   private _startObserver(): void {
     if (this._observer) return
