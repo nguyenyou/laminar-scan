@@ -10,13 +10,13 @@ import { designTokens } from './design-tokens'
 @customElement('frontend-devtools')
 export class FrontendDevtools extends LitElement {
   @state()
-  private _enabled = false
+  private _domMutationScan = false
 
   @state()
   private _inspectActive = false
 
-  private _handleToggle(e: CustomEvent<{ checked: boolean }>) {
-    this._enabled = e.detail.checked
+  private _toggleDomMutationScan(e: CustomEvent<{ checked: boolean }>) {
+    this._domMutationScan = e.detail.checked
   }
 
   private _handleInspectClick() {
@@ -35,8 +35,8 @@ export class FrontendDevtools extends LitElement {
             <dt-icon name="inspect"></dt-icon>
           </dt-button>
           <dt-switch
-            .checked=${this._enabled}
-            @change=${this._handleToggle}
+            .checked=${this._domMutationScan}
+            @change=${this._toggleDomMutationScan}
           ></dt-switch>
           <dt-button size="icon" tooltip="Settings">
             <dt-icon name="settings"></dt-icon>
