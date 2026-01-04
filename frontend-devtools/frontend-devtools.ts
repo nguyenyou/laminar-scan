@@ -1,104 +1,100 @@
-import { LitElement, css, html } from "lit";
-import { customElement, state } from "lit/decorators.js";
-import "./ui/fd-inspect";
-import "./ui/fd-dom-stats";
-import "./ui/fd-toolbar";
-import "./ui/fd-panel";
-import "./ui/fd-fps";
-import "./ui/fd-mem";
-import "./ui/fd-lag-radar";
-import "./ui/fd-toggle-button";
-import "./ui/fd-mem-chart";
-import "./ui/fd-mutation-canvas";
-import "./ui/fd-switch";
-import "./ui/fd-component-inspector";
-import { designTokens } from "./design-tokens";
-import { persistenceStorage } from "./core/persistence-storage";
+import { LitElement, css, html } from 'lit'
+import { customElement, state } from 'lit/decorators.js'
+import './ui/fd-inspect'
+import './ui/fd-dom-stats'
+import './ui/fd-toolbar'
+import './ui/fd-panel'
+import './ui/fd-fps'
+import './ui/fd-mem'
+import './ui/fd-lag-radar'
+import './ui/fd-toggle-button'
+import './ui/fd-mem-chart'
+import './ui/fd-mutation-canvas'
+import './ui/fd-switch'
+import './ui/fd-component-inspector'
+import { designTokens } from './design-tokens'
+import { persistenceStorage } from './core/persistence-storage'
 
 const DevtoolsAPI = {
   enable() {
-    persistenceStorage.setBoolean("FRONTEND_DEVTOOLS_ENABLED", true);
-    console.log(
-      "Devtools enabled. Refresh the page for changes to take effect."
-    );
+    persistenceStorage.setBoolean('FRONTEND_DEVTOOLS_ENABLED', true)
+    console.log('Devtools enabled. Refresh the page for changes to take effect.')
   },
   disable() {
-    persistenceStorage.remove("FRONTEND_DEVTOOLS_ENABLED");
-    console.log(
-      "Devtools disabled. Refresh the page for changes to take effect."
-    );
+    persistenceStorage.remove('FRONTEND_DEVTOOLS_ENABLED')
+    console.log('Devtools disabled. Refresh the page for changes to take effect.')
   },
-};
+}
 
-(window as any).Devtools = DevtoolsAPI;
+;(window as any).Devtools = DevtoolsAPI
 
-type PanelWidget = "LAG_RADAR" | "DOM_STATS" | "MEM_CHART";
+type PanelWidget = 'LAG_RADAR' | 'DOM_STATS' | 'MEM_CHART'
 
-@customElement("frontend-devtools")
+@customElement('frontend-devtools')
 export class FrontendDevtools extends LitElement {
-  private _enabled: boolean;
+  private _enabled: boolean
 
   @state()
-  private _inspectActive = false;
+  private _inspectActive = false
 
   @state()
-  private _mutationScanActive = false;
+  private _mutationScanActive = false
 
   @state()
-  private _activeWidgets: PanelWidget[] = [];
+  private _activeWidgets: PanelWidget[] = []
 
   constructor() {
-    super();
-    this._enabled = persistenceStorage.getBoolean("FRONTEND_DEVTOOLS_ENABLED");
+    super()
+    this._enabled = persistenceStorage.getBoolean('FRONTEND_DEVTOOLS_ENABLED')
   }
 
   private _handleDomMutationChange(e: CustomEvent<{ checked: boolean }>) {
-    this._mutationScanActive = e.detail.checked;
+    this._mutationScanActive = e.detail.checked
   }
 
   private _handleInspectChange(e: CustomEvent<{ active: boolean }>) {
-    this._inspectActive = e.detail.active;
+    this._inspectActive = e.detail.active
   }
 
   private _handleInspectorChange(e: CustomEvent<{ active: boolean }>) {
     // Sync inspector state back to button when ESC is pressed or component is clicked
-    this._inspectActive = e.detail.active;
+    this._inspectActive = e.detail.active
   }
 
   private _toggleWidget(widget: PanelWidget, active: boolean) {
     if (active && !this._activeWidgets.includes(widget)) {
-      this._activeWidgets = [...this._activeWidgets, widget];
+      this._activeWidgets = [...this._activeWidgets, widget]
     } else if (!active) {
-      this._activeWidgets = this._activeWidgets.filter((w) => w !== widget);
+      this._activeWidgets = this._activeWidgets.filter((w) => w !== widget)
     }
   }
 
   private _handleFpsChange(e: CustomEvent<{ active: boolean }>) {
-    this._toggleWidget("LAG_RADAR", e.detail.active);
+    this._toggleWidget('LAG_RADAR', e.detail.active)
   }
 
   private _handleDomStatsChange(e: CustomEvent<{ active: boolean }>) {
-    this._toggleWidget("DOM_STATS", e.detail.active);
+    this._toggleWidget('DOM_STATS', e.detail.active)
   }
 
   private _handleMemChange(e: CustomEvent<{ active: boolean }>) {
-    this._toggleWidget("MEM_CHART", e.detail.active);
+    this._toggleWidget('MEM_CHART', e.detail.active)
   }
 
   private _renderWidget(widget: PanelWidget) {
     switch (widget) {
-      case "LAG_RADAR":
-        return html`<fd-lag-radar></fd-lag-radar>`;
-      case "DOM_STATS":
-        return html`<fd-dom-stats></fd-dom-stats>`;
-      case "MEM_CHART":
-        return html`<fd-mem-chart></fd-mem-chart>`;
+      case 'LAG_RADAR':
+        return html`<fd-lag-radar></fd-lag-radar>`
+      case 'DOM_STATS':
+        return html`<fd-dom-stats></fd-dom-stats>`
+      case 'MEM_CHART':
+        return html`<fd-mem-chart></fd-mem-chart>`
     }
   }
 
   render() {
     if (!this._enabled) {
-      return null;
+      return null
     }
 
     return html`
@@ -113,15 +109,15 @@ export class FrontendDevtools extends LitElement {
             @change=${this._handleDomMutationChange}
           ></fd-switch>
           <fd-fps
-            .active=${this._activeWidgets.includes("LAG_RADAR")}
+            .active=${this._activeWidgets.includes('LAG_RADAR')}
             @change=${this._handleFpsChange}
           ></fd-fps>
           <fd-mem
-            .active=${this._activeWidgets.includes("MEM_CHART")}
+            .active=${this._activeWidgets.includes('MEM_CHART')}
             @change=${this._handleMemChange}
           ></fd-mem>
           <fd-toggle-button
-            .active=${this._activeWidgets.includes("DOM_STATS")}
+            .active=${this._activeWidgets.includes('DOM_STATS')}
             @change=${this._handleDomStatsChange}
           >
             <fd-icon name="domTree"></fd-icon>
@@ -129,14 +125,12 @@ export class FrontendDevtools extends LitElement {
         </fd-toolbar>
         ${this._activeWidgets.map((widget) => this._renderWidget(widget))}
       </fd-panel>
-      ${this._mutationScanActive
-        ? html`<fd-mutation-canvas .active=${true}></fd-mutation-canvas>`
-        : null}
+      ${this._mutationScanActive ? html`<fd-mutation-canvas .active=${true}></fd-mutation-canvas>` : null}
       <fd-component-inspector
         .active=${this._inspectActive}
         @change=${this._handleInspectorChange}
       ></fd-component-inspector>
-    `;
+    `
   }
 
   static styles = [
@@ -163,11 +157,11 @@ export class FrontendDevtools extends LitElement {
         pointer-events: auto;
       }
     `,
-  ];
+  ]
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    "frontend-devtools": FrontendDevtools;
+    'frontend-devtools': FrontendDevtools
   }
 }

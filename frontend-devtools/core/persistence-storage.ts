@@ -27,4 +27,3 @@ class PersistenceStorage {
 }
 
 export const persistenceStorage = new PersistenceStorage()
-

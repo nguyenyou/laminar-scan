@@ -86,12 +86,8 @@ export const CONFIG = {
   },
 } as const
 
-export function lerp(
-  start: number,
-  end: number,
-  speed: number = CONFIG.animation.interpolationSpeed
-): number {
-  return start + (end - start) * speed;
+export function lerp(start: number, end: number, speed: number = CONFIG.animation.interpolationSpeed): number {
+  return start + (end - start) * speed
 }
 
 /**
@@ -102,12 +98,12 @@ export function lerp(
  * @returns Clamped value
  */
 export function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
+  return Math.min(Math.max(value, min), max)
 }
 
 export interface DebouncedFunction<T extends (...args: any[]) => any> {
-  (...args: Parameters<T>): void;
-  cancel(): void;
+  (...args: Parameters<T>): void
+  cancel(): void
 }
 
 /**
@@ -116,28 +112,25 @@ export interface DebouncedFunction<T extends (...args: any[]) => any> {
  * @param delay - Delay in milliseconds
  * @returns Debounced function with cancel() method
  */
-export function debounce<T extends (...args: any[]) => any>(
-  fn: T,
-  delay: number
-): DebouncedFunction<T> {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+export function debounce<T extends (...args: any[]) => any>(fn: T, delay: number): DebouncedFunction<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
 
   const debounced = (...args: Parameters<T>) => {
-    if (timeoutId) clearTimeout(timeoutId);
+    if (timeoutId) clearTimeout(timeoutId)
     timeoutId = setTimeout(() => {
-      fn(...args);
-      timeoutId = null;
-    }, delay);
-  };
+      fn(...args)
+      timeoutId = null
+    }, delay)
+  }
 
   debounced.cancel = () => {
     if (timeoutId) {
-      clearTimeout(timeoutId);
-      timeoutId = null;
+      clearTimeout(timeoutId)
+      timeoutId = null
     }
-  };
+  }
 
-  return debounced;
+  return debounced
 }
 
 /**
@@ -145,7 +138,7 @@ export function debounce<T extends (...args: any[]) => any>(
  * @returns Device pixel ratio
  */
 export function getDevicePixelRatio(): number {
-  return Math.max(window.devicePixelRatio, 1);
+  return Math.max(window.devicePixelRatio, 1)
 }
 
 /**
@@ -154,14 +147,14 @@ export function getDevicePixelRatio(): number {
  * @returns True if element is a devtools element
  */
 export function isDevtoolsElement(element: Element | null): boolean {
-  if (!element) return false;
-  const attr = CONFIG.attributes.devtools;
-  return element.hasAttribute(attr) || element.closest(`[${attr}]`) !== null;
+  if (!element) return false
+  const attr = CONFIG.attributes.devtools
+  return element.hasAttribute(attr) || element.closest(`[${attr}]`) !== null
 }
 
 interface ScalaComponentInfo {
-  element: Element;
-  name: string | null;
+  element: Element
+  name: string | null
 }
 
 /**
@@ -169,17 +162,15 @@ interface ScalaComponentInfo {
  * @param element - Starting element
  * @returns Component info or null
  */
-export function getScalaComponent(
-  element: Element | null
-): ScalaComponentInfo | null {
-  if (!element) return null;
-  const attr = CONFIG.attributes.scalaComponent;
-  const closest = element.closest(`[${attr}]`);
-  if (!closest) return null;
+export function getScalaComponent(element: Element | null): ScalaComponentInfo | null {
+  if (!element) return null
+  const attr = CONFIG.attributes.scalaComponent
+  const closest = element.closest(`[${attr}]`)
+  if (!closest) return null
   return {
     element: closest as Element,
     name: closest.getAttribute(attr),
-  };
+  }
 }
 
 /**
@@ -188,27 +179,24 @@ export function getScalaComponent(
  * @returns Scala source identifier or null
  */
 export function getScalaSource(node: Node | null): string | null {
-  const element =
-    node && node.nodeType === Node.ELEMENT_NODE
-      ? (node as Element)
-      : (node as Node)?.parentElement;
-  if (!element) return null;
+  const element = node && node.nodeType === Node.ELEMENT_NODE ? (node as Element) : (node as Node)?.parentElement
+  if (!element) return null
 
-  const attr = CONFIG.attributes.scalaComponent;
-  const value = element.getAttribute(attr);
-  if (value) return value;
+  const attr = CONFIG.attributes.scalaComponent
+  const value = element.getAttribute(attr)
+  if (value) return value
 
-  const closest = element.closest(`[${attr}]`);
-  return closest ? closest.getAttribute(attr) : null;
+  const closest = element.closest(`[${attr}]`)
+  return closest ? closest.getAttribute(attr) : null
 }
 
 interface ComponentSourceInfo {
-  sourcePath: string | null;
-  sourceLine: string | null;
-  filename: string | null;
-  scalaName: string | null;
-  isMarked: boolean;
-  displayName: string | null;
+  sourcePath: string | null
+  sourceLine: string | null
+  filename: string | null
+  scalaName: string | null
+  isMarked: boolean
+  displayName: string | null
 }
 
 /**
@@ -216,22 +204,19 @@ interface ComponentSourceInfo {
  * @param element - Component element
  * @returns Source information object
  */
-export function getComponentSourceInfo(
-  element: Element | null
-): ComponentSourceInfo | null {
-  if (!element) return null;
+export function getComponentSourceInfo(element: Element | null): ComponentSourceInfo | null {
+  if (!element) return null
 
-  const props = CONFIG.properties;
-  const el = element as any;
+  const props = CONFIG.properties
+  const el = element as any
   return {
     sourcePath: el[props.sourcePath] || null,
-    sourceLine:
-      el[props.sourceLine] !== undefined ? String(el[props.sourceLine]) : null,
+    sourceLine: el[props.sourceLine] !== undefined ? String(el[props.sourceLine]) : null,
     filename: el[props.filename] || null,
     scalaName: el[props.name] || null,
-    isMarked: el[props.markAsComponent] === "true",
+    isMarked: el[props.markAsComponent] === 'true',
     displayName: element.getAttribute(CONFIG.attributes.scalaComponent),
-  };
+  }
 }
 
 /**
@@ -239,20 +224,17 @@ export function getComponentSourceInfo(
  * @param sourcePath - File path to open
  * @param sourceLine - Optional line number
  */
-export function openInIDE(
-  sourcePath: string | null,
-  sourceLine: string | null = null
-): void {
+export function openInIDE(sourcePath: string | null, sourceLine: string | null = null): void {
   if (!sourcePath) {
-    console.warn("Devtools: No source path provided");
-    return;
+    console.warn('Devtools: No source path provided')
+    return
   }
 
-  let uri = `idea://open?file=${sourcePath}`;
+  let uri = `idea://open?file=${sourcePath}`
   if (sourceLine) {
-    uri += `&line=${sourceLine}`;
+    uri += `&line=${sourceLine}`
   }
 
-  console.log("Devtools: Opening file in IDE:", uri);
-  window.open(uri, "_blank");
+  console.log('Devtools: Opening file in IDE:', uri)
+  window.open(uri, '_blank')
 }

@@ -9,10 +9,7 @@ import {
   getComponentSourceInfo,
   openInIDE,
 } from '../core/utilities'
-import {
-  getReactComponent,
-  getReactComponentSourceInfo,
-} from '../core/react-inspector'
+import { getReactComponent, getReactComponentSourceInfo } from '../core/react-inspector'
 
 interface RectType {
   left: number
@@ -177,9 +174,7 @@ export class FdComponentInspector extends LitElement {
     if (this._eventCatcher) return
 
     // Safety check: prevent duplicate event catchers
-    const existing = document.querySelector(
-      `[${CONFIG.attributes.devtools}="event-catcher"]`,
-    ) as HTMLDivElement | null
+    const existing = document.querySelector(`[${CONFIG.attributes.devtools}="event-catcher"]`) as HTMLDivElement | null
     if (existing) {
       this._eventCatcher = existing
       return
@@ -308,13 +303,7 @@ export class FdComponentInspector extends LitElement {
     }
   }
 
-  private _drawPill(
-    rect: RectType,
-    componentName: string,
-    isReact: boolean,
-    pillBg: string,
-    pillText: string,
-  ): void {
+  private _drawPill(rect: RectType, componentName: string, isReact: boolean, pillBg: string, pillText: string): void {
     if (!this._ctx) return
 
     const pillHeight = 24

@@ -20,7 +20,7 @@ export class FdFps extends LitElement {
         detail: { active: this.active },
         bubbles: true,
         composed: true,
-      })
+      }),
     )
   }
 
@@ -147,7 +147,6 @@ export class FdFps extends LitElement {
     }
   `
 }
-
 
 declare global {
   interface HTMLElementTagNameMap {

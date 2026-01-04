@@ -45,7 +45,7 @@ export class FdMemChart extends LitElement {
     this._resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const borderBoxSize = entry.borderBoxSize[0]
-        if(borderBoxSize) {
+        if (borderBoxSize) {
           const width = borderBoxSize.inlineSize
           this._width = width - 16 // Account for padding
         }
@@ -63,7 +63,7 @@ export class FdMemChart extends LitElement {
 
   private _initializeData(): void {
     // Initialize with zeros
-    this._dataPoints = new Array(MAX_POINTS).fill(0)
+    this._dataPoints = Array.from({ length: MAX_POINTS }, () => 0)
   }
 
   private _handleMemoryUpdate(info: MemoryInfo): void {
@@ -100,10 +100,7 @@ export class FdMemChart extends LitElement {
     // Generate path
     const points = data.map((value, index) => {
       const x = chartLeft + (index / (MAX_POINTS - 1)) * chartWidth
-      const y =
-        value === 0
-          ? chartTop + chartHeight
-          : chartTop + chartHeight - ((value - min) / range) * chartHeight
+      const y = value === 0 ? chartTop + chartHeight : chartTop + chartHeight - ((value - min) / range) * chartHeight
       return { x, y }
     })
 
@@ -262,4 +259,3 @@ declare global {
     'fd-mem-chart': FdMemChart
   }
 }
-

@@ -57,7 +57,6 @@ export class FdMutationCanvas extends LitElement {
     this._stop()
   }
 
-
   /**
    * Manually highlight an element (useful for external integrations).
    */
@@ -380,4 +379,3 @@ declare global {
     'fd-mutation-canvas': FdMutationCanvas
   }
 }
-

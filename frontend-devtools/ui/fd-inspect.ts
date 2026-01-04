@@ -43,4 +43,3 @@ declare global {
     'fd-inspect': FdInspect
   }
 }
-

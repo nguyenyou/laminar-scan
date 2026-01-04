@@ -71,7 +71,7 @@ export class FdDomStats extends LitElement {
               <span class="tag-name">${item.tag}</span>
               <span class="tag-count">${item.count}</span>
             </div>
-          `
+          `,
         )}
       </div>
     `
@@ -147,4 +147,3 @@ declare global {
     'fd-dom-stats': FdDomStats
   }
 }
-

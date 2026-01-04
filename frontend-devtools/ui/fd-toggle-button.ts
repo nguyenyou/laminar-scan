@@ -3,7 +3,6 @@ import { customElement, property } from 'lit/decorators.js'
 
 @customElement('fd-toggle-button')
 export class FdToggleButton extends LitElement {
-
   @property({ type: Boolean, reflect: true })
   disabled = false
 

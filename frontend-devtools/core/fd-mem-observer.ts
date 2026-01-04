@@ -43,18 +43,18 @@ class FdMemObserverImpl {
    */
   subscribe(listener: MemoryListener): () => void {
     this._listeners.add(listener)
-    
+
     // Start sampling if this is the first listener
     if (this._listeners.size === 1) {
       this._startSampling()
     }
-    
+
     // Immediately notify with current value
     listener(this._lastInfo)
 
     return () => {
       this._listeners.delete(listener)
-      
+
       // Stop sampling if no more listeners
       if (this._listeners.size === 0) {
         this._stopSampling()
@@ -71,10 +71,10 @@ class FdMemObserverImpl {
 
   private _startSampling(): void {
     if (this._intervalId !== null) return
-    
+
     // Take initial sample
     this._sampleMemory()
-    
+
     this._intervalId = window.setInterval(() => {
       this._sampleMemory()
     }, SAMPLE_INTERVAL)
@@ -94,7 +94,7 @@ class FdMemObserverImpl {
     }
 
     const bytesToMB = (bytes: number) => Math.floor(bytes / (1024 * 1024))
-    
+
     this._lastInfo = {
       usedMB: bytesToMB(perf.memory.usedJSHeapSize),
       totalMB: bytesToMB(perf.memory.totalJSHeapSize),
@@ -110,4 +110,3 @@ class FdMemObserverImpl {
 
 // Export singleton instance
 export const FdMemObserver = new FdMemObserverImpl()
-

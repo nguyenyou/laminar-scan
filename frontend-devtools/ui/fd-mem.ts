@@ -32,7 +32,7 @@ export class FdMem extends LitElement {
         detail: { active: this.active },
         bubbles: true,
         composed: true,
-      })
+      }),
     )
   }
 
@@ -109,7 +109,6 @@ export class FdMem extends LitElement {
     }
   `
 }
-
 
 declare global {
   interface HTMLElementTagNameMap {
