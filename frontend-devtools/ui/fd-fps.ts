@@ -1,12 +1,69 @@
 import { LitElement, css, html } from 'lit'
-import { customElement } from 'lit/decorators.js'
+import { customElement, state } from 'lit/decorators.js'
 
 @customElement('fd-fps')
 export class FdFps extends LitElement {
+  #fps: number = 0
+  #frameCount: number = 0
+  #lastTime: number = 0
+  #animationId: number | null = null
+
+  @state() private _displayFps: number = 0
+
+  connectedCallback(): void {
+    super.connectedCallback()
+    this.#start()
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback()
+    this.#stop()
+  }
+
+  #start(): void {
+    this.#lastTime = performance.now()
+    this.#frameCount = 0
+    this.#tick()
+  }
+
+  #stop(): void {
+    if (this.#animationId) {
+      cancelAnimationFrame(this.#animationId)
+      this.#animationId = null
+    }
+  }
+
+  #tick(): void {
+    this.#frameCount++
+    const now = performance.now()
+
+    if (now - this.#lastTime >= 1000) {
+      this.#fps = this.#frameCount
+      this.#frameCount = 0
+      this.#lastTime = now
+      this._displayFps = this.#fps
+    }
+
+    this.#animationId = requestAnimationFrame(() => this.#tick())
+  }
+
+  /** Calculate hue based on FPS (consistent with LagRadar) */
+  #calcHue(fps: number): number {
+    const maxHue = 120
+    const maxFps = 60
+    // Linear mapping: 0 FPS → hue 0 (red), 60 FPS → hue 120 (green)
+    return Math.max(0, Math.min((fps / maxFps) * maxHue, maxHue))
+  }
+
+  #getColor(): string {
+    const hue = this.#calcHue(this._displayFps)
+    return `hsl(${hue}, 80%, 40%)`
+  }
+
   render() {
     return html`
       <div class="devtools-meter">
-        <span class="devtools-meter-value">60</span>
+        <span class="devtools-meter-value" style="color: ${this.#getColor()}">${this._displayFps}</span>
         <span class="devtools-meter-label">FPS</span>
       </div>
     `

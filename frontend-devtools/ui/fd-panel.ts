@@ -36,6 +36,7 @@ export class FdPanel extends LitElement {
   }
 
   disconnectedCallback() {
+    super.disconnectedCallback()
     this.removeEventListener('pointerdown', this._handlePointerDown)
     window.removeEventListener('resize', this._handleWindowResize)
     if (this._transitionTimeoutId) {
@@ -46,7 +47,6 @@ export class FdPanel extends LitElement {
       this._panelResizeObserver.disconnect()
       this._panelResizeObserver = null
     }
-    super.disconnectedCallback()
   }
 
   private _handleWindowResize = () => {
