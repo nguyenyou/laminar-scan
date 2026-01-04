@@ -95,7 +95,7 @@ export class FdFps extends LitElement {
       height: 24px;
       border-radius: 6px;
       white-space: nowrap;
-      font-family: var(--fd-mono);
+      font-family: var(--fd-font-mono);
       background: #141414;
       box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
       cursor: pointer;
@@ -114,7 +114,8 @@ export class FdFps extends LitElement {
       transition: color 0.15s ease-in-out;
       min-width: 24px;
       text-align: center;
-      color: _fff;
+      color: #fff;
+      font-family: var(--fd-font-mono);
     }
 
     .devtools-meter-value.memory {

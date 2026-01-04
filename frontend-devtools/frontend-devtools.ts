@@ -1,4 +1,4 @@
-import { LitElement, html } from 'lit'
+import { LitElement, css, html } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
 import './ui/fd-inspect'
 import './ui/fd-dom-mutation'
@@ -112,7 +112,14 @@ export class FrontendDevtools extends LitElement {
     `
   }
 
-  static styles = [designTokens]
+  static styles = [
+    designTokens,
+    css`
+      :host {
+        opacity: 0.95;
+      }
+    `,
+  ]
 }
 
 declare global {

@@ -55,8 +55,7 @@ export const designTokens = css`
 
     /* ===== Font Tokens ===== */
     --fd-font: system-ui, -apple-system, sans-serif;
-    --fd-font-mono: 11px Menlo, Consolas, Monaco, Liberation Mono,
-      Lucida Console, monospace;
+    --fd-font-mono: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
 
     --fd-font-size-xs: 10px;
     --fd-font-size-sm: 11px;
