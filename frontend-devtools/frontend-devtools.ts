@@ -35,6 +35,9 @@ export class FrontendDevtools extends LitElement {
   @state()
   private _inspectActive = false
 
+  @state()
+  private _showLagRadar = false
+
   constructor() {
     super()
     this._enabled = persistenceStorage.getBoolean("FRONTEND_DEVTOOLS_ENABLED")
@@ -60,7 +63,11 @@ export class FrontendDevtools extends LitElement {
             .active=${this._inspectActive}
             @change=${this._handleInspectChange}
           ></fd-inspect>
-          <fd-fps></fd-fps>
+          <fd-fps
+            @active-change=${(e: CustomEvent<{ active: boolean }>) => {
+              this._showLagRadar = e.detail.active
+            }}
+          ></fd-fps>
           <fd-mem></fd-mem>
           <fd-dom-mutation
             .checked=${this._domMutationScan}
@@ -68,7 +75,7 @@ export class FrontendDevtools extends LitElement {
           ></fd-dom-mutation>
           <fd-dom-stats></fd-dom-stats>
         </fd-toolbar>
-        <fd-lag-radar></fd-lag-radar>
+        ${this._showLagRadar ? html`<fd-lag-radar></fd-lag-radar>` : null}
       </fd-panel>
     `
   }

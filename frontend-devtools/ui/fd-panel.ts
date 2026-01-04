@@ -3,6 +3,8 @@ import { customElement, property } from 'lit/decorators.js'
 import { DRAG_CONFIG } from '../core/config'
 import { calculatePositionForCorner, getBestCorner } from '../core/utils'
 
+const COMPONENTS = ["FD-SWITCH", "FD-DOM-MUTATION", "FD-FPS"]
+
 export type PanelPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 
 export interface Position {
@@ -73,7 +75,7 @@ export class FdPanel extends LitElement {
     // Ignore clicks on interactive elements
     const target = e.target as HTMLElement
 
-    if(["DT-SWITCH", "DT-DOM-MUTATION"].includes(target.tagName)) {
+    if(COMPONENTS.includes(target.tagName)) {
       return
     }
 

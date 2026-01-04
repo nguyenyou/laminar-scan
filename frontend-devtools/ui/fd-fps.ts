@@ -1,85 +1,97 @@
 import { LitElement, css, html } from 'lit'
-import { customElement, state } from 'lit/decorators.js'
+import { customElement, property, state } from 'lit/decorators.js'
 
 @customElement('fd-fps')
 export class FdFps extends LitElement {
-  #fps: number = 0
-  #frameCount: number = 0
-  #lastTime: number = 0
-  #animationId: number | null = null
+  @property({ type: Boolean, reflect: true })
+  active = false
+
+  private _fps: number = 0
+  private _frameCount: number = 0
+  private _lastTime: number = 0
+  private _animationId: number | null = null
 
   @state() private _displayFps: number = 0
 
   connectedCallback(): void {
     super.connectedCallback()
-    this.#start()
+    this._start()
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback()
-    this.#stop()
+    this._stop()
   }
 
-  #start(): void {
-    this.#lastTime = performance.now()
-    this.#frameCount = 0
-    this.#tick()
+  private _start(): void {
+    this._lastTime = performance.now()
+    this._frameCount = 0
+    this._tick()
   }
 
-  #stop(): void {
-    if (this.#animationId) {
-      cancelAnimationFrame(this.#animationId)
-      this.#animationId = null
+  private _stop(): void {
+    if (this._animationId) {
+      cancelAnimationFrame(this._animationId)
+      this._animationId = null
     }
   }
 
-  #tick(): void {
-    this.#frameCount++
+  private _tick(): void {
+    this._frameCount++
     const now = performance.now()
 
-    if (now - this.#lastTime >= 1000) {
-      this.#fps = this.#frameCount
-      this.#frameCount = 0
-      this.#lastTime = now
-      this._displayFps = this.#fps
+    if (now - this._lastTime >= 1000) {
+      this._fps = this._frameCount
+      this._frameCount = 0
+      this._lastTime = now
+      this._displayFps = this._fps
     }
 
-    this.#animationId = requestAnimationFrame(() => this.#tick())
+    this._animationId = requestAnimationFrame(() => this._tick())
   }
 
   /** Calculate hue based on FPS (consistent with LagRadar) */
-  #calcHue(fps: number): number {
+  private _calcHue(fps: number): number {
     const maxHue = 120
     const maxFps = 60
     // Linear mapping: 0 FPS → hue 0 (red), 60 FPS → hue 120 (green)
     return Math.max(0, Math.min((fps / maxFps) * maxHue, maxHue))
   }
 
-  #getColor(): string {
-    const hue = this.#calcHue(this._displayFps)
+  private _getColor(): string {
+    const hue = this._calcHue(this._displayFps)
     return `hsl(${hue}, 80%, 40%)`
   }
 
   render() {
     return html`
-      <div class="devtools-meter">
-        <span class="devtools-meter-value" style="color: ${this.#getColor()}">${this._displayFps}</span>
+      <button class="devtools-meter" @click=${() => this.active = !this.active}>
+        <span class="devtools-meter-value" style="color: ${this._getColor()}">${this._displayFps}</span>
         <span class="devtools-meter-label">FPS</span>
-      </div>
+      </button>
     `
   }
 
   static styles = css`
     .devtools-meter {
+      appearance: none;
+      border: none;
+      outline: none;
       display: flex;
       align-items: center;
       gap: 4px;
       padding: 0 8px;
       height: 24px;
       border-radius: 6px;
-      font-family: ui-monospace, monospace;
-      background: #141414;
+      font-family: var(--fd-mono);
+      background: _141414;
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .devtools-meter:hover {
+      background: rgba(255, 255, 255, 0.1);
     }
 
     .devtools-meter-value {
@@ -89,7 +101,7 @@ export class FdFps extends LitElement {
       transition: color 0.15s ease-in-out;
       min-width: 24px;
       text-align: center;
-      color: #fff;
+      color: _fff;
     }
 
     .devtools-meter-value.memory {
@@ -103,6 +115,13 @@ export class FdFps extends LitElement {
       font-weight: 500;
       letter-spacing: 0.025em;
       white-space: nowrap;
+      transition: color 0.15s ease-in-out;
+    }
+
+    /* Active state - similar to fd-button */
+
+    :host([active]) .devtools-meter {
+      box-shadow: inset 0 0 0 1px rgba(142, 97, 230, 0.4);
     }
   `
 }
