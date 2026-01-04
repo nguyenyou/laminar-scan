@@ -25,7 +25,7 @@ export class FrontendDevtools extends LitElement {
 
   render() {
     return html`
-      <dt-panel position="top-right">
+      <dt-panel position="top-right" draggable>
         <dt-toolbar>
           <dt-button
             tooltip="Inspect component"
