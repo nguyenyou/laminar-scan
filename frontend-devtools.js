@@ -4035,6 +4035,12 @@ var designTokens = css`
 `;
 
 // frontend-devtools/core/persistence-storage.ts
+var StorageKeys = {
+  DEVTOOLS_ENABLED: "FRONTEND_DEVTOOLS_ENABLED",
+  ACTIVE_WIDGETS: "FRONTEND_DEVTOOLS_ACTIVE_WIDGETS",
+  MUTATION_SCAN_ACTIVE: "FRONTEND_DEVTOOLS_MUTATION_SCAN_ACTIVE"
+};
+
 class PersistenceStorage {
   get(key) {
     return localStorage.getItem(key);
@@ -4051,17 +4057,30 @@ class PersistenceStorage {
   setBoolean(key, value) {
     this.set(key, String(value));
   }
+  getArray(key) {
+    const value = this.get(key);
+    if (!value)
+      return [];
+    try {
+      return JSON.parse(value);
+    } catch {
+      return [];
+    }
+  }
+  setArray(key, value) {
+    this.set(key, JSON.stringify(value));
+  }
 }
 var persistenceStorage = new PersistenceStorage;
 
 // frontend-devtools/frontend-devtools.ts
 var DevtoolsAPI = {
   enable() {
-    persistenceStorage.setBoolean("FRONTEND_DEVTOOLS_ENABLED", true);
+    persistenceStorage.setBoolean(StorageKeys.DEVTOOLS_ENABLED, true);
     console.log("Devtools enabled. Refresh the page for changes to take effect.");
   },
   disable() {
-    persistenceStorage.remove("FRONTEND_DEVTOOLS_ENABLED");
+    persistenceStorage.remove(StorageKeys.DEVTOOLS_ENABLED);
     console.log("Devtools disabled. Refresh the page for changes to take effect.");
   }
 };
@@ -4074,10 +4093,13 @@ class FrontendDevtools extends LitElement {
     this._inspectActive = false;
     this._mutationScanActive = false;
     this._activeWidgets = [];
-    this._enabled = persistenceStorage.getBoolean("FRONTEND_DEVTOOLS_ENABLED");
+    this._enabled = persistenceStorage.getBoolean(StorageKeys.DEVTOOLS_ENABLED);
+    this._mutationScanActive = persistenceStorage.getBoolean(StorageKeys.MUTATION_SCAN_ACTIVE);
+    this._activeWidgets = persistenceStorage.getArray(StorageKeys.ACTIVE_WIDGETS);
   }
   _handleDomMutationChange(e) {
     this._mutationScanActive = e.detail.checked;
+    persistenceStorage.setBoolean(StorageKeys.MUTATION_SCAN_ACTIVE, e.detail.checked);
   }
   _handleInspectChange(e) {
     this._inspectActive = e.detail.active;
@@ -4091,6 +4113,7 @@ class FrontendDevtools extends LitElement {
     } else if (!active) {
       this._activeWidgets = this._activeWidgets.filter((w) => w !== widget);
     }
+    persistenceStorage.setArray(StorageKeys.ACTIVE_WIDGETS, this._activeWidgets);
   }
   _handleFpsChange(e) {
     this._toggleWidget("LAG_RADAR", e.detail.active);

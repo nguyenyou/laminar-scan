@@ -13,15 +13,15 @@ import './ui/fd-mutation-canvas'
 import './ui/fd-switch'
 import './ui/fd-component-inspector'
 import { designTokens } from './design-tokens'
-import { persistenceStorage } from './core/persistence-storage'
+import { persistenceStorage, StorageKeys } from './core/persistence-storage'
 
 const DevtoolsAPI = {
   enable() {
-    persistenceStorage.setBoolean('FRONTEND_DEVTOOLS_ENABLED', true)
+    persistenceStorage.setBoolean(StorageKeys.DEVTOOLS_ENABLED, true)
     console.log('Devtools enabled. Refresh the page for changes to take effect.')
   },
   disable() {
-    persistenceStorage.remove('FRONTEND_DEVTOOLS_ENABLED')
+    persistenceStorage.remove(StorageKeys.DEVTOOLS_ENABLED)
     console.log('Devtools disabled. Refresh the page for changes to take effect.')
   },
 }
@@ -45,11 +45,14 @@ export class FrontendDevtools extends LitElement {
 
   constructor() {
     super()
-    this._enabled = persistenceStorage.getBoolean('FRONTEND_DEVTOOLS_ENABLED')
+    this._enabled = persistenceStorage.getBoolean(StorageKeys.DEVTOOLS_ENABLED)
+    this._mutationScanActive = persistenceStorage.getBoolean(StorageKeys.MUTATION_SCAN_ACTIVE)
+    this._activeWidgets = persistenceStorage.getArray<PanelWidget>(StorageKeys.ACTIVE_WIDGETS)
   }
 
   private _handleDomMutationChange(e: CustomEvent<{ checked: boolean }>) {
     this._mutationScanActive = e.detail.checked
+    persistenceStorage.setBoolean(StorageKeys.MUTATION_SCAN_ACTIVE, e.detail.checked)
   }
 
   private _handleInspectChange(e: CustomEvent<{ active: boolean }>) {
@@ -67,6 +70,7 @@ export class FrontendDevtools extends LitElement {
     } else if (!active) {
       this._activeWidgets = this._activeWidgets.filter((w) => w !== widget)
     }
+    persistenceStorage.setArray(StorageKeys.ACTIVE_WIDGETS, this._activeWidgets)
   }
 
   private _handleFpsChange(e: CustomEvent<{ active: boolean }>) {

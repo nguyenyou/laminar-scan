@@ -1,5 +1,7 @@
 export const StorageKeys = {
   DEVTOOLS_ENABLED: 'FRONTEND_DEVTOOLS_ENABLED',
+  ACTIVE_WIDGETS: 'FRONTEND_DEVTOOLS_ACTIVE_WIDGETS',
+  MUTATION_SCAN_ACTIVE: 'FRONTEND_DEVTOOLS_MUTATION_SCAN_ACTIVE',
 } as const
 
 export type StorageKey = (typeof StorageKeys)[keyof typeof StorageKeys]
@@ -23,6 +25,20 @@ class PersistenceStorage {
 
   setBoolean(key: StorageKey, value: boolean): void {
     this.set(key, String(value))
+  }
+
+  getArray<T>(key: StorageKey): T[] {
+    const value = this.get(key)
+    if (!value) return []
+    try {
+      return JSON.parse(value)
+    } catch {
+      return []
+    }
+  }
+
+  setArray<T>(key: StorageKey, value: T[]): void {
+    this.set(key, JSON.stringify(value))
   }
 }
 
