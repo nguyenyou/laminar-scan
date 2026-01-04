@@ -26,6 +26,8 @@ const DevtoolsAPI = {
 
 ;(window as any).Devtools = DevtoolsAPI
 
+type PanelWidget = 'LagRadar' | 'DomStats'
+
 @customElement('frontend-devtools')
 export class FrontendDevtools extends LitElement {
   private _enabled: boolean
@@ -37,10 +39,7 @@ export class FrontendDevtools extends LitElement {
   private _inspectActive = false
 
   @state()
-  private _showLagRadar = false
-
-  @state()
-  private _showDomStats = true
+  private _activeWidgets: PanelWidget[] = ['DomStats']
 
   constructor() {
     super()
@@ -55,12 +54,29 @@ export class FrontendDevtools extends LitElement {
     this._inspectActive = e.detail.active
   }
 
+  private _toggleWidget(widget: PanelWidget, active: boolean) {
+    if (active && !this._activeWidgets.includes(widget)) {
+      this._activeWidgets = [...this._activeWidgets, widget]
+    } else if (!active) {
+      this._activeWidgets = this._activeWidgets.filter(w => w !== widget)
+    }
+  }
+
   private _handleFpsChange(e: CustomEvent<{ active: boolean }>) {
-    this._showLagRadar = e.detail.active
+    this._toggleWidget('LagRadar', e.detail.active)
   }
 
   private _handleDomStatsChange(e: CustomEvent<{ active: boolean }>) {
-    this._showDomStats = e.detail.active
+    this._toggleWidget('DomStats', e.detail.active)
+  }
+
+  private _renderWidget(widget: PanelWidget) {
+    switch (widget) {
+      case 'LagRadar':
+        return html`<fd-lag-radar></fd-lag-radar>`
+      case 'DomStats':
+        return html`<fd-dom-stats></fd-dom-stats>`
+    }
   }
 
   render() {
@@ -80,19 +96,18 @@ export class FrontendDevtools extends LitElement {
             @change=${this._toggleDomMutationScan}
           ></fd-dom-mutation>
           <fd-fps
-            .active=${this._showLagRadar}
+            .active=${this._activeWidgets.includes('LagRadar')}
             @change=${this._handleFpsChange}
           ></fd-fps>
           <fd-mem></fd-mem>
           <fd-toggle-button
-            .active=${this._showDomStats}
+            .active=${this._activeWidgets.includes('DomStats')}
             @change=${this._handleDomStatsChange}
           >
             <fd-icon name="domTree"></fd-icon>
           </fd-toggle-button>
         </fd-toolbar>
-        ${this._showLagRadar ? html`<fd-lag-radar></fd-lag-radar>` : null}
-        ${this._showDomStats ? html`<fd-dom-stats></fd-dom-stats>` : null}
+        ${this._activeWidgets.map(widget => this._renderWidget(widget))}
       </fd-panel>
     `
   }
