@@ -1,82 +1,22 @@
-import { LitElement, css } from 'lit'
+import { LitElement } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
+import {
+  CONFIG,
+  lerp,
+  debounce,
+  getDevicePixelRatio,
+  isDevtoolsElement,
+  getScalaSource,
+  type DebouncedFunction,
+} from '../core/utilities'
+import { getReactComponentFromNode } from '../core/react-inspector'
 
 // ============================================================================
-// Configuration
+// Local Constants
 // ============================================================================
 
-const CONFIG = {
-  colors: {
-    primary: { r: 115, g: 97, b: 230 },
-    react: { r: 97, g: 218, b: 251 },
-  },
-  animation: {
-    totalFrames: 45,
-    interpolationSpeed: 0.51,
-  },
-  intervals: {
-    resizeDebounce: 100,
-  },
-  attributes: {
-    scalaComponent: 'data-scala',
-    devtools: 'data-frontend-devtools',
-  },
-  fonts: {
-    mono: '11px Menlo,Consolas,Monaco,Liberation Mono,Lucida Console,monospace',
-  },
-} as const
-
-// ============================================================================
-// Utility Functions
-// ============================================================================
-
-function lerp(start: number, end: number, speed: number = CONFIG.animation.interpolationSpeed): number {
-  return start + (end - start) * speed
-}
-
-function getDevicePixelRatio(): number {
-  return Math.max(window.devicePixelRatio, 1)
-}
-
-function isDevtoolsElement(element: Element | null): boolean {
-  if (!element) return false
-  const attr = CONFIG.attributes.devtools
-  return element.hasAttribute(attr) || element.closest(`[${attr}]`) !== null
-}
-
-function getScalaSource(node: Node | null): string | null {
-  const element = node && node.nodeType === Node.ELEMENT_NODE ? (node as Element) : (node as Node)?.parentElement
-  if (!element) return null
-
-  const attr = CONFIG.attributes.scalaComponent
-  const value = element.getAttribute(attr)
-  if (value) return value
-
-  const closest = element.closest(`[${attr}]`)
-  return closest ? closest.getAttribute(attr) : null
-}
-
-function getReactComponentFromNode(element: Element): { name: string; element: Element } | null {
-  const fiberKey = Object.keys(element).find(
-    (key) => key.startsWith('__reactFiber$') || key.startsWith('__reactInternalInstance$'),
-  )
-  if (!fiberKey) return null
-
-  const fiber = (element as any)[fiberKey]
-  if (!fiber) return null
-
-  let current = fiber
-  while (current) {
-    if (current.type && typeof current.type === 'function') {
-      const name = current.type.displayName || current.type.name
-      if (name && !name.startsWith('_')) {
-        return { name, element }
-      }
-    }
-    current = current.return
-  }
-  return null
-}
+/** React color (cyan): rgb(97, 218, 251) */
+const REACT_COLOR = { r: 97, g: 218, b: 251 }
 
 // ============================================================================
 // Types
@@ -95,32 +35,6 @@ interface HighlightData {
   frame: number
   count: number
   isReact: boolean
-}
-
-interface DebouncedFunction<T extends (...args: any[]) => any> {
-  (...args: Parameters<T>): void
-  cancel(): void
-}
-
-function debounce<T extends (...args: any[]) => any>(fn: T, delay: number): DebouncedFunction<T> {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null
-
-  const debounced = (...args: Parameters<T>) => {
-    if (timeoutId) clearTimeout(timeoutId)
-    timeoutId = setTimeout(() => {
-      fn(...args)
-      timeoutId = null
-    }, delay)
-  }
-
-  debounced.cancel = () => {
-    if (timeoutId) {
-      clearTimeout(timeoutId)
-      timeoutId = null
-    }
-  }
-
-  return debounced
 }
 
 // ============================================================================
@@ -346,7 +260,7 @@ export class FdMutationCanvas extends LitElement {
     const toRemove: Element[] = []
     const labelMap = new Map<string, HighlightData & { alpha: number }>()
     const { r, g, b } = CONFIG.colors.primary
-    const reactColor = CONFIG.colors.react
+    const reactColor = REACT_COLOR
     const totalFrames = CONFIG.animation.totalFrames
 
     // Draw all highlights

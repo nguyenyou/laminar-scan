@@ -4,7 +4,64 @@
 // Pure helper functions with no side effects or dependencies.
 // ============================================================================
 
-const CONFIG = {
+export const CONFIG = {
+  colors: {
+    primary: { r: 115, g: 97, b: 230 },
+    fpsGood: 'rgb(214,132,245)',
+    fpsWarning: '#F59E0B',
+    fpsCritical: '#EF4444',
+    memoryHealthy: '#6EE7B7',
+    memoryWarning: '#F59E0B',
+    memoryCritical: '#EF4444',
+    inspectStroke: 'rgba(142, 97, 227, 0.5)',
+    inspectFill: 'rgba(173, 97, 230, 0.10)',
+    inspectPillBg: 'rgba(37, 37, 38, 0.75)',
+    inspectPillText: 'white',
+    inspectMarkedStroke: 'rgba(79, 192, 255, 0.6)',
+    inspectMarkedFill: 'rgba(79, 192, 255, 0.10)',
+    inspectMarkedPillBg: 'rgba(20, 60, 80, 0.85)',
+    inspectMarkedPillText: '#79c0ff',
+    inspectReactStroke: 'rgba(97, 218, 251, 0.6)',
+    inspectReactFill: 'rgba(97, 218, 251, 0.10)',
+    inspectReactPillBg: 'rgba(20, 44, 52, 0.90)',
+    inspectReactPillText: '#61dafb',
+  },
+
+  animation: {
+    totalFrames: 45,
+    interpolationSpeed: 0.51,
+    snapTransitionMs: 300,
+    tooltipFadeMs: 200,
+    tooltipSlideMs: 120,
+  },
+
+  dimensions: {
+    toolbarWidth: 284,
+    tooltipMinHeight: 92,
+    safeArea: 16,
+    collapsedHorizontal: { width: 20, height: 48 },
+    collapsedVertical: { width: 48, height: 20 },
+    radarSize: 220,
+  },
+
+  thresholds: {
+    dragStart: 5,
+    snapDistance: 60,
+    collapseRatio: 0.5,
+    expandDragDistance: 50,
+    fpsWarning: 50,
+    fpsCritical: 30,
+    memoryWarning: 60,
+    memoryCritical: 80,
+  },
+
+  intervals: {
+    fpsDisplay: 200,
+    memoryDisplay: 1000,
+    resizeDebounce: 100,
+    tooltipShowDelay: 400,
+    tooltipHideDelay: 200,
+  },
 
   attributes: {
     scalaComponent: 'data-scala',
@@ -18,7 +75,30 @@ const CONFIG = {
     name: '__scalaname',
     markAsComponent: '__markascomponent',
   },
+
+  storageKeys: {
+    position: 'FRONTEND_DEVTOOLS_POSITION',
+    collapsed: 'FRONTEND_DEVTOOLS_COLLAPSED',
+    enabled: 'FRONTEND_DEVTOOLS_ENABLED',
+    scanning: 'FRONTEND_DEVTOOLS_SCANNING',
+    domStatsPinned: 'FRONTEND_DEVTOOLS_DOM_STATS_PINNED',
+    lagRadarPinned: 'FRONTEND_DEVTOOLS_LAG_RADAR_PINNED',
+  },
+
+  fonts: {
+    mono: '11px Menlo,Consolas,Monaco,Liberation Mono,Lucida Console,monospace',
+    ui: 'system-ui, -apple-system, sans-serif',
+  },
+} as const
+
+export function lerp(
+  start: number,
+  end: number,
+  speed: number = CONFIG.animation.interpolationSpeed
+): number {
+  return start + (end - start) * speed;
 }
+
 /**
  * Clamp a value between min and max bounds.
  * @param value - Value to clamp
@@ -27,12 +107,12 @@ const CONFIG = {
  * @returns Clamped value
  */
 export function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max)
+  return Math.min(Math.max(value, min), max);
 }
 
 export interface DebouncedFunction<T extends (...args: any[]) => any> {
-  (...args: Parameters<T>): void
-  cancel(): void
+  (...args: Parameters<T>): void;
+  cancel(): void;
 }
 
 /**
@@ -41,25 +121,28 @@ export interface DebouncedFunction<T extends (...args: any[]) => any> {
  * @param delay - Delay in milliseconds
  * @returns Debounced function with cancel() method
  */
-export function debounce<T extends (...args: any[]) => any>(fn: T, delay: number): DebouncedFunction<T> {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null
+export function debounce<T extends (...args: any[]) => any>(
+  fn: T,
+  delay: number
+): DebouncedFunction<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
   const debounced = (...args: Parameters<T>) => {
-    if (timeoutId) clearTimeout(timeoutId)
+    if (timeoutId) clearTimeout(timeoutId);
     timeoutId = setTimeout(() => {
-      fn(...args)
-      timeoutId = null
-    }, delay)
-  }
+      fn(...args);
+      timeoutId = null;
+    }, delay);
+  };
 
   debounced.cancel = () => {
     if (timeoutId) {
-      clearTimeout(timeoutId)
-      timeoutId = null
+      clearTimeout(timeoutId);
+      timeoutId = null;
     }
-  }
+  };
 
-  return debounced
+  return debounced;
 }
 
 /**
@@ -67,7 +150,7 @@ export function debounce<T extends (...args: any[]) => any>(fn: T, delay: number
  * @returns Device pixel ratio
  */
 export function getDevicePixelRatio(): number {
-  return Math.max(window.devicePixelRatio, 1)
+  return Math.max(window.devicePixelRatio, 1);
 }
 
 /**
@@ -76,14 +159,14 @@ export function getDevicePixelRatio(): number {
  * @returns True if element is a devtools element
  */
 export function isDevtoolsElement(element: Element | null): boolean {
-  if (!element) return false
-  const attr = CONFIG.attributes.devtools
-  return element.hasAttribute(attr) || element.closest(`[${attr}]`) !== null
+  if (!element) return false;
+  const attr = CONFIG.attributes.devtools;
+  return element.hasAttribute(attr) || element.closest(`[${attr}]`) !== null;
 }
 
 interface ScalaComponentInfo {
-  element: Element
-  name: string | null
+  element: Element;
+  name: string | null;
 }
 
 /**
@@ -91,15 +174,17 @@ interface ScalaComponentInfo {
  * @param element - Starting element
  * @returns Component info or null
  */
-export function getScalaComponent(element: Element | null): ScalaComponentInfo | null {
-  if (!element) return null
-  const attr = CONFIG.attributes.scalaComponent
-  const closest = element.closest(`[${attr}]`)
-  if (!closest) return null
+export function getScalaComponent(
+  element: Element | null
+): ScalaComponentInfo | null {
+  if (!element) return null;
+  const attr = CONFIG.attributes.scalaComponent;
+  const closest = element.closest(`[${attr}]`);
+  if (!closest) return null;
   return {
     element: closest as Element,
     name: closest.getAttribute(attr),
-  }
+  };
 }
 
 /**
@@ -108,24 +193,27 @@ export function getScalaComponent(element: Element | null): ScalaComponentInfo |
  * @returns Scala source identifier or null
  */
 export function getScalaSource(node: Node | null): string | null {
-  const element = node && node.nodeType === Node.ELEMENT_NODE ? (node as Element) : (node as Node)?.parentElement
-  if (!element) return null
+  const element =
+    node && node.nodeType === Node.ELEMENT_NODE
+      ? (node as Element)
+      : (node as Node)?.parentElement;
+  if (!element) return null;
 
-  const attr = CONFIG.attributes.scalaComponent
-  const value = element.getAttribute(attr)
-  if (value) return value
+  const attr = CONFIG.attributes.scalaComponent;
+  const value = element.getAttribute(attr);
+  if (value) return value;
 
-  const closest = element.closest(`[${attr}]`)
-  return closest ? closest.getAttribute(attr) : null
+  const closest = element.closest(`[${attr}]`);
+  return closest ? closest.getAttribute(attr) : null;
 }
 
 interface ComponentSourceInfo {
-  sourcePath: string | null
-  sourceLine: string | null
-  filename: string | null
-  scalaName: string | null
-  isMarked: boolean
-  displayName: string | null
+  sourcePath: string | null;
+  sourceLine: string | null;
+  filename: string | null;
+  scalaName: string | null;
+  isMarked: boolean;
+  displayName: string | null;
 }
 
 /**
@@ -133,19 +221,22 @@ interface ComponentSourceInfo {
  * @param element - Component element
  * @returns Source information object
  */
-export function getComponentSourceInfo(element: Element | null): ComponentSourceInfo | null {
-  if (!element) return null
+export function getComponentSourceInfo(
+  element: Element | null
+): ComponentSourceInfo | null {
+  if (!element) return null;
 
-  const props = CONFIG.properties
-  const el = element as any
+  const props = CONFIG.properties;
+  const el = element as any;
   return {
     sourcePath: el[props.sourcePath] || null,
-    sourceLine: el[props.sourceLine] !== undefined ? String(el[props.sourceLine]) : null,
+    sourceLine:
+      el[props.sourceLine] !== undefined ? String(el[props.sourceLine]) : null,
     filename: el[props.filename] || null,
     scalaName: el[props.name] || null,
-    isMarked: el[props.markAsComponent] === 'true',
+    isMarked: el[props.markAsComponent] === "true",
     displayName: element.getAttribute(CONFIG.attributes.scalaComponent),
-  }
+  };
 }
 
 /**
@@ -153,17 +244,20 @@ export function getComponentSourceInfo(element: Element | null): ComponentSource
  * @param sourcePath - File path to open
  * @param sourceLine - Optional line number
  */
-export function openInIDE(sourcePath: string | null, sourceLine: string | null = null): void {
+export function openInIDE(
+  sourcePath: string | null,
+  sourceLine: string | null = null
+): void {
   if (!sourcePath) {
-    console.warn('Devtools: No source path provided')
-    return
+    console.warn("Devtools: No source path provided");
+    return;
   }
 
-  let uri = `idea://open?file=${sourcePath}`
+  let uri = `idea://open?file=${sourcePath}`;
   if (sourceLine) {
-    uri += `&line=${sourceLine}`
+    uri += `&line=${sourceLine}`;
   }
 
-  console.log('Devtools: Opening file in IDE:', uri)
-  window.open(uri, '_blank')
+  console.log("Devtools: Opening file in IDE:", uri);
+  window.open(uri, "_blank");
 }
