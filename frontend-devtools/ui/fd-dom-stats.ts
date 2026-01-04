@@ -53,12 +53,21 @@ export class FdDomStats extends LitElement {
       .sort((a, b) => b.count - a.count)
   }
 
+  private get _maxCount(): number {
+    return this._tagCounts[0]?.count || 1
+  }
+
+  private _getBarWidth(count: number): number {
+    return (count / this._maxCount) * 100
+  }
+
   render() {
     return html`
       <div class="dom-stats-container">
         ${this._tagCounts.map(
           (item) => html`
             <div class="dom-stats-row">
+              <div class="bar" style="width: ${this._getBarWidth(item.count)}%"></div>
               <span class="tag-name">${item.tag}</span>
               <span class="tag-count">${item.count}</span>
             </div>
@@ -88,6 +97,7 @@ export class FdDomStats extends LitElement {
     }
 
     .dom-stats-row {
+      position: relative;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -98,17 +108,30 @@ export class FdDomStats extends LitElement {
       line-height: 1.4;
     }
 
-    .dom-stats-row:hover {
-      background: rgba(255, 255, 255, 0.05);
+    .bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background: rgba(100, 181, 246, 0.15);
+      border-radius: 4px;
+      pointer-events: none;
+      transition: width 300ms ease-out;
+    }
+
+    .dom-stats-row:hover .bar {
+      background: rgba(100, 181, 246, 0.25);
     }
 
     .tag-name {
+      position: relative;
       color: #64b5f6;
       font-weight: 500;
       flex: 1;
     }
 
     .tag-count {
+      position: relative;
       color: #81c784;
       font-weight: 600;
       min-width: 40px;
