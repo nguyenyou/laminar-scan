@@ -25,6 +25,7 @@ export class DtPanel extends LitElement {
   connectedCallback() {
     super.connectedCallback()
     this.addEventListener('pointerdown', this._handlePointerDown)
+    window.addEventListener('resize', this._handleWindowResize)
 
     this._panelResizeObserver = new ResizeObserver((entries) => {
       const entry = entries[0]
@@ -37,6 +38,7 @@ export class DtPanel extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback()
     this.removeEventListener('pointerdown', this._handlePointerDown)
+    window.removeEventListener('resize', this._handleWindowResize)
     if (this._transitionTimeoutId) {
       clearTimeout(this._transitionTimeoutId)
       this._transitionTimeoutId = null
@@ -45,6 +47,10 @@ export class DtPanel extends LitElement {
       this._panelResizeObserver.disconnect()
       this._panelResizeObserver = null
     }
+  }
+
+  private _handleWindowResize = () => {
+    this._updateTransformFromCorner()
   }
 
   private _handlePanelResize(entry: ResizeObserverEntry) {
