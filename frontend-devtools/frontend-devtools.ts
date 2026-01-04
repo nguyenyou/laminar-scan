@@ -6,14 +6,36 @@ import './ui/dt-icon'
 import './ui/dt-toolbar'
 import './ui/dt-panel'
 import { designTokens } from './design-tokens'
+import { persistenceStorage } from './core/persistence-storage'
+
+
+const DevtoolsAPI = {
+  enable() {
+    persistenceStorage.setBoolean("FRONTEND_DEVTOOLS_ENABLED", true)
+    console.log('Devtools enabled. Refresh the page for changes to take effect.')
+  },
+  disable() {
+    persistenceStorage.remove("FRONTEND_DEVTOOLS_ENABLED")
+    console.log('Devtools disabled. Refresh the page for changes to take effect.')
+  },
+}
+
+;(window as any).Devtools = DevtoolsAPI
 
 @customElement('frontend-devtools')
 export class FrontendDevtools extends LitElement {
+  private _enabled: boolean
+
   @state()
   private _domMutationScan = false
 
   @state()
   private _inspectActive = false
+
+  constructor() {
+    super()
+    this._enabled = persistenceStorage.getBoolean("FRONTEND_DEVTOOLS_ENABLED")
+  }
 
   private _toggleDomMutationScan(e: CustomEvent<{ checked: boolean }>) {
     this._domMutationScan = e.detail.checked
@@ -24,6 +46,10 @@ export class FrontendDevtools extends LitElement {
   }
 
   render() {
+    if (!this._enabled) {
+      return null
+    }
+
     return html`
       <dt-panel position="top-right">
         <dt-toolbar>
