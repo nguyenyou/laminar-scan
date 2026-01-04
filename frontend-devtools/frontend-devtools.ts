@@ -5,6 +5,8 @@ import './ui/dt-button'
 import './ui/dt-icon'
 import './ui/dt-toolbar'
 import './ui/dt-panel'
+import './ui/dt-fps'
+import './ui/dt-mem'
 import { designTokens } from './design-tokens'
 import { persistenceStorage } from './core/persistence-storage'
 
@@ -60,6 +62,8 @@ export class FrontendDevtools extends LitElement {
           >
             <dt-icon name="inspect"></dt-icon>
           </dt-button>
+          <dt-fps></dt-fps>
+          <dt-mem></dt-mem>
           <dt-switch
             .checked=${this._domMutationScan}
             @change=${this._toggleDomMutationScan}
