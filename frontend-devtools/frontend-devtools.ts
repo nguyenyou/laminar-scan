@@ -134,6 +134,7 @@ export class FrontendDevtools extends LitElement {
             @change=${this._handleMemChange}
           ></fd-mem>
           <fd-toggle-button
+            tooltip="Show DOM stats"
             .active=${this._activeWidgets.includes('DOM_STATS')}
             @change=${this._handleDomStatsChange}
           >

@@ -76,7 +76,7 @@ export class FdFps extends LitElement {
 
   render() {
     return html`
-      <button class="devtools-meter" @click=${this._handleClick}>
+      <button class="devtools-meter" title="Show Lag Radar" @click=${this._handleClick}>
         <span class="devtools-meter-value" style="color: ${this._getColor()}">${this._displayFps}</span>
         <span class="devtools-meter-label">FPS</span>
       </button>
