@@ -9,6 +9,7 @@ import './ui/fd-fps'
 import './ui/fd-mem'
 import './ui/fd-lag-radar'
 import './ui/fd-toggle-button'
+import './ui/fd-mem-chart'
 import { designTokens } from './design-tokens'
 import { persistenceStorage } from './core/persistence-storage'
 
@@ -26,7 +27,7 @@ const DevtoolsAPI = {
 
 ;(window as any).Devtools = DevtoolsAPI
 
-type PanelWidget = 'LAG_RADAR' | 'DOM_STATS'
+type PanelWidget = 'LAG_RADAR' | 'DOM_STATS' | 'MEM_CHART'
 
 @customElement('frontend-devtools')
 export class FrontendDevtools extends LitElement {
@@ -76,6 +77,8 @@ export class FrontendDevtools extends LitElement {
         return html`<fd-lag-radar></fd-lag-radar>`
       case 'DOM_STATS':
         return html`<fd-dom-stats></fd-dom-stats>`
+      case 'MEM_CHART':
+        return html`<fd-mem-chart></fd-mem-chart>`
     }
   }
 
