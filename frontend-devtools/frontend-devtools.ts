@@ -40,7 +40,7 @@ export class FrontendDevtools extends LitElement {
   private _inspectActive = false
 
   @state()
-  private _activeWidgets: PanelWidget[] = []
+  private _activeWidgets: PanelWidget[] = ["MEM_CHART"]
 
   constructor() {
     super()
