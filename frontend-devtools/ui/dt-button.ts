@@ -49,7 +49,7 @@ export class DtButton extends LitElement {
     }
 
     :host([disabled]) {
-      opacity: var(--dt-opacity-disabled);
+      opacity: 0.5;
       pointer-events: none;
     }
 
@@ -57,45 +57,45 @@ export class DtButton extends LitElement {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: var(--dt-spacing-md);
+      gap: 6px;
       border: none;
-      border-radius: var(--dt-radius-lg);
-      font-family: var(--dt-font-ui);
-      font-weight: var(--dt-font-weight-semibold);
+      border-radius: 6px;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-weight: 600;
       cursor: pointer;
-      transition: background var(--dt-transition-fast), border-color var(--dt-transition-fast), color var(--dt-transition-fast);
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
       white-space: nowrap;
-      padding: var(--dt-spacing-md) var(--dt-spacing-xl);
-      font-size: var(--dt-font-size-md);
-      height: var(--dt-size-button-height);
+      padding: 6px 12px;
+      font-size: 13px;
+      height: 28px;
     }
 
     /* ===== Base styles ===== */
     .devtools-btn {
       background: transparent;
-      color: var(--dt-color-gray-500);
+      color: #999;
       box-shadow: none;
     }
 
     .devtools-btn:hover {
-      background: var(--dt-color-bg-hover);
-      color: var(--dt-color-white);
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
     }
 
     :host([active]) .devtools-btn {
-      color: var(--dt-color-primary-muted);
+      color: #8e61e3;
     }
 
     :host([active]) .devtools-btn:hover {
-      color: var(--dt-color-primary-muted-hover);
+      color: #9f7af0;
     }
 
     /* ===== Icon size ===== */
     :host([size='icon']) .devtools-btn {
       padding: 0;
-      border-radius: var(--dt-radius-md);
-      width: var(--dt-size-button-height);
-      height: var(--dt-size-button-height);
+      border-radius: 4px;
+      width: 28px;
+      height: 28px;
     }
 
     /* ===== Focus states ===== */
@@ -104,7 +104,7 @@ export class DtButton extends LitElement {
     }
 
     .devtools-btn:focus-visible {
-      outline: 2px solid var(--dt-color-primary);
+      outline: 2px solid #7361e6;
       outline-offset: 2px;
     }
 
@@ -112,8 +112,8 @@ export class DtButton extends LitElement {
     ::slotted(svg),
     ::slotted(dt-icon) {
       flex-shrink: 0;
-      width: var(--dt-size-button-icon);
-      height: var(--dt-size-button-icon);
+      width: 16px;
+      height: 16px;
     }
   `
 }

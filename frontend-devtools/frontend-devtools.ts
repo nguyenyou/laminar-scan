@@ -68,8 +68,8 @@ export class FrontendDevtools extends LitElement {
             .checked=${this._domMutationScan}
             @change=${this._toggleDomMutationScan}
           ></dt-switch>
-          <dt-button size="icon" tooltip="Settings">
-            <dt-icon name="settings"></dt-icon>
+          <dt-button size="icon" tooltip="DOM Statistics">
+            <dt-icon name="domTree"></dt-icon>
           </dt-button>
         </dt-toolbar>
       </dt-panel>

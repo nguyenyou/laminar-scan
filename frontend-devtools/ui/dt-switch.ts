@@ -41,12 +41,12 @@ export class DtSwitch extends LitElement {
 
     .devtools-toggle {
       position: relative;
-      width: var(--dt-size-switch-width);
-      height: var(--dt-size-switch-height);
+      width: 36px;
+      height: 20px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: var(--dt-spacing-lg);
+      gap: 8px;
     }
 
     .devtools-toggle input {
@@ -55,24 +55,24 @@ export class DtSwitch extends LitElement {
       top: 0;
       opacity: 0;
       cursor: pointer;
-      width: var(--dt-size-switch-width);
-      height: var(--dt-size-switch-height);
+      width: 36px;
+      height: 20px;
       z-index: 1;
       margin: 0;
     }
 
     .devtools-toggle-track {
       position: relative;
-      width: var(--dt-size-switch-width);
-      height: var(--dt-size-switch-height);
-      background: var(--dt-color-gray-600);
-      border-radius: var(--dt-radius-full);
-      transition: background-color var(--dt-transition-base);
+      width: 36px;
+      height: 20px;
+      background: #525252;
+      border-radius: 9999px;
+      transition: background-color 0.2s;
       flex-shrink: 0;
     }
 
     .devtools-toggle input:checked + .devtools-toggle-track {
-      background: var(--dt-color-primary);
+      background: #7361e6;
     }
 
     .devtools-toggle-thumb {
@@ -80,12 +80,12 @@ export class DtSwitch extends LitElement {
       top: 50%;
       left: 2px;
       transform: translateY(-50%);
-      width: var(--dt-size-switch-thumb);
-      height: var(--dt-size-switch-thumb);
-      background: var(--dt-color-white);
-      border-radius: var(--dt-radius-full);
-      box-shadow: var(--dt-shadow-sm);
-      transition: left var(--dt-transition-base) ease;
+      width: 16px;
+      height: 16px;
+      background: #fff;
+      border-radius: 9999px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      transition: left 0.2s ease;
     }
 
     .devtools-toggle input:checked + .devtools-toggle-track .devtools-toggle-thumb {

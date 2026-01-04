@@ -25,11 +25,11 @@ export class DtToolbar extends LitElement {
     :host {
       display: flex;
       align-items: center;
-      gap: var(--dt-spacing-lg);
-      padding: var(--dt-spacing-lg) var(--dt-spacing-xl);
-      background: var(--dt-color-black);
-      border-radius: var(--dt-radius-xl);
-      box-shadow: var(--dt-shadow-md);
+      gap: 8px;
+      padding: 8px 12px;
+      background: #000;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 
     :host([orientation='vertical']) {
@@ -37,10 +37,10 @@ export class DtToolbar extends LitElement {
     }
 
     :host([collapsed]) {
-      padding: var(--dt-spacing-sm);
-      gap: var(--dt-spacing-sm);
-      opacity: var(--dt-opacity-semitransparent);
-      transition: opacity var(--dt-transition-fast);
+      padding: 4px;
+      gap: 4px;
+      opacity: 0.75;
+      transition: opacity 0.15s;
     }
 
     :host([collapsed]:hover) {
