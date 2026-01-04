@@ -8,6 +8,7 @@ import './ui/fd-panel'
 import './ui/fd-fps'
 import './ui/fd-mem'
 import './ui/fd-lag-radar'
+import './ui/fd-toggle-button'
 import { designTokens } from './design-tokens'
 import { persistenceStorage } from './core/persistence-storage'
 
@@ -38,6 +39,9 @@ export class FrontendDevtools extends LitElement {
   @state()
   private _showLagRadar = false
 
+  @state()
+  private _showDomStats = false
+
   constructor() {
     super()
     this._enabled = persistenceStorage.getBoolean("FRONTEND_DEVTOOLS_ENABLED")
@@ -55,6 +59,10 @@ export class FrontendDevtools extends LitElement {
     this._showLagRadar = e.detail.active
   }
 
+  private _handleDomStatsChange(e: CustomEvent<{ active: boolean }>) {
+    this._showDomStats = e.detail.active
+  }
+
   render() {
     if (!this._enabled) {
       return null
@@ -67,18 +75,24 @@ export class FrontendDevtools extends LitElement {
             .active=${this._inspectActive}
             @change=${this._handleInspectChange}
           ></fd-inspect>
+          <fd-dom-mutation
+            .checked=${this._domMutationScan}
+            @change=${this._toggleDomMutationScan}
+          ></fd-dom-mutation>
           <fd-fps
             .active=${this._showLagRadar}
             @change=${this._handleFpsChange}
           ></fd-fps>
           <fd-mem></fd-mem>
-          <fd-dom-mutation
-            .checked=${this._domMutationScan}
-            @change=${this._toggleDomMutationScan}
-          ></fd-dom-mutation>
-          <fd-dom-stats></fd-dom-stats>
+          <fd-toggle-button
+            .active=${this._showDomStats}
+            @change=${this._handleDomStatsChange}
+          >
+            <fd-icon name="domTree"></fd-icon>
+          </fd-toggle-button>
         </fd-toolbar>
         ${this._showLagRadar ? html`<fd-lag-radar></fd-lag-radar>` : null}
+        ${this._showDomStats ? html`<fd-dom-stats></fd-dom-stats>` : null}
       </fd-panel>
     `
   }

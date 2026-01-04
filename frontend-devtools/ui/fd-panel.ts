@@ -75,7 +75,7 @@ export class FdPanel extends LitElement {
     // Ignore clicks on interactive elements
     const target = e.target as HTMLElement
 
-    if(COMPONENTS.includes(target.tagName)) {
+    if(target.tagName.startsWith('FD-')) {
       return
     }
 
