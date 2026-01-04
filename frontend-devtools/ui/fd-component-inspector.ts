@@ -57,10 +57,6 @@ export class FdComponentInspector extends LitElement {
   private _eventCatcher: HTMLDivElement | null = null
   private _lastHovered: Element | null = null
 
-  // Bound event handlers
-  private _boundHandlePointerMove = this._handlePointerMove.bind(this)
-  private _boundHandleClick = this._handleClick.bind(this)
-  private _boundHandleKeydown = this._handleKeydown.bind(this)
 
   // ============================================================================
   // Lifecycle
@@ -252,18 +248,18 @@ export class FdComponentInspector extends LitElement {
   // ============================================================================
 
   private _addEventListeners(): void {
-    document.addEventListener('pointermove', this._boundHandlePointerMove, {
+    document.addEventListener('pointermove', this._handlePointerMove, {
       passive: true,
       capture: true,
     })
-    document.addEventListener('click', this._boundHandleClick, { capture: true })
-    document.addEventListener('keydown', this._boundHandleKeydown)
+    document.addEventListener('click', this._handleClick, { capture: true })
+    document.addEventListener('keydown', this._handleKeydown)
   }
 
   private _removeEventListeners(): void {
-    document.removeEventListener('pointermove', this._boundHandlePointerMove, { capture: true })
-    document.removeEventListener('click', this._boundHandleClick, { capture: true })
-    document.removeEventListener('keydown', this._boundHandleKeydown)
+    document.removeEventListener('pointermove', this._handlePointerMove, { capture: true })
+    document.removeEventListener('click', this._handleClick, { capture: true })
+    document.removeEventListener('keydown', this._handleKeydown)
   }
 
   // ============================================================================
@@ -417,7 +413,7 @@ export class FdComponentInspector extends LitElement {
   // Private Methods - Event Handlers
   // ============================================================================
 
-  private _handlePointerMove(e: PointerEvent): void {
+  private _handlePointerMove = (e: PointerEvent) => {
     if (!this.active) return
 
     // Clear stale reference if previously hovered element is disconnected
@@ -470,7 +466,7 @@ export class FdComponentInspector extends LitElement {
     )
   }
 
-  private _handleClick(e: MouseEvent): void {
+  private _handleClick = (e: MouseEvent) => {
     if (!this.active) return
 
     // Allow clicks on devtools elements to pass through
@@ -536,7 +532,7 @@ export class FdComponentInspector extends LitElement {
     console.warn('FdComponentInspector: No component found for element')
   }
 
-  private _handleKeydown(e: KeyboardEvent): void {
+  private _handleKeydown = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && this.active) {
       this.active = false
     }
