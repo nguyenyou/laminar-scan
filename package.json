@@ -11,7 +11,6 @@
     "fmt": "./mill mill.scalalib.scalafmt/",
     "format": "oxfmt",
     "typecheck": "tsgo --noEmit",
-    "build:devtools": "bun build devtools/index.ts --outfile devtools.js --format iife",
     "lint": "bunx oxlint --type-aware"
   },
   "dependencies": {
