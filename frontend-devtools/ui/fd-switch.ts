@@ -91,6 +91,16 @@ export class FdSwitch extends LitElement {
     .devtools-toggle input:checked + .devtools-toggle-track .devtools-toggle-thumb {
       left: calc(100% - 18px);
     }
+
+    /* ===== Focus states ===== */
+    .devtools-toggle input:focus + .devtools-toggle-track {
+      outline: none;
+    }
+
+    .devtools-toggle input:focus-visible + .devtools-toggle-track {
+      outline: 2px solid #7361e6;
+      outline-offset: 2px;
+    }
   `
 }
 

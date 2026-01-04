@@ -81,6 +81,16 @@ export class FdMem extends LitElement {
     :host([active]) .devtools-meter {
       box-shadow: inset 0 0 0 1px rgba(142, 97, 230, 0.4);
     }
+
+    /* ===== Focus states ===== */
+    .devtools-meter:focus {
+      outline: none;
+    }
+
+    .devtools-meter:focus-visible {
+      outline: 2px solid #7361e6;
+      outline-offset: 2px;
+    }
   `
 }
 
