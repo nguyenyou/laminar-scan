@@ -494,15 +494,6 @@ export class FdMutationCanvas extends LitElement {
 
     this.highlight(element, displayName, { isReact })
   }
-
-  // ============================================================================
-  // Styles - None needed as canvas is appended to body
-  // ============================================================================
-
-  static styles = css`
-    :host {
-    }
-  `
 }
 
 declare global {

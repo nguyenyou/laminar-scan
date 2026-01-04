@@ -32,7 +32,7 @@ const DevtoolsAPI = {
 
 (window as any).Devtools = DevtoolsAPI;
 
-type PanelWidget = "LAG_RADAR" | "DOM_STATS" | "MEM_CHART" | "MUTATION_CANVAS";
+type PanelWidget = "LAG_RADAR" | "DOM_STATS" | "MEM_CHART";
 
 @customElement("frontend-devtools")
 export class FrontendDevtools extends LitElement {
@@ -40,6 +40,9 @@ export class FrontendDevtools extends LitElement {
 
   @state()
   private _inspectActive = false;
+
+  @state()
+  private _mutationScanActive = false;
 
   @state()
   private _activeWidgets: PanelWidget[] = [];
@@ -53,8 +56,7 @@ export class FrontendDevtools extends LitElement {
   }
 
   private _handleDomMutationChange(e: CustomEvent<{ checked: boolean }>) {
-    console.log(e.detail.checked);
-    this._toggleWidget("MUTATION_CANVAS", e.detail.checked);
+    this._mutationScanActive = e.detail.checked;
   }
 
   private _handleInspectChange(e: CustomEvent<{ active: boolean }>) {
@@ -100,8 +102,6 @@ export class FrontendDevtools extends LitElement {
         return html`<fd-mem-chart
           @memory-update=${this._handleMemoryUpdate}
         ></fd-mem-chart>`;
-      case "MUTATION_CANVAS":
-        return html`<fd-mutation-canvas></fd-mutation-canvas>`;
     }
   }
 
@@ -118,7 +118,7 @@ export class FrontendDevtools extends LitElement {
             @change=${this._handleInspectChange}
           ></fd-inspect>
           <fd-switch
-            .checked=${this._activeWidgets.includes("MUTATION_CANVAS")}
+            .checked=${this._mutationScanActive}
             @change=${this._handleDomMutationChange}
           ></fd-switch>
           <fd-fps
@@ -139,6 +139,9 @@ export class FrontendDevtools extends LitElement {
         </fd-toolbar>
         ${this._activeWidgets.map((widget) => this._renderWidget(widget))}
       </fd-panel>
+      ${this._mutationScanActive
+        ? html`<fd-mutation-canvas .active=${true}></fd-mutation-canvas>`
+        : null}
       <fd-component-inspector
         .active=${this._inspectActive}
         @change=${this._handleInspectorChange}
