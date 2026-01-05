@@ -643,11 +643,11 @@
   };
   FdToggleButton.styles = i`
     :host([active]) .toggle-button {
-      color: #8e61e3;
+      color: var(--fd-primary);
     }
 
     :host([active]) .toggle-button:hover {
-      color: #9f7af0;
+      color: var(--fd-primary-hover);
     }
 
     .toggle-button {
@@ -658,7 +658,7 @@
       border: none;
       box-shadow: none;
       cursor: pointer;
-      color: #999;
+      color: var(--fd-text-muted);
       border-radius: 6px;
       display: inline-flex;
       align-items: center;
@@ -666,8 +666,8 @@
     }
 
     .toggle-button:hover {
-      color: #fff;
-      background: rgba(255, 255, 255, 0.1);
+      color: var(--fd-text-primary);
+      background: var(--fd-bg-hover);
     }
 
     /* ===== Focus states ===== */
@@ -676,7 +676,7 @@
     }
 
     .toggle-button:focus-visible {
-      outline: 2px solid #7361e6;
+      outline: var(--fd-focus-ring);
       outline-offset: 2px;
     }
   `;
@@ -878,13 +878,13 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
-      background: #1a1a1a;
-      
+      background: var(--fd-bg-elevated);
+
       padding: 8px;
-      color: #e0e0e0;
+      color: var(--fd-text-secondary);
       max-height: 100%;
       overflow-y: auto;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      box-shadow: var(--fd-shadow-panel);
     }
 
     .dom-stats-row {
@@ -904,26 +904,26 @@
       top: 0;
       left: 0;
       height: 100%;
-      background: rgba(100, 181, 246, 0.15);
+      background: var(--fd-info-bg);
       border-radius: 4px;
       pointer-events: none;
       transition: width 300ms ease-out;
     }
 
     .dom-stats-row:hover .bar {
-      background: rgba(100, 181, 246, 0.25);
+      background: var(--fd-info-bg-hover);
     }
 
     .tag-name {
       position: relative;
-      color: #64b5f6;
+      color: var(--fd-info);
       font-weight: 500;
       flex: 1;
     }
 
     .tag-count {
       position: relative;
-      color: #81c784;
+      color: var(--fd-success);
       font-weight: 600;
       min-width: 40px;
       text-align: right;
@@ -953,9 +953,9 @@
       align-items: center;
       gap: 8px;
       padding: 8px 12px;
-      background: #000;
+      background: var(--fd-bg-solid);
       border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      box-shadow: var(--fd-shadow-panel);
     }
 
     :host([orientation='vertical']) {
@@ -1343,15 +1343,15 @@
       border-radius: 6px;
       white-space: nowrap;
       font-family: var(--fd-font-mono);
-      background: #141414;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+      background: var(--fd-bg-panel);
+      box-shadow: var(--fd-inset-border-subtle);
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s;
     }
 
     .devtools-meter:hover {
-      background: #1a1a1a;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
+      background: var(--fd-bg-elevated);
+      box-shadow: var(--fd-inset-border-medium);
     }
 
     .devtools-meter-value {
@@ -1361,7 +1361,7 @@
       transition: color 0.15s ease-in-out;
       min-width: 24px;
       text-align: center;
-      color: #fff;
+      color: var(--fd-text-primary);
       font-family: var(--fd-font-mono);
     }
 
@@ -1371,7 +1371,7 @@
     }
 
     .devtools-meter-label {
-      color: rgba(255, 255, 255, 0.3);
+      color: var(--fd-text-faint);
       font-size: 11px;
       font-weight: 500;
       letter-spacing: 0.025em;
@@ -1380,7 +1380,7 @@
     }
 
     :host([active]) .devtools-meter {
-      box-shadow: inset 0 0 0 1px rgba(142, 97, 230, 0.4);
+      box-shadow: var(--fd-inset-border-primary);
     }
 
     /* ===== Focus states ===== */
@@ -1389,7 +1389,7 @@
     }
 
     .devtools-meter:focus-visible {
-      outline: 2px solid #7361e6;
+      outline: var(--fd-focus-ring);
       outline-offset: 2px;
     }
   `;
@@ -1523,15 +1523,15 @@
       border-radius: 6px;
       white-space: nowrap;
       font-family: var(--fd-font-mono);
-      background: #141414;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+      background: var(--fd-bg-panel);
+      box-shadow: var(--fd-inset-border-subtle);
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s;
     }
 
     .devtools-meter:hover {
-      background: #1a1a1a;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
+      background: var(--fd-bg-elevated);
+      box-shadow: var(--fd-inset-border-medium);
     }
 
     .devtools-meter-value {
@@ -1541,7 +1541,7 @@
       transition: color 0.15s ease-in-out;
       min-width: 24px;
       text-align: center;
-      color: rgb(214, 132, 245);
+      color: var(--fd-primary);
       font-family: var(--fd-font-mono);
     }
 
@@ -1551,7 +1551,7 @@
     }
 
     .devtools-meter-label {
-      color: rgba(255, 255, 255, 0.3);
+      color: var(--fd-text-faint);
       font-size: 11px;
       font-weight: 500;
       letter-spacing: 0.025em;
@@ -1560,7 +1560,7 @@
     }
 
     :host([active]) .devtools-meter {
-      box-shadow: inset 0 0 0 1px rgba(142, 97, 230, 0.4);
+      box-shadow: var(--fd-inset-border-primary);
     }
 
     /* ===== Focus states ===== */
@@ -1569,7 +1569,7 @@
     }
 
     .devtools-meter:focus-visible {
-      outline: 2px solid #7361e6;
+      outline: var(--fd-focus-ring);
       outline-offset: 2px;
     }
   `;
@@ -1716,9 +1716,9 @@
       align-items: center;
       gap: 8px;
       padding: 26px 12px;
-      background: #141414;
+      background: var(--fd-bg-panel);
       border-radius: 6px;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      box-shadow: var(--fd-inset-border-subtle);
     }
 
     .radar-svg {
@@ -1731,12 +1731,12 @@
 
     .radar-face {
       fill: transparent;
-      stroke: rgba(255, 255, 255, 0.85);
+      stroke: var(--fd-radar-stroke);
       stroke-width: 4px;
     }
 
     .radar-hand {
-      stroke: rgba(255, 255, 255, 0.85);
+      stroke: var(--fd-radar-stroke);
       stroke-width: 4px;
       stroke-linecap: round;
     }
@@ -1938,9 +1938,9 @@
       flex-direction: column;
       align-items: center;
       padding: 8px;
-      background: #141414;
+      background: var(--fd-bg-panel);
       border-radius: 6px;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      box-shadow: var(--fd-inset-border-subtle);
       width: 100%;
       box-sizing: border-box;
     }
@@ -1950,29 +1950,29 @@
     }
 
     .grid-line {
-      stroke: rgba(255, 255, 255, 0.06);
+      stroke: var(--fd-chart-grid);
       stroke-width: 1;
       stroke-dasharray: 2 2;
     }
 
     .axis-line {
-      stroke: rgba(255, 255, 255, 0.15);
+      stroke: var(--fd-chart-grid-major);
       stroke-width: 1;
     }
 
     .axis-label {
       font-family: var(--fd-font-mono);
       font-size: 9px;
-      fill: rgba(255, 255, 255, 0.4);
+      fill: var(--fd-chart-label);
     }
 
     .chart-area {
-      fill: rgba(142, 97, 230, 0.2);
+      fill: var(--fd-chart-fill);
     }
 
     .chart-line {
       fill: none;
-      stroke: rgba(142, 97, 230, 0.8);
+      stroke: var(--fd-chart-stroke);
       stroke-width: 1.5;
       stroke-linecap: round;
       stroke-linejoin: round;
@@ -1997,10 +1997,11 @@
   // frontend-devtools/core/utilities.ts
   var CONFIG = {
     colors: {
-      primary: { r: 115, g: 97, b: 230 },
-      inspectStroke: "rgba(142, 97, 227, 0.5)",
-      inspectFill: "rgba(173, 97, 230, 0.10)",
-      inspectPillBg: "rgba(37, 37, 38, 0.75)",
+      // Primary blue: rgb(56, 152, 255) - a clean, modern blue
+      primary: { r: 56, g: 152, b: 255 },
+      inspectStroke: "rgba(56, 152, 255, 0.5)",
+      inspectFill: "rgba(56, 152, 255, 0.10)",
+      inspectPillBg: "rgba(30, 40, 50, 0.80)",
       inspectPillText: "white",
       inspectMarkedStroke: "rgba(79, 192, 255, 0.6)",
       inspectMarkedFill: "rgba(79, 192, 255, 0.10)",
@@ -2010,7 +2011,7 @@
       inspectReactFill: "rgba(97, 218, 251, 0.10)",
       inspectReactPillBg: "rgba(20, 44, 52, 0.90)",
       inspectReactPillText: "#61dafb",
-      inspectCrosshair: "rgba(142, 97, 227, 0.4)"
+      inspectCrosshair: "rgba(56, 152, 255, 0.4)"
     },
     animation: {
       totalFrames: 45,
@@ -2630,14 +2631,14 @@
       position: relative;
       width: 36px;
       height: 20px;
-      background: #525252;
+      background: var(--fd-switch-off);
       border-radius: 9999px;
       transition: background-color 0.2s;
       flex-shrink: 0;
     }
 
     .devtools-toggle input:checked + .devtools-toggle-track {
-      background: #7361e6;
+      background: var(--fd-primary);
     }
 
     .devtools-toggle-thumb {
@@ -2647,9 +2648,9 @@
       transform: translateY(-50%);
       width: 16px;
       height: 16px;
-      background: #fff;
+      background: var(--fd-switch-knob);
       border-radius: 9999px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      box-shadow: var(--fd-switch-knob-shadow);
       transition: left 0.2s ease;
     }
 
@@ -2663,7 +2664,7 @@
     }
 
     .devtools-toggle input:focus-visible + .devtools-toggle-track {
-      outline: 2px solid #7361e6;
+      outline: var(--fd-focus-ring);
       outline-offset: 2px;
     }
   `;
@@ -2890,8 +2891,9 @@
       const w2 = window.innerWidth;
       const h3 = window.innerHeight;
       const glowDepth = 120;
-      const glowColor = "rgba(142, 97, 227, 0.3)";
-      const glowColorMid = "rgba(142, 97, 227, 0.1)";
+      const { r: r6, g: g2, b: b3 } = CONFIG.colors.primary;
+      const glowColor = `rgba(${r6}, ${g2}, ${b3}, 0.3)`;
+      const glowColorMid = `rgba(${r6}, ${g2}, ${b3}, 0.1)`;
       this._ctx.save();
       const topGradient = this._ctx.createLinearGradient(0, 0, 0, glowDepth);
       topGradient.addColorStop(0, glowColor);
@@ -3105,8 +3107,62 @@
   // frontend-devtools/design-tokens.ts
   var designTokens = i`
   :host {
+    /* Typography */
     --fd-font: system-ui, -apple-system, sans-serif;
     --fd-font-mono: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
+
+    /* Primary blue color */
+    --fd-primary: rgb(56, 152, 255);
+    --fd-primary-hover: rgb(100, 175, 255);
+    --fd-primary-50: rgba(56, 152, 255, 0.5);
+    --fd-primary-40: rgba(56, 152, 255, 0.4);
+    --fd-primary-20: rgba(56, 152, 255, 0.2);
+    --fd-primary-15: rgba(56, 152, 255, 0.15);
+    --fd-primary-10: rgba(56, 152, 255, 0.1);
+
+    /* Backgrounds */
+    --fd-bg-solid: #000;
+    --fd-bg-panel: #141414;
+    --fd-bg-elevated: #1a1a1a;
+    --fd-bg-hover: rgba(255, 255, 255, 0.1);
+
+    /* Borders & Shadows */
+    --fd-border-subtle: rgba(255, 255, 255, 0.08);
+    --fd-border-medium: rgba(255, 255, 255, 0.15);
+    --fd-shadow-panel: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --fd-inset-border-subtle: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    --fd-inset-border-medium: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+    --fd-inset-border-primary: inset 0 0 0 1px var(--fd-primary-40);
+
+    /* Text colors */
+    --fd-text-primary: #fff;
+    --fd-text-secondary: #e0e0e0;
+    --fd-text-muted: #999;
+    --fd-text-faint: rgba(255, 255, 255, 0.3);
+
+    /* Focus ring */
+    --fd-focus-ring: 2px solid var(--fd-primary);
+
+    /* Switch */
+    --fd-switch-off: #525252;
+    --fd-switch-knob: #fff;
+    --fd-switch-knob-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+
+    /* Semantic colors */
+    --fd-success: #81c784;
+    --fd-info: #64b5f6;
+    --fd-info-bg: rgba(100, 181, 246, 0.15);
+    --fd-info-bg-hover: rgba(100, 181, 246, 0.25);
+
+    /* Chart colors */
+    --fd-chart-grid: rgba(255, 255, 255, 0.06);
+    --fd-chart-grid-major: rgba(255, 255, 255, 0.15);
+    --fd-chart-label: rgba(255, 255, 255, 0.4);
+    --fd-chart-fill: var(--fd-primary-20);
+    --fd-chart-stroke: rgba(56, 152, 255, 0.8);
+
+    /* Radar */
+    --fd-radar-stroke: rgba(255, 255, 255, 0.85);
   }
 `;
 
