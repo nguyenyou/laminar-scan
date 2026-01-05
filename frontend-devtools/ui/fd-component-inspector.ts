@@ -44,6 +44,7 @@ export class FdComponentInspector extends LitElement {
   private _lastHovered: Element | null = null
   private _focusedElement: Element | null = null
   private _focusedIsReact: boolean = false
+  private _focusHistory: Array<{ element: Element; name: string; isReact: boolean }> = []
 
   protected override updated(changedProperties: Map<string, unknown>): void {
     if (changedProperties.has('active')) {
@@ -81,6 +82,7 @@ export class FdComponentInspector extends LitElement {
     this._lastHovered = null
     this._focusedElement = null
     this._focusedIsReact = false
+    this._focusHistory = []
     this._destroyCanvas()
     this._destroyEventCatcher()
     this._dispatchChange(false)
@@ -460,6 +462,7 @@ export class FdComponentInspector extends LitElement {
     this._lastHovered = component.element
     this._focusedElement = component.element
     this._focusedIsReact = info?.isReact ?? false
+    this._focusHistory = [] // Reset history when mouse moves to a new component
 
     const rect = component.element.getBoundingClientRect()
 
@@ -611,6 +614,18 @@ export class FdComponentInspector extends LitElement {
     }
   }
 
+  private _getCurrentComponentName(): string {
+    if (!this._focusedElement) return 'Unknown'
+
+    if (this._focusedIsReact) {
+      const component = getReactComponent(this._focusedElement)
+      return component?.name ?? 'Unknown'
+    } else {
+      const component = getScalaComponent(this._focusedElement)
+      return component?.name ?? 'Unknown'
+    }
+  }
+
   private _handleKeydown = (e: KeyboardEvent) => {
     if (!this.active) return
 
@@ -631,16 +646,45 @@ export class FdComponentInspector extends LitElement {
       if (this._focusedIsReact) {
         const parent = this._getParentReactComponent(this._focusedElement)
         if (parent) {
+          // Save current to history before navigating up
+          const currentName = this._getCurrentComponentName()
+          this._focusHistory.push({
+            element: this._focusedElement,
+            name: currentName,
+            isReact: true,
+          })
           this._focusComponent(parent.element, parent.name, { isReact: true })
         }
       } else {
         const parent = this._getParentScalaComponent(this._focusedElement)
         if (parent) {
+          // Save current to history before navigating up
+          const currentName = this._getCurrentComponentName()
+          this._focusHistory.push({
+            element: this._focusedElement,
+            name: currentName,
+            isReact: false,
+          })
           const sourceInfo = getComponentSourceInfo(parent.element)
           this._focusComponent(parent.element, parent.name, {
             isMarked: sourceInfo?.isMarked ?? false,
           })
         }
+      }
+      return
+    }
+
+    if (e.key === 'ArrowDown' && this._focusHistory.length > 0) {
+      e.preventDefault()
+
+      const previous = this._focusHistory.pop()!
+      if (previous.isReact) {
+        this._focusComponent(previous.element, previous.name, { isReact: true })
+      } else {
+        const sourceInfo = getComponentSourceInfo(previous.element)
+        this._focusComponent(previous.element, previous.name, {
+          isMarked: sourceInfo?.isMarked ?? false,
+        })
       }
     }
   }
