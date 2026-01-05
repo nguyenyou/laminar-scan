@@ -1,5 +1,6 @@
 import { LitElement, css, html } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
+import { getColorFromFps } from '../core/performance-color'
 
 @customElement('fd-fps')
 export class FdFps extends LitElement {
@@ -61,23 +62,11 @@ export class FdFps extends LitElement {
     this._animationId = requestAnimationFrame(() => this._tick())
   }
 
-  /** Calculate hue based on FPS (consistent with LagRadar) */
-  private _calcHue(fps: number): number {
-    const maxHue = 120
-    const maxFps = 60
-    // Linear mapping: 0 FPS → hue 0 (red), 60 FPS → hue 120 (green)
-    return Math.max(0, Math.min((fps / maxFps) * maxHue, maxHue))
-  }
-
-  private _getColor(): string {
-    const hue = this._calcHue(this._displayFps)
-    return `hsl(${hue}, 80%, 40%)`
-  }
-
   render() {
+    const color = getColorFromFps(this._displayFps)
     return html`
       <button class="devtools-meter" title="Show Lag Radar" @click=${this._handleClick}>
-        <span class="devtools-meter-value" style="color: ${this._getColor()}">${this._displayFps}</span>
+        <span class="devtools-meter-value" style="color: ${color}">${this._displayFps}</span>
         <span class="devtools-meter-label">FPS</span>
       </button>
     `

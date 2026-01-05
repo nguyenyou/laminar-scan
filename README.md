@@ -32,31 +32,54 @@ The radar uses `requestAnimationFrame` to drive its animation. Each frame:
 
 #### Color Calculation Algorithm
 
+Both the FPS meter and Lag Radar use a **shared color utility** (`performance-color.ts`) to ensure consistent color mapping across the devtools. The color scale is specifically designed to **detect long-running tasks that block the main thread**.
+
 The hue is calculated using a **logarithmic scale** that maps frame times to colors:
 
 ```javascript
-_calcHue(msDelta: number): number {
-  const maxHue = 120      // Green (HSL hue for green)
-  const maxMs = 1000      // Maximum frame time considered (1 second)
-  const logF = 10         // Logarithmic factor for sensitivity
-  const mult = maxHue / Math.log(maxMs / logF)  // ≈ 26.06
+// Shared configuration
+const COLOR_CONFIG = {
+  maxHue: 120,      // Green (HSL hue for green)
+  maxMs: 1000,      // Maximum frame time considered (1 second = red)
+  logFactor: 10,    // Baseline for "perfect" frame time (~10ms)
+}
 
-  return maxHue - Math.max(0, Math.min(mult * Math.log(msDelta / logF), maxHue))
+const LOG_MULTIPLIER = maxHue / Math.log(maxMs / logFactor)  // ≈ 26.06
+
+function calcHueFromFrameTime(frameTimeMs: number): number {
+  const logValue = Math.log(frameTimeMs / logFactor)
+  const scaledValue = LOG_MULTIPLIER * logValue
+  return maxHue - clamp(scaledValue, 0, maxHue)
+}
+
+// FPS uses the same formula by converting to frame time
+function calcHueFromFps(fps: number): number {
+  return calcHueFromFrameTime(1000 / fps)
 }
 ```
 
-**Color Mapping:**
+**Color Mapping (Focused on Main Thread Blocking Detection):**
 
-| Frame Time | Hue | Color | Interpretation |
-|------------|-----|-------|----------------|
-| ~10ms | 120 | 🟢 Green | Excellent - smooth animation |
-| ~16.7ms | ~107 | 🟢 Green | Good - 60 FPS target |
-| ~33ms | ~80 | 🟡 Yellow | Warning - frame drops |
-| ~50ms | ~62 | 🟠 Orange | Poor - noticeable jank |
-| ~100ms | ~36 | 🔴 Red-Orange | Bad - visible stutters |
-| ≥1000ms | 0 | 🔴 Red | Critical - severe lag |
+| Frame Time | FPS Equivalent | Hue | Color | Interpretation |
+|------------|----------------|-----|-------|----------------|
+| <10ms | >100 FPS | 120 | 🟢 Green | Excellent - no blocking |
+| ~16.7ms | 60 FPS | ~107 | 🟢 Green | Normal - no blocking |
+| ~33ms | 30 FPS | ~89 | 🟢 Green | Normal - no blocking |
+| ~50ms | 20 FPS | ~78 | 🟡 Yellow-green | Starting to block |
+| ~100ms | 10 FPS | ~60 | 🟡 Yellow | Blocking detected |
+| ~200ms | 5 FPS | ~42 | 🟠 Orange | Significant blocking |
+| ~500ms | 2 FPS | ~15 | 🔴 Red-orange | Severe blocking |
+| ≥1000ms | ≤1 FPS | 0 | 🔴 Red | Critical - long-running task |
 
-The logarithmic scale provides **higher sensitivity at lower frame times** where differences are more perceptible to users (e.g., the difference between 16ms and 33ms is more noticeable than between 500ms and 517ms).
+**Why This Scale?**
+
+The logarithmic scale is designed for **detecting long-running JavaScript tasks**, not for measuring display refresh rate compliance:
+
+- **Green zone (0-50ms)**: Normal operation. Even if frames are slower than the display refresh rate, the main thread is not blocked by heavy computation.
+- **Yellow zone (50-100ms)**: Warning. A task is taking long enough to be noticeable. This often indicates expensive DOM operations, large calculations, or synchronous network calls.
+- **Orange/Red zone (>100ms)**: Critical. A long-running task is blocking the main thread. This is the kind of jank that makes the UI feel "frozen".
+
+This approach is **refresh-rate agnostic** - whether you're on a 60Hz or 120Hz display, a 200ms frame is problematic because it means JavaScript blocked the main thread for 200ms.
 
 ### Behavior on 60Hz vs 120Hz Displays
 

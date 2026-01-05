@@ -1,6 +1,7 @@
 import { LitElement, css, html } from 'lit'
 import type { PropertyValues } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
+import { getColorFromFrameTime } from '../core/performance-color'
 
 interface RadarLastState {
   rotation: number
@@ -93,15 +94,6 @@ export class FdLagRadar extends LitElement {
     }
   }
 
-  /** Calculate hue based on frame time delta (green=fast, red=slow) */
-  private _calcHue(msDelta: number): number {
-    const maxHue = 120
-    const maxMs = 1000
-    const logF = 10
-    const mult = maxHue / Math.log(maxMs / logF)
-    return maxHue - Math.max(0, Math.min(mult * Math.log(msDelta / logF), maxHue))
-  }
-
   private _animate(): void {
     if (!this._running || !this._last) return
 
@@ -111,20 +103,21 @@ export class FdLagRadar extends LitElement {
     const frames = this.frames
 
     const now = Date.now()
-    const rdelta = Math.min(PI2 - this.speed, this.speed * (now - this._last.now))
+    const frameTimeMs = now - this._last.now
+    const rdelta = Math.min(PI2 - this.speed, this.speed * frameTimeMs)
     const rotation = (this._last.rotation + rdelta) % PI2
     const tx = middle + radius * Math.cos(rotation)
     const ty = middle + radius * Math.sin(rotation)
 
     const bigArc = rdelta < Math.PI ? '0' : '1'
     const path = `M${tx} ${ty}A${radius} ${radius} 0 ${bigArc} 0 ${this._last.tx} ${this._last.ty}L${middle} ${middle}`
-    const hue = this._calcHue(rdelta / this.speed)
+    const color = getColorFromFrameTime(frameTimeMs)
 
     // Update current arc segment
     const currentArc = this._arcs[this._framePtr % frames]
     if (currentArc) {
       currentArc.setAttribute('d', path)
-      currentArc.setAttribute('fill', `hsl(${hue}, 80%, 40%)`)
+      currentArc.setAttribute('fill', color)
     }
 
     // Update hand position

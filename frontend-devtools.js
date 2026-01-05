@@ -1565,7 +1565,6 @@
       this.frames = 50;
       this.speed = 17e-4;
       this.inset = 3;
-      this.showLegend = true;
       this._running = false;
       this._animationId = null;
       this._last = null;
@@ -1682,25 +1681,6 @@
             r="${this._radius}"
           ></circle>
         </svg>
-        ${this.showLegend ? this._renderLegend() : null}
-      </div>
-    `;
-    }
-    _renderLegend() {
-      return b2`
-      <div class="radar-legend">
-        <div class="radar-legend-item">
-          <span class="radar-legend-dot radar-legend-dot--good"></span>
-          <span>50+</span>
-        </div>
-        <div class="radar-legend-item">
-          <span class="radar-legend-dot radar-legend-dot--warning"></span>
-          <span>30-50</span>
-        </div>
-        <div class="radar-legend-item">
-          <span class="radar-legend-dot radar-legend-dot--critical"></span>
-          <span>&lt;30</span>
-        </div>
       </div>
     `;
     }
@@ -1741,38 +1721,6 @@
       stroke-width: 4px;
       stroke-linecap: round;
     }
-
-    .radar-legend {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      font-size: 10px;
-      color: rgba(255, 255, 255, 0.6);
-    }
-
-    .radar-legend-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .radar-legend-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 9999px;
-    }
-
-    .radar-legend-dot--good {
-      background: hsl(120, 80%, 40%);
-    }
-
-    .radar-legend-dot--warning {
-      background: hsl(60, 80%, 40%);
-    }
-
-    .radar-legend-dot--critical {
-      background: hsl(0, 80%, 40%);
-    }
   `;
   __decorateClass([
     n4({ type: Number })
@@ -1786,9 +1734,6 @@
   __decorateClass([
     n4({ type: Number })
   ], FdLagRadar.prototype, "inset", 2);
-  __decorateClass([
-    n4({ type: Boolean, attribute: "show-legend" })
-  ], FdLagRadar.prototype, "showLegend", 2);
   __decorateClass([
     r5()
   ], FdLagRadar.prototype, "_running", 2);
