@@ -2695,6 +2695,13 @@
       // Event catcher state
       this._eventCatcher = null;
       this._lastHovered = null;
+      this._focusedElement = null;
+      this._focusedIsReact = false;
+      this._focusHistory = [];
+      // Boundary feedback animation state
+      this._boundaryAnimationId = null;
+      this._borderScale = 1;
+      this._pillShakeOffset = 0;
       this._handlePointerMove = (e5) => {
         if (!this.active) return;
         this._cursorX = e5.clientX;
@@ -2739,6 +2746,9 @@
           return;
         }
         this._lastHovered = component.element;
+        this._focusedElement = component.element;
+        this._focusedIsReact = info?.isReact ?? false;
+        this._focusHistory = [];
         const rect = component.element.getBoundingClientRect();
         this._animateTo(
           { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
@@ -2778,8 +2788,65 @@
         }
       };
       this._handleKeydown = (e5) => {
-        if (e5.key === "Escape" && this.active) {
+        if (!this.active) return;
+        if (e5.key === "Escape") {
           this.active = false;
+          return;
+        }
+        if (e5.key === "Enter") {
+          e5.preventDefault();
+          this._selectCurrentComponent();
+          return;
+        }
+        if (e5.key === "ArrowUp" && this._focusedElement) {
+          e5.preventDefault();
+          if (this._focusedIsReact) {
+            const parent = this._getParentReactComponent(this._focusedElement);
+            if (parent) {
+              const currentName = this._getCurrentComponentName();
+              this._focusHistory.push({
+                element: this._focusedElement,
+                name: currentName,
+                isReact: true
+              });
+              this._focusComponent(parent.element, parent.name, { isReact: true });
+            } else {
+              this._animatePillShake();
+            }
+          } else {
+            const parent = this._getParentScalaComponent(this._focusedElement);
+            if (parent) {
+              const currentName = this._getCurrentComponentName();
+              this._focusHistory.push({
+                element: this._focusedElement,
+                name: currentName,
+                isReact: false
+              });
+              const sourceInfo = getComponentSourceInfo(parent.element);
+              this._focusComponent(parent.element, parent.name, {
+                isMarked: sourceInfo?.isMarked ?? false
+              });
+            } else {
+              this._animatePillShake();
+            }
+          }
+          return;
+        }
+        if (e5.key === "ArrowDown") {
+          e5.preventDefault();
+          if (this._focusHistory.length > 0) {
+            const previous = this._focusHistory.pop();
+            if (previous.isReact) {
+              this._focusComponent(previous.element, previous.name, { isReact: true });
+            } else {
+              const sourceInfo = getComponentSourceInfo(previous.element);
+              this._focusComponent(previous.element, previous.name, {
+                isMarked: sourceInfo?.isMarked ?? false
+              });
+            }
+          } else {
+            this._animateBoundaryPulse();
+          }
         }
       };
     }
@@ -2811,6 +2878,10 @@
     _stop() {
       this._removeEventListeners();
       this._lastHovered = null;
+      this._focusedElement = null;
+      this._focusedIsReact = false;
+      this._focusHistory = [];
+      this._cancelBoundaryAnimation();
       this._destroyCanvas();
       this._destroyEventCatcher();
       this._dispatchChange(false);
@@ -2890,6 +2961,72 @@
         cancelAnimationFrame(this._animationId);
         this._animationId = null;
       }
+    }
+    _cancelBoundaryAnimation() {
+      if (this._boundaryAnimationId) {
+        cancelAnimationFrame(this._boundaryAnimationId);
+        this._boundaryAnimationId = null;
+      }
+      this._borderScale = 1;
+      this._pillShakeOffset = 0;
+    }
+    _animateBoundaryPulse() {
+      this._cancelBoundaryAnimation();
+      const duration = 200;
+      const startTime = performance.now();
+      const maxScale = 1.5;
+      const animate = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        this._borderScale = 1 + Math.sin(progress * Math.PI) * (maxScale - 1);
+        if (this._currentRect && this._focusedElement) {
+          const name = this._getCurrentComponentName();
+          const info = this._focusedIsReact ? { isReact: true } : { isMarked: getComponentSourceInfo(this._focusedElement)?.isMarked ?? false };
+          this._drawOverlay(this._currentRect, name, info);
+        }
+        if (progress < 1) {
+          this._boundaryAnimationId = requestAnimationFrame(animate);
+        } else {
+          this._borderScale = 1;
+          this._boundaryAnimationId = null;
+          if (this._currentRect && this._focusedElement) {
+            const name = this._getCurrentComponentName();
+            const info = this._focusedIsReact ? { isReact: true } : { isMarked: getComponentSourceInfo(this._focusedElement)?.isMarked ?? false };
+            this._drawOverlay(this._currentRect, name, info);
+          }
+        }
+      };
+      this._boundaryAnimationId = requestAnimationFrame(animate);
+    }
+    _animatePillShake() {
+      this._cancelBoundaryAnimation();
+      const duration = 300;
+      const startTime = performance.now();
+      const shakeAmount = 6;
+      const shakeFrequency = 3;
+      const animate = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const decay = 1 - progress;
+        this._pillShakeOffset = Math.sin(progress * Math.PI * 2 * shakeFrequency) * shakeAmount * decay;
+        if (this._currentRect && this._focusedElement) {
+          const name = this._getCurrentComponentName();
+          const info = this._focusedIsReact ? { isReact: true } : { isMarked: getComponentSourceInfo(this._focusedElement)?.isMarked ?? false };
+          this._drawOverlay(this._currentRect, name, info);
+        }
+        if (progress < 1) {
+          this._boundaryAnimationId = requestAnimationFrame(animate);
+        } else {
+          this._pillShakeOffset = 0;
+          this._boundaryAnimationId = null;
+          if (this._currentRect && this._focusedElement) {
+            const name = this._getCurrentComponentName();
+            const info = this._focusedIsReact ? { isReact: true } : { isMarked: getComponentSourceInfo(this._focusedElement)?.isMarked ?? false };
+            this._drawOverlay(this._currentRect, name, info);
+          }
+        }
+      };
+      this._boundaryAnimationId = requestAnimationFrame(animate);
     }
     _createEventCatcher() {
       if (this._eventCatcher) return;
@@ -2984,12 +3121,20 @@
         pillBg = colors.inspectPillBg;
         pillText = colors.inspectPillText;
       }
+      const scale = this._borderScale;
+      const expandAmount = (scale - 1) * 8;
+      const adjustedRect = {
+        left: rect.left - expandAmount,
+        top: rect.top - expandAmount,
+        width: rect.width + expandAmount * 2,
+        height: rect.height + expandAmount * 2
+      };
       this._ctx.strokeStyle = strokeColor;
       this._ctx.fillStyle = fillColor;
-      this._ctx.lineWidth = 1;
+      this._ctx.lineWidth = 1 + (scale - 1) * 2;
       this._ctx.setLineDash([4]);
-      this._ctx.fillRect(rect.left, rect.top, rect.width, rect.height);
-      this._ctx.strokeRect(rect.left, rect.top, rect.width, rect.height);
+      this._ctx.fillRect(adjustedRect.left, adjustedRect.top, adjustedRect.width, adjustedRect.height);
+      this._ctx.strokeRect(adjustedRect.left, adjustedRect.top, adjustedRect.width, adjustedRect.height);
       if (componentName) {
         this._drawPill(rect, componentName, isReact, pillBg, pillText);
       }
@@ -3020,7 +3165,7 @@
       } else {
         pillY = Math.max(pillGap, Math.min(rect.top + pillGap, viewportHeight - pillHeight - pillGap));
       }
-      let pillX = rect.left;
+      let pillX = rect.left + this._pillShakeOffset;
       if (pillX + pillWidth > viewportWidth - pillGap) {
         pillX = viewportWidth - pillWidth - pillGap;
       }
@@ -3054,6 +3199,80 @@
       this._ctx.lineTo(viewportWidth, this._cursorY);
       this._ctx.stroke();
       this._ctx.restore();
+    }
+    _getParentScalaComponent(element) {
+      const attr = CONFIG.attributes.scalaComponent;
+      const parent = element.parentElement?.closest(`[${attr}]`);
+      if (!parent) return null;
+      return {
+        element: parent,
+        name: parent.getAttribute(attr) ?? "Unknown"
+      };
+    }
+    _getParentReactComponent(element) {
+      const fiber = element.__reactFiber$ || Object.keys(element).find((k2) => k2.startsWith("__reactFiber$")) ? element[Object.keys(element).find((k2) => k2.startsWith("__reactFiber$"))] : null;
+      if (!fiber) return null;
+      let current = fiber.return;
+      let iterations = 0;
+      const maxIterations = 500;
+      while (current && iterations < maxIterations) {
+        iterations++;
+        if (current.type && typeof current.type !== "string") {
+          const name = current.type.displayName || current.type.name || (current.type.render?.displayName || current.type.render?.name) || "Unknown";
+          let stateNode = current.stateNode;
+          if (!stateNode || !(stateNode instanceof Element)) {
+            let child = current.child;
+            while (child && !(child.stateNode instanceof Element)) {
+              child = child.child;
+            }
+            stateNode = child?.stateNode;
+          }
+          if (stateNode instanceof Element) {
+            return { element: stateNode, name, isReact: true };
+          }
+        }
+        current = current.return;
+      }
+      return null;
+    }
+    _focusComponent(element, name, info) {
+      this._focusedElement = element;
+      this._focusedIsReact = info.isReact ?? false;
+      this._lastHovered = element;
+      const rect = element.getBoundingClientRect();
+      this._animateTo(
+        { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+        name,
+        info
+      );
+    }
+    _selectCurrentComponent() {
+      if (!this._focusedElement) return;
+      if (this._focusedIsReact) {
+        const info = getReactComponentSourceInfo(this._focusedElement);
+        if (info?.sourcePath) {
+          openInIDE(info.sourcePath, info.sourceLine);
+          this.active = false;
+        } else {
+          this.active = false;
+        }
+      } else {
+        const info = getComponentSourceInfo(this._focusedElement);
+        if (info?.sourcePath) {
+          openInIDE(info.sourcePath, info.sourceLine);
+          this.active = false;
+        }
+      }
+    }
+    _getCurrentComponentName() {
+      if (!this._focusedElement) return "Unknown";
+      if (this._focusedIsReact) {
+        const component = getReactComponent(this._focusedElement);
+        return component?.name ?? "Unknown";
+      } else {
+        const component = getScalaComponent(this._focusedElement);
+        return component?.name ?? "Unknown";
+      }
     }
   };
   FdComponentInspector.styles = i`
