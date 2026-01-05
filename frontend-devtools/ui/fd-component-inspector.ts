@@ -175,9 +175,9 @@ export class FdComponentInspector extends LitElement {
     const h = window.innerHeight
     const glowDepth = 120 // How far the glow extends inward
 
-    // Soft blue color like GitHub's edge glow
-    const glowColor = 'rgba(56, 182, 255, 0.25)'
-    const glowColorMid = 'rgba(56, 182, 255, 0.08)'
+    // Soft purple color matching our theme
+    const glowColor = 'rgba(142, 97, 227, 0.3)'
+    const glowColorMid = 'rgba(142, 97, 227, 0.1)'
 
     this._ctx.save()
 

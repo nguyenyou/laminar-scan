@@ -2009,7 +2009,8 @@
       inspectReactStroke: "rgba(97, 218, 251, 0.6)",
       inspectReactFill: "rgba(97, 218, 251, 0.10)",
       inspectReactPillBg: "rgba(20, 44, 52, 0.90)",
-      inspectReactPillText: "#61dafb"
+      inspectReactPillText: "#61dafb",
+      inspectCrosshair: "rgba(142, 97, 227, 0.4)"
     },
     animation: {
       totalFrames: 45,
@@ -2687,11 +2688,16 @@
       this._currentRect = null;
       this._animationId = null;
       this._removeTimeoutId = null;
+      // Crosshair state
+      this._cursorX = 0;
+      this._cursorY = 0;
       // Event catcher state
       this._eventCatcher = null;
       this._lastHovered = null;
       this._handlePointerMove = (e5) => {
         if (!this.active) return;
+        this._cursorX = e5.clientX;
+        this._cursorY = e5.clientY;
         if (this._lastHovered && !this._lastHovered.isConnected) {
           this._lastHovered = null;
           this._clearOverlay();
@@ -2700,7 +2706,11 @@
         this._eventCatcher.style.pointerEvents = "none";
         const element = document.elementFromPoint(e5.clientX, e5.clientY);
         this._eventCatcher.style.pointerEvents = "auto";
-        if (!element) return;
+        if (!element) {
+          this._clearCanvas();
+          this._drawCrosshair();
+          return;
+        }
         let component = getScalaComponent(element);
         let info = null;
         if (component) {
@@ -2717,9 +2727,16 @@
             this._lastHovered = null;
             this._clearOverlay();
           }
+          this._clearCanvas();
+          this._drawCrosshair();
           return;
         }
-        if (component.element === this._lastHovered) return;
+        if (component.element === this._lastHovered) {
+          if (this._currentRect) {
+            this._drawOverlay(this._currentRect, component.name ?? "Unknown", info ?? {});
+          }
+          return;
+        }
         this._lastHovered = component.element;
         const rect = component.element.getBoundingClientRect();
         this._animateTo(
@@ -2866,6 +2883,41 @@
       if (!this._ctx || !this._canvas) return;
       const dpr = getDevicePixelRatio();
       this._ctx.clearRect(0, 0, this._canvas.width / dpr, this._canvas.height / dpr);
+      this._drawInnerShadow();
+    }
+    _drawInnerShadow() {
+      if (!this._ctx) return;
+      const w2 = window.innerWidth;
+      const h3 = window.innerHeight;
+      const glowDepth = 120;
+      const glowColor = "rgba(142, 97, 227, 0.3)";
+      const glowColorMid = "rgba(142, 97, 227, 0.1)";
+      this._ctx.save();
+      const topGradient = this._ctx.createLinearGradient(0, 0, 0, glowDepth);
+      topGradient.addColorStop(0, glowColor);
+      topGradient.addColorStop(0.4, glowColorMid);
+      topGradient.addColorStop(1, "transparent");
+      this._ctx.fillStyle = topGradient;
+      this._ctx.fillRect(0, 0, w2, glowDepth);
+      const bottomGradient = this._ctx.createLinearGradient(0, h3, 0, h3 - glowDepth);
+      bottomGradient.addColorStop(0, glowColor);
+      bottomGradient.addColorStop(0.4, glowColorMid);
+      bottomGradient.addColorStop(1, "transparent");
+      this._ctx.fillStyle = bottomGradient;
+      this._ctx.fillRect(0, h3 - glowDepth, w2, glowDepth);
+      const leftGradient = this._ctx.createLinearGradient(0, 0, glowDepth, 0);
+      leftGradient.addColorStop(0, glowColor);
+      leftGradient.addColorStop(0.4, glowColorMid);
+      leftGradient.addColorStop(1, "transparent");
+      this._ctx.fillStyle = leftGradient;
+      this._ctx.fillRect(0, 0, glowDepth, h3);
+      const rightGradient = this._ctx.createLinearGradient(w2, 0, w2 - glowDepth, 0);
+      rightGradient.addColorStop(0, glowColor);
+      rightGradient.addColorStop(0.4, glowColorMid);
+      rightGradient.addColorStop(1, "transparent");
+      this._ctx.fillStyle = rightGradient;
+      this._ctx.fillRect(w2 - glowDepth, 0, glowDepth, h3);
+      this._ctx.restore();
     }
     _cancelAnimation() {
       if (this._animationId) {
@@ -2975,6 +3027,7 @@
       if (componentName) {
         this._drawPill(rect, componentName, isReact, pillBg, pillText);
       }
+      this._drawCrosshair();
     }
     _drawPill(rect, componentName, isReact, pillBg, pillText) {
       if (!this._ctx) return;
@@ -3015,6 +3068,26 @@
       this._ctx.fillStyle = pillText;
       this._ctx.textBaseline = "middle";
       this._ctx.fillText(displayName, pillX + pillPadding, pillY + pillHeight / 2);
+    }
+    _drawCrosshair() {
+      if (!this._ctx) return;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const colors = CONFIG.colors;
+      const crosshairColor = colors.inspectCrosshair ?? "rgba(99, 102, 241, 0.5)";
+      this._ctx.save();
+      this._ctx.strokeStyle = crosshairColor;
+      this._ctx.lineWidth = 1;
+      this._ctx.setLineDash([4, 4]);
+      this._ctx.beginPath();
+      this._ctx.moveTo(this._cursorX, 0);
+      this._ctx.lineTo(this._cursorX, viewportHeight);
+      this._ctx.stroke();
+      this._ctx.beginPath();
+      this._ctx.moveTo(0, this._cursorY);
+      this._ctx.lineTo(viewportWidth, this._cursorY);
+      this._ctx.stroke();
+      this._ctx.restore();
     }
   };
   FdComponentInspector.styles = i`
