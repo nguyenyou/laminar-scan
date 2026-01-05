@@ -1234,6 +1234,41 @@
     t3("fd-panel")
   ], FdPanel);
 
+  // frontend-devtools/core/performance-color.ts
+  var COLOR_CONFIG = {
+    /** Maximum hue value (green in HSL) */
+    maxHue: 120,
+    /** Maximum frame time considered (1 second = red) */
+    maxMs: 1e3,
+    /** Logarithmic factor - baseline for "perfect" frame time (~10ms = 100 FPS) */
+    logFactor: 10,
+    /** Saturation for HSL color */
+    saturation: 80,
+    /** Lightness for HSL color */
+    lightness: 40
+  };
+  var LOG_MULTIPLIER = COLOR_CONFIG.maxHue / Math.log(COLOR_CONFIG.maxMs / COLOR_CONFIG.logFactor);
+  function calcHueFromFrameTime(frameTimeMs) {
+    if (frameTimeMs <= 0) return COLOR_CONFIG.maxHue;
+    const logValue = Math.log(frameTimeMs / COLOR_CONFIG.logFactor);
+    const scaledValue = LOG_MULTIPLIER * logValue;
+    const clampedValue = Math.max(0, Math.min(scaledValue, COLOR_CONFIG.maxHue));
+    return COLOR_CONFIG.maxHue - clampedValue;
+  }
+  function calcHueFromFps(fps) {
+    if (fps <= 0) return 0;
+    const frameTimeMs = 1e3 / fps;
+    return calcHueFromFrameTime(frameTimeMs);
+  }
+  function getColorFromFrameTime(frameTimeMs) {
+    const hue = calcHueFromFrameTime(frameTimeMs);
+    return `hsl(${hue}, ${COLOR_CONFIG.saturation}%, ${COLOR_CONFIG.lightness}%)`;
+  }
+  function getColorFromFps(fps) {
+    const hue = calcHueFromFps(fps);
+    return `hsl(${hue}, ${COLOR_CONFIG.saturation}%, ${COLOR_CONFIG.lightness}%)`;
+  }
+
   // frontend-devtools/ui/fd-fps.ts
   var FdFps = class extends i4 {
     constructor() {
@@ -1285,20 +1320,11 @@
       }
       this._animationId = requestAnimationFrame(() => this._tick());
     }
-    /** Calculate hue based on FPS (consistent with LagRadar) */
-    _calcHue(fps) {
-      const maxHue = 120;
-      const maxFps = 60;
-      return Math.max(0, Math.min(fps / maxFps * maxHue, maxHue));
-    }
-    _getColor() {
-      const hue = this._calcHue(this._displayFps);
-      return `hsl(${hue}, 80%, 40%)`;
-    }
     render() {
+      const color = getColorFromFps(this._displayFps);
       return b2`
       <button class="devtools-meter" title="Show Lag Radar" @click=${this._handleClick}>
-        <span class="devtools-meter-value" style="color: ${this._getColor()}">${this._displayFps}</span>
+        <span class="devtools-meter-value" style="color: ${color}">${this._displayFps}</span>
         <span class="devtools-meter-label">FPS</span>
       </button>
     `;
@@ -1623,14 +1649,6 @@
         this._animationId = null;
       }
     }
-    /** Calculate hue based on frame time delta (green=fast, red=slow) */
-    _calcHue(msDelta) {
-      const maxHue = 120;
-      const maxMs = 1e3;
-      const logF = 10;
-      const mult = maxHue / Math.log(maxMs / logF);
-      return maxHue - Math.max(0, Math.min(mult * Math.log(msDelta / logF), maxHue));
-    }
     _animate() {
       if (!this._running || !this._last) return;
       const PI2 = Math.PI * 2;
@@ -1638,17 +1656,18 @@
       const radius = this._radius;
       const frames = this.frames;
       const now = Date.now();
-      const rdelta = Math.min(PI2 - this.speed, this.speed * (now - this._last.now));
+      const frameTimeMs = now - this._last.now;
+      const rdelta = Math.min(PI2 - this.speed, this.speed * frameTimeMs);
       const rotation = (this._last.rotation + rdelta) % PI2;
       const tx = middle + radius * Math.cos(rotation);
       const ty = middle + radius * Math.sin(rotation);
       const bigArc = rdelta < Math.PI ? "0" : "1";
       const path = `M${tx} ${ty}A${radius} ${radius} 0 ${bigArc} 0 ${this._last.tx} ${this._last.ty}L${middle} ${middle}`;
-      const hue = this._calcHue(rdelta / this.speed);
+      const color = getColorFromFrameTime(frameTimeMs);
       const currentArc = this._arcs[this._framePtr % frames];
       if (currentArc) {
         currentArc.setAttribute("d", path);
-        currentArc.setAttribute("fill", `hsl(${hue}, 80%, 40%)`);
+        currentArc.setAttribute("fill", color);
       }
       if (this._hand) {
         this._hand.setAttribute("d", `M${middle} ${middle}L${tx} ${ty}`);
