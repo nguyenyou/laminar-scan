@@ -3336,8 +3336,15 @@
   ], FrontendDevtools);
 
   // frontend-devtools-bootstrap.ts
-  if (!document.querySelector("frontend-devtools")) {
-    document.body.appendChild(document.createElement("frontend-devtools"));
+  function appendDevtools() {
+    if (!document.querySelector("frontend-devtools") && document.body) {
+      document.body.appendChild(document.createElement("frontend-devtools"));
+    }
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", appendDevtools, { once: true });
+  } else {
+    appendDevtools();
   }
 })();
 /*! Bundled license information:
