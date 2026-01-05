@@ -89,13 +89,13 @@ export class FdDomStats extends LitElement {
       display: flex;
       flex-direction: column;
       gap: 4px;
-      background: #1a1a1a;
-      
+      background: var(--fd-bg-elevated);
+
       padding: 8px;
-      color: #e0e0e0;
+      color: var(--fd-text-secondary);
       max-height: 100%;
       overflow-y: auto;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      box-shadow: var(--fd-shadow-panel);
     }
 
     .dom-stats-row {
@@ -115,26 +115,26 @@ export class FdDomStats extends LitElement {
       top: 0;
       left: 0;
       height: 100%;
-      background: rgba(100, 181, 246, 0.15);
+      background: var(--fd-info-bg);
       border-radius: 4px;
       pointer-events: none;
       transition: width 300ms ease-out;
     }
 
     .dom-stats-row:hover .bar {
-      background: rgba(100, 181, 246, 0.25);
+      background: var(--fd-info-bg-hover);
     }
 
     .tag-name {
       position: relative;
-      color: #64b5f6;
+      color: var(--fd-info);
       font-weight: 500;
       flex: 1;
     }
 
     .tag-count {
       position: relative;
-      color: #81c784;
+      color: var(--fd-success);
       font-weight: 600;
       min-width: 40px;
       text-align: right;

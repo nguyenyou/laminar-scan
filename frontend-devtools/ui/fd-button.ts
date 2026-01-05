@@ -73,21 +73,21 @@ export class FdButton extends LitElement {
     /* ===== Base styles ===== */
     .devtools-btn {
       background: transparent;
-      color: #999;
+      color: var(--fd-text-muted);
       box-shadow: none;
     }
 
     .devtools-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
+      background: var(--fd-bg-hover);
+      color: var(--fd-text-primary);
     }
 
     :host([active]) .devtools-btn {
-      color: #8e61e3;
+      color: var(--fd-primary);
     }
 
     :host([active]) .devtools-btn:hover {
-      color: #9f7af0;
+      color: var(--fd-primary-hover);
     }
 
     /* ===== Icon size ===== */
@@ -104,7 +104,7 @@ export class FdButton extends LitElement {
     }
 
     .devtools-btn:focus-visible {
-      outline: 2px solid #7361e6;
+      outline: var(--fd-focus-ring);
       outline-offset: 2px;
     }
 

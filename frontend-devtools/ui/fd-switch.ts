@@ -69,14 +69,14 @@ export class FdSwitch extends LitElement {
       position: relative;
       width: 36px;
       height: 20px;
-      background: #525252;
+      background: var(--fd-switch-off);
       border-radius: 9999px;
       transition: background-color 0.2s;
       flex-shrink: 0;
     }
 
     .devtools-toggle input:checked + .devtools-toggle-track {
-      background: #7361e6;
+      background: var(--fd-primary);
     }
 
     .devtools-toggle-thumb {
@@ -86,9 +86,9 @@ export class FdSwitch extends LitElement {
       transform: translateY(-50%);
       width: 16px;
       height: 16px;
-      background: #fff;
+      background: var(--fd-switch-knob);
       border-radius: 9999px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      box-shadow: var(--fd-switch-knob-shadow);
       transition: left 0.2s ease;
     }
 
@@ -102,7 +102,7 @@ export class FdSwitch extends LitElement {
     }
 
     .devtools-toggle input:focus-visible + .devtools-toggle-track {
-      outline: 2px solid #7361e6;
+      outline: var(--fd-focus-ring);
       outline-offset: 2px;
     }
   `

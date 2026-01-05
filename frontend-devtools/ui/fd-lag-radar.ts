@@ -172,9 +172,9 @@ export class FdLagRadar extends LitElement {
       align-items: center;
       gap: 8px;
       padding: 26px 12px;
-      background: #141414;
+      background: var(--fd-bg-panel);
       border-radius: 6px;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      box-shadow: var(--fd-inset-border-subtle);
     }
 
     .radar-svg {
@@ -187,12 +187,12 @@ export class FdLagRadar extends LitElement {
 
     .radar-face {
       fill: transparent;
-      stroke: rgba(255, 255, 255, 0.85);
+      stroke: var(--fd-radar-stroke);
       stroke-width: 4px;
     }
 
     .radar-hand {
-      stroke: rgba(255, 255, 255, 0.85);
+      stroke: var(--fd-radar-stroke);
       stroke-width: 4px;
       stroke-linecap: round;
     }

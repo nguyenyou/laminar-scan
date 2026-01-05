@@ -175,9 +175,10 @@ export class FdComponentInspector extends LitElement {
     const h = window.innerHeight
     const glowDepth = 120 // How far the glow extends inward
 
-    // Soft purple color matching our theme
-    const glowColor = 'rgba(142, 97, 227, 0.3)'
-    const glowColorMid = 'rgba(142, 97, 227, 0.1)'
+    // Use primary color from config
+    const { r, g, b } = CONFIG.colors.primary
+    const glowColor = `rgba(${r}, ${g}, ${b}, 0.3)`
+    const glowColorMid = `rgba(${r}, ${g}, ${b}, 0.1)`
 
     this._ctx.save()
 

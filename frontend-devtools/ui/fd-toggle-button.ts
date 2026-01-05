@@ -49,11 +49,11 @@ export class FdToggleButton extends LitElement {
 
   static styles = css`
     :host([active]) .toggle-button {
-      color: #8e61e3;
+      color: var(--fd-primary);
     }
 
     :host([active]) .toggle-button:hover {
-      color: #9f7af0;
+      color: var(--fd-primary-hover);
     }
 
     .toggle-button {
@@ -64,7 +64,7 @@ export class FdToggleButton extends LitElement {
       border: none;
       box-shadow: none;
       cursor: pointer;
-      color: #999;
+      color: var(--fd-text-muted);
       border-radius: 6px;
       display: inline-flex;
       align-items: center;
@@ -72,8 +72,8 @@ export class FdToggleButton extends LitElement {
     }
 
     .toggle-button:hover {
-      color: #fff;
-      background: rgba(255, 255, 255, 0.1);
+      color: var(--fd-text-primary);
+      background: var(--fd-bg-hover);
     }
 
     /* ===== Focus states ===== */
@@ -82,7 +82,7 @@ export class FdToggleButton extends LitElement {
     }
 
     .toggle-button:focus-visible {
-      outline: 2px solid #7361e6;
+      outline: var(--fd-focus-ring);
       outline-offset: 2px;
     }
   `

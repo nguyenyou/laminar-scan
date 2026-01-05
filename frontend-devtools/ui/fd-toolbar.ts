@@ -27,9 +27,9 @@ export class FdToolbar extends LitElement {
       align-items: center;
       gap: 8px;
       padding: 8px 12px;
-      background: #000;
+      background: var(--fd-bg-solid);
       border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      box-shadow: var(--fd-shadow-panel);
     }
 
     :host([orientation='vertical']) {

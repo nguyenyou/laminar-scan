@@ -212,9 +212,9 @@ export class FdMemChart extends LitElement {
       flex-direction: column;
       align-items: center;
       padding: 8px;
-      background: #141414;
+      background: var(--fd-bg-panel);
       border-radius: 6px;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      box-shadow: var(--fd-inset-border-subtle);
       width: 100%;
       box-sizing: border-box;
     }
@@ -224,29 +224,29 @@ export class FdMemChart extends LitElement {
     }
 
     .grid-line {
-      stroke: rgba(255, 255, 255, 0.06);
+      stroke: var(--fd-chart-grid);
       stroke-width: 1;
       stroke-dasharray: 2 2;
     }
 
     .axis-line {
-      stroke: rgba(255, 255, 255, 0.15);
+      stroke: var(--fd-chart-grid-major);
       stroke-width: 1;
     }
 
     .axis-label {
       font-family: var(--fd-font-mono);
       font-size: 9px;
-      fill: rgba(255, 255, 255, 0.4);
+      fill: var(--fd-chart-label);
     }
 
     .chart-area {
-      fill: rgba(142, 97, 230, 0.2);
+      fill: var(--fd-chart-fill);
     }
 
     .chart-line {
       fill: none;
-      stroke: rgba(142, 97, 230, 0.8);
+      stroke: var(--fd-chart-stroke);
       stroke-width: 1.5;
       stroke-linecap: round;
       stroke-linejoin: round;

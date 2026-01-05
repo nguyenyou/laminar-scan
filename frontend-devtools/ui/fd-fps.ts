@@ -85,15 +85,15 @@ export class FdFps extends LitElement {
       border-radius: 6px;
       white-space: nowrap;
       font-family: var(--fd-font-mono);
-      background: #141414;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+      background: var(--fd-bg-panel);
+      box-shadow: var(--fd-inset-border-subtle);
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s;
     }
 
     .devtools-meter:hover {
-      background: #1a1a1a;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
+      background: var(--fd-bg-elevated);
+      box-shadow: var(--fd-inset-border-medium);
     }
 
     .devtools-meter-value {
@@ -103,7 +103,7 @@ export class FdFps extends LitElement {
       transition: color 0.15s ease-in-out;
       min-width: 24px;
       text-align: center;
-      color: #fff;
+      color: var(--fd-text-primary);
       font-family: var(--fd-font-mono);
     }
 
@@ -113,7 +113,7 @@ export class FdFps extends LitElement {
     }
 
     .devtools-meter-label {
-      color: rgba(255, 255, 255, 0.3);
+      color: var(--fd-text-faint);
       font-size: 11px;
       font-weight: 500;
       letter-spacing: 0.025em;
@@ -122,7 +122,7 @@ export class FdFps extends LitElement {
     }
 
     :host([active]) .devtools-meter {
-      box-shadow: inset 0 0 0 1px rgba(142, 97, 230, 0.4);
+      box-shadow: var(--fd-inset-border-primary);
     }
 
     /* ===== Focus states ===== */
@@ -131,7 +131,7 @@ export class FdFps extends LitElement {
     }
 
     .devtools-meter:focus-visible {
-      outline: 2px solid #7361e6;
+      outline: var(--fd-focus-ring);
       outline-offset: 2px;
     }
   `
