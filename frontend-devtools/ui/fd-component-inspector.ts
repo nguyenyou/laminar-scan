@@ -165,56 +165,6 @@ export class FdComponentInspector extends LitElement {
     if (!this._ctx || !this._canvas) return
     const dpr = getDevicePixelRatio()
     this._ctx.clearRect(0, 0, this._canvas.width / dpr, this._canvas.height / dpr)
-    this._drawInnerShadow()
-  }
-
-  private _drawInnerShadow(): void {
-    if (!this._ctx) return
-
-    const w = window.innerWidth
-    const h = window.innerHeight
-    const glowDepth = 120 // How far the glow extends inward
-
-    // Use primary color from config
-    const { r, g, b } = CONFIG.colors.primary
-    const glowColor = `rgba(${r}, ${g}, ${b}, 0.3)`
-    const glowColorMid = `rgba(${r}, ${g}, ${b}, 0.1)`
-
-    this._ctx.save()
-
-    // Top edge glow
-    const topGradient = this._ctx.createLinearGradient(0, 0, 0, glowDepth)
-    topGradient.addColorStop(0, glowColor)
-    topGradient.addColorStop(0.4, glowColorMid)
-    topGradient.addColorStop(1, 'transparent')
-    this._ctx.fillStyle = topGradient
-    this._ctx.fillRect(0, 0, w, glowDepth)
-
-    // Bottom edge glow
-    const bottomGradient = this._ctx.createLinearGradient(0, h, 0, h - glowDepth)
-    bottomGradient.addColorStop(0, glowColor)
-    bottomGradient.addColorStop(0.4, glowColorMid)
-    bottomGradient.addColorStop(1, 'transparent')
-    this._ctx.fillStyle = bottomGradient
-    this._ctx.fillRect(0, h - glowDepth, w, glowDepth)
-
-    // Left edge glow
-    const leftGradient = this._ctx.createLinearGradient(0, 0, glowDepth, 0)
-    leftGradient.addColorStop(0, glowColor)
-    leftGradient.addColorStop(0.4, glowColorMid)
-    leftGradient.addColorStop(1, 'transparent')
-    this._ctx.fillStyle = leftGradient
-    this._ctx.fillRect(0, 0, glowDepth, h)
-
-    // Right edge glow
-    const rightGradient = this._ctx.createLinearGradient(w, 0, w - glowDepth, 0)
-    rightGradient.addColorStop(0, glowColor)
-    rightGradient.addColorStop(0.4, glowColorMid)
-    rightGradient.addColorStop(1, 'transparent')
-    this._ctx.fillStyle = rightGradient
-    this._ctx.fillRect(w - glowDepth, 0, glowDepth, h)
-
-    this._ctx.restore()
   }
 
   private _cancelAnimation(): void {
