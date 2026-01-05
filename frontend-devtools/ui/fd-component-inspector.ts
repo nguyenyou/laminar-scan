@@ -35,6 +35,10 @@ export class FdComponentInspector extends LitElement {
   private _animationId: number | null = null
   private _removeTimeoutId: ReturnType<typeof setTimeout> | null = null
 
+  // Crosshair state
+  private _cursorX: number = 0
+  private _cursorY: number = 0
+
   // Event catcher state
   private _eventCatcher: HTMLDivElement | null = null
   private _lastHovered: Element | null = null
@@ -301,6 +305,9 @@ export class FdComponentInspector extends LitElement {
     if (componentName) {
       this._drawPill(rect, componentName, isReact, pillBg, pillText)
     }
+
+    // Draw crosshair at cursor position
+    this._drawCrosshair()
   }
 
   private _drawPill(rect: RectType, componentName: string, isReact: boolean, pillBg: string, pillText: string): void {
@@ -356,8 +363,42 @@ export class FdComponentInspector extends LitElement {
     this._ctx.fillText(displayName, pillX + pillPadding, pillY + pillHeight / 2)
   }
 
+  private _drawCrosshair(): void {
+    if (!this._ctx) return
+
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+    const colors = CONFIG.colors
+
+    // Use a semi-transparent color for crosshair lines
+    const crosshairColor = colors.inspectCrosshair ?? 'rgba(99, 102, 241, 0.5)'
+
+    this._ctx.save()
+    this._ctx.strokeStyle = crosshairColor
+    this._ctx.lineWidth = 1
+    this._ctx.setLineDash([4, 4])
+
+    // Draw vertical line
+    this._ctx.beginPath()
+    this._ctx.moveTo(this._cursorX, 0)
+    this._ctx.lineTo(this._cursorX, viewportHeight)
+    this._ctx.stroke()
+
+    // Draw horizontal line
+    this._ctx.beginPath()
+    this._ctx.moveTo(0, this._cursorY)
+    this._ctx.lineTo(viewportWidth, this._cursorY)
+    this._ctx.stroke()
+
+    this._ctx.restore()
+  }
+
   private _handlePointerMove = (e: PointerEvent) => {
     if (!this.active) return
+
+    // Update cursor position for crosshair
+    this._cursorX = e.clientX
+    this._cursorY = e.clientY
 
     // Clear stale reference if previously hovered element is disconnected
     if (this._lastHovered && !this._lastHovered.isConnected) {
@@ -372,7 +413,12 @@ export class FdComponentInspector extends LitElement {
     const element = document.elementFromPoint(e.clientX, e.clientY)
     this._eventCatcher.style.pointerEvents = 'auto'
 
-    if (!element) return
+    if (!element) {
+      // Still draw crosshair even if no element found
+      this._clearCanvas()
+      this._drawCrosshair()
+      return
+    }
 
     // Try Scala component first, then fall back to React
     let component = getScalaComponent(element)
@@ -394,10 +440,19 @@ export class FdComponentInspector extends LitElement {
         this._lastHovered = null
         this._clearOverlay()
       }
+      // Draw crosshair even when no component is hovered
+      this._clearCanvas()
+      this._drawCrosshair()
       return
     }
 
-    if (component.element === this._lastHovered) return
+    if (component.element === this._lastHovered) {
+      // Same element but cursor moved, redraw with updated crosshair
+      if (this._currentRect) {
+        this._drawOverlay(this._currentRect, component.name ?? 'Unknown', info ?? {})
+      }
+      return
+    }
     this._lastHovered = component.element
 
     const rect = component.element.getBoundingClientRect()

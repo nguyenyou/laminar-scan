@@ -19,6 +19,7 @@ export const CONFIG = {
     inspectReactFill: 'rgba(97, 218, 251, 0.10)',
     inspectReactPillBg: 'rgba(20, 44, 52, 0.90)',
     inspectReactPillText: '#61dafb',
+    inspectCrosshair: 'rgba(142, 97, 227, 0.4)',
   },
 
   animation: {
