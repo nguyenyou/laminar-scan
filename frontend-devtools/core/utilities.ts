@@ -6,11 +6,11 @@
 
 export const CONFIG = {
   colors: {
-    // Primary blue: rgb(56, 152, 255) - a clean, modern blue
-    primary: { r: 56, g: 152, b: 255 },
-    inspectStroke: 'rgba(56, 152, 255, 0.5)',
-    inspectFill: 'rgba(56, 152, 255, 0.10)',
-    inspectPillBg: 'rgba(30, 40, 50, 0.80)',
+    // Primary purple: rgb(142, 97, 227)
+    primary: { r: 142, g: 97, b: 227 },
+    inspectStroke: 'rgba(142, 97, 227, 0.5)',
+    inspectFill: 'rgba(142, 97, 227, 0.10)',
+    inspectPillBg: 'rgba(37, 37, 38, 0.80)',
     inspectPillText: 'white',
     inspectMarkedStroke: 'rgba(79, 192, 255, 0.6)',
     inspectMarkedFill: 'rgba(79, 192, 255, 0.10)',
@@ -20,7 +20,7 @@ export const CONFIG = {
     inspectReactFill: 'rgba(97, 218, 251, 0.10)',
     inspectReactPillBg: 'rgba(20, 44, 52, 0.90)',
     inspectReactPillText: '#61dafb',
-    inspectCrosshair: 'rgba(56, 152, 255, 0.4)',
+    inspectCrosshair: 'rgba(142, 97, 227, 0.4)',
   },
 
   animation: {

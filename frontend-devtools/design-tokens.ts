@@ -6,14 +6,14 @@ export const designTokens = css`
     --fd-font: system-ui, -apple-system, sans-serif;
     --fd-font-mono: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
 
-    /* Primary blue color */
-    --fd-primary: rgb(56, 152, 255);
-    --fd-primary-hover: rgb(100, 175, 255);
-    --fd-primary-50: rgba(56, 152, 255, 0.5);
-    --fd-primary-40: rgba(56, 152, 255, 0.4);
-    --fd-primary-20: rgba(56, 152, 255, 0.2);
-    --fd-primary-15: rgba(56, 152, 255, 0.15);
-    --fd-primary-10: rgba(56, 152, 255, 0.1);
+    /* Primary purple color */
+    --fd-primary: rgb(142, 97, 227);
+    --fd-primary-hover: rgb(159, 122, 240);
+    --fd-primary-50: rgba(142, 97, 227, 0.5);
+    --fd-primary-40: rgba(142, 97, 227, 0.4);
+    --fd-primary-20: rgba(142, 97, 227, 0.2);
+    --fd-primary-15: rgba(142, 97, 227, 0.15);
+    --fd-primary-10: rgba(142, 97, 227, 0.1);
 
     /* Backgrounds */
     --fd-bg-solid: #000;
@@ -54,7 +54,7 @@ export const designTokens = css`
     --fd-chart-grid-major: rgba(255, 255, 255, 0.15);
     --fd-chart-label: rgba(255, 255, 255, 0.4);
     --fd-chart-fill: var(--fd-primary-20);
-    --fd-chart-stroke: rgba(56, 152, 255, 0.8);
+    --fd-chart-stroke: rgba(142, 97, 227, 0.8);
 
     /* Radar */
     --fd-radar-stroke: rgba(255, 255, 255, 0.85);
