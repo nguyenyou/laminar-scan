@@ -42,6 +42,8 @@ export class FdComponentInspector extends LitElement {
   // Event catcher state
   private _eventCatcher: HTMLDivElement | null = null
   private _lastHovered: Element | null = null
+  private _focusedElement: Element | null = null
+  private _focusedIsReact: boolean = false
 
   protected override updated(changedProperties: Map<string, unknown>): void {
     if (changedProperties.has('active')) {
@@ -77,6 +79,8 @@ export class FdComponentInspector extends LitElement {
   private _stop(): void {
     this._removeEventListeners()
     this._lastHovered = null
+    this._focusedElement = null
+    this._focusedIsReact = false
     this._destroyCanvas()
     this._destroyEventCatcher()
     this._dispatchChange(false)
@@ -454,6 +458,8 @@ export class FdComponentInspector extends LitElement {
       return
     }
     this._lastHovered = component.element
+    this._focusedElement = component.element
+    this._focusedIsReact = info?.isReact ?? false
 
     const rect = component.element.getBoundingClientRect()
 
@@ -510,9 +516,132 @@ export class FdComponentInspector extends LitElement {
     }
   }
 
+  private _getParentScalaComponent(element: Element): { element: Element; name: string } | null {
+    const attr = CONFIG.attributes.scalaComponent
+    const parent = element.parentElement?.closest(`[${attr}]`)
+    if (!parent) return null
+    return {
+      element: parent,
+      name: parent.getAttribute(attr) ?? 'Unknown',
+    }
+  }
+
+  private _getParentReactComponent(
+    element: Element,
+  ): { element: Element; name: string; isReact: true } | null {
+    // For React, we need to traverse the fiber tree
+    const fiber = (element as any).__reactFiber$ || Object.keys(element).find((k) => k.startsWith('__reactFiber$'))
+      ? (element as any)[Object.keys(element).find((k) => k.startsWith('__reactFiber$'))!]
+      : null
+
+    if (!fiber) return null
+
+    // Start from the current fiber's parent
+    let current = fiber.return
+    let iterations = 0
+    const maxIterations = 500
+
+    while (current && iterations < maxIterations) {
+      iterations++
+
+      // Check if this is an actual React component (not a host component)
+      if (current.type && typeof current.type !== 'string') {
+        const name =
+          current.type.displayName ||
+          current.type.name ||
+          (current.type.render?.displayName || current.type.render?.name) ||
+          'Unknown'
+
+        // Find the corresponding DOM element
+        let stateNode = current.stateNode
+        if (!stateNode || !(stateNode instanceof Element)) {
+          // For function components, traverse to find a child with DOM node
+          let child = current.child
+          while (child && !(child.stateNode instanceof Element)) {
+            child = child.child
+          }
+          stateNode = child?.stateNode
+        }
+
+        if (stateNode instanceof Element) {
+          return { element: stateNode, name, isReact: true }
+        }
+      }
+
+      current = current.return
+    }
+
+    return null
+  }
+
+  private _focusComponent(
+    element: Element,
+    name: string,
+    info: OverlayInfo,
+  ): void {
+    this._focusedElement = element
+    this._focusedIsReact = info.isReact ?? false
+    this._lastHovered = element
+
+    const rect = element.getBoundingClientRect()
+    this._animateTo(
+      { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+      name,
+      info,
+    )
+  }
+
+  private _selectCurrentComponent(): void {
+    if (!this._focusedElement) return
+
+    if (this._focusedIsReact) {
+      const info = getReactComponentSourceInfo(this._focusedElement)
+      if (info?.sourcePath) {
+        openInIDE(info.sourcePath, info.sourceLine)
+        this.active = false
+      } else {
+        this.active = false
+      }
+    } else {
+      const info = getComponentSourceInfo(this._focusedElement)
+      if (info?.sourcePath) {
+        openInIDE(info.sourcePath, info.sourceLine)
+        this.active = false
+      }
+    }
+  }
+
   private _handleKeydown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape' && this.active) {
+    if (!this.active) return
+
+    if (e.key === 'Escape') {
       this.active = false
+      return
+    }
+
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      this._selectCurrentComponent()
+      return
+    }
+
+    if (e.key === 'ArrowUp' && this._focusedElement) {
+      e.preventDefault()
+
+      if (this._focusedIsReact) {
+        const parent = this._getParentReactComponent(this._focusedElement)
+        if (parent) {
+          this._focusComponent(parent.element, parent.name, { isReact: true })
+        }
+      } else {
+        const parent = this._getParentScalaComponent(this._focusedElement)
+        if (parent) {
+          const sourceInfo = getComponentSourceInfo(parent.element)
+          this._focusComponent(parent.element, parent.name, {
+            isMarked: sourceInfo?.isMarked ?? false,
+          })
+        }
+      }
     }
   }
 
