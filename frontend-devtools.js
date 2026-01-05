@@ -1997,11 +1997,11 @@
   // frontend-devtools/core/utilities.ts
   var CONFIG = {
     colors: {
-      // Primary blue: rgb(56, 152, 255) - a clean, modern blue
-      primary: { r: 56, g: 152, b: 255 },
-      inspectStroke: "rgba(56, 152, 255, 0.5)",
-      inspectFill: "rgba(56, 152, 255, 0.10)",
-      inspectPillBg: "rgba(30, 40, 50, 0.80)",
+      // Primary purple: rgb(142, 97, 227)
+      primary: { r: 142, g: 97, b: 227 },
+      inspectStroke: "rgba(142, 97, 227, 0.5)",
+      inspectFill: "rgba(142, 97, 227, 0.10)",
+      inspectPillBg: "rgba(37, 37, 38, 0.80)",
       inspectPillText: "white",
       inspectMarkedStroke: "rgba(79, 192, 255, 0.6)",
       inspectMarkedFill: "rgba(79, 192, 255, 0.10)",
@@ -2011,7 +2011,7 @@
       inspectReactFill: "rgba(97, 218, 251, 0.10)",
       inspectReactPillBg: "rgba(20, 44, 52, 0.90)",
       inspectReactPillText: "#61dafb",
-      inspectCrosshair: "rgba(56, 152, 255, 0.4)"
+      inspectCrosshair: "rgba(142, 97, 227, 0.4)"
     },
     animation: {
       totalFrames: 45,
@@ -2884,42 +2884,6 @@
       if (!this._ctx || !this._canvas) return;
       const dpr = getDevicePixelRatio();
       this._ctx.clearRect(0, 0, this._canvas.width / dpr, this._canvas.height / dpr);
-      this._drawInnerShadow();
-    }
-    _drawInnerShadow() {
-      if (!this._ctx) return;
-      const w2 = window.innerWidth;
-      const h3 = window.innerHeight;
-      const glowDepth = 120;
-      const { r: r6, g: g2, b: b3 } = CONFIG.colors.primary;
-      const glowColor = `rgba(${r6}, ${g2}, ${b3}, 0.3)`;
-      const glowColorMid = `rgba(${r6}, ${g2}, ${b3}, 0.1)`;
-      this._ctx.save();
-      const topGradient = this._ctx.createLinearGradient(0, 0, 0, glowDepth);
-      topGradient.addColorStop(0, glowColor);
-      topGradient.addColorStop(0.4, glowColorMid);
-      topGradient.addColorStop(1, "transparent");
-      this._ctx.fillStyle = topGradient;
-      this._ctx.fillRect(0, 0, w2, glowDepth);
-      const bottomGradient = this._ctx.createLinearGradient(0, h3, 0, h3 - glowDepth);
-      bottomGradient.addColorStop(0, glowColor);
-      bottomGradient.addColorStop(0.4, glowColorMid);
-      bottomGradient.addColorStop(1, "transparent");
-      this._ctx.fillStyle = bottomGradient;
-      this._ctx.fillRect(0, h3 - glowDepth, w2, glowDepth);
-      const leftGradient = this._ctx.createLinearGradient(0, 0, glowDepth, 0);
-      leftGradient.addColorStop(0, glowColor);
-      leftGradient.addColorStop(0.4, glowColorMid);
-      leftGradient.addColorStop(1, "transparent");
-      this._ctx.fillStyle = leftGradient;
-      this._ctx.fillRect(0, 0, glowDepth, h3);
-      const rightGradient = this._ctx.createLinearGradient(w2, 0, w2 - glowDepth, 0);
-      rightGradient.addColorStop(0, glowColor);
-      rightGradient.addColorStop(0.4, glowColorMid);
-      rightGradient.addColorStop(1, "transparent");
-      this._ctx.fillStyle = rightGradient;
-      this._ctx.fillRect(w2 - glowDepth, 0, glowDepth, h3);
-      this._ctx.restore();
     }
     _cancelAnimation() {
       if (this._animationId) {
@@ -3111,14 +3075,14 @@
     --fd-font: system-ui, -apple-system, sans-serif;
     --fd-font-mono: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
 
-    /* Primary blue color */
-    --fd-primary: rgb(56, 152, 255);
-    --fd-primary-hover: rgb(100, 175, 255);
-    --fd-primary-50: rgba(56, 152, 255, 0.5);
-    --fd-primary-40: rgba(56, 152, 255, 0.4);
-    --fd-primary-20: rgba(56, 152, 255, 0.2);
-    --fd-primary-15: rgba(56, 152, 255, 0.15);
-    --fd-primary-10: rgba(56, 152, 255, 0.1);
+    /* Primary purple color */
+    --fd-primary: rgb(142, 97, 227);
+    --fd-primary-hover: rgb(159, 122, 240);
+    --fd-primary-50: rgba(142, 97, 227, 0.5);
+    --fd-primary-40: rgba(142, 97, 227, 0.4);
+    --fd-primary-20: rgba(142, 97, 227, 0.2);
+    --fd-primary-15: rgba(142, 97, 227, 0.15);
+    --fd-primary-10: rgba(142, 97, 227, 0.1);
 
     /* Backgrounds */
     --fd-bg-solid: #000;
@@ -3159,7 +3123,7 @@
     --fd-chart-grid-major: rgba(255, 255, 255, 0.15);
     --fd-chart-label: rgba(255, 255, 255, 0.4);
     --fd-chart-fill: var(--fd-primary-20);
-    --fd-chart-stroke: rgba(56, 152, 255, 0.8);
+    --fd-chart-stroke: rgba(142, 97, 227, 0.8);
 
     /* Radar */
     --fd-radar-stroke: rgba(255, 255, 255, 0.85);
