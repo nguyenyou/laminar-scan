@@ -46,6 +46,11 @@ export class FdComponentInspector extends LitElement {
   private _focusedIsReact: boolean = false
   private _focusHistory: Array<{ element: Element; name: string; isReact: boolean }> = []
 
+  // Boundary feedback animation state
+  private _boundaryAnimationId: number | null = null
+  private _borderScale: number = 1
+  private _borderSolid: boolean = false
+
   protected override updated(changedProperties: Map<string, unknown>): void {
     if (changedProperties.has('active')) {
       if (this.active) {
@@ -83,6 +88,7 @@ export class FdComponentInspector extends LitElement {
     this._focusedElement = null
     this._focusedIsReact = false
     this._focusHistory = []
+    this._cancelBoundaryAnimation()
     this._destroyCanvas()
     this._destroyEventCatcher()
     this._dispatchChange(false)
@@ -178,6 +184,97 @@ export class FdComponentInspector extends LitElement {
       cancelAnimationFrame(this._animationId)
       this._animationId = null
     }
+  }
+
+  private _cancelBoundaryAnimation(): void {
+    if (this._boundaryAnimationId) {
+      cancelAnimationFrame(this._boundaryAnimationId)
+      this._boundaryAnimationId = null
+    }
+    this._borderScale = 1
+    this._borderSolid = false
+  }
+
+  private _animateBoundaryPulse(): void {
+    // Arrow Down at end of history - pulse border bigger then back to normal
+    this._cancelBoundaryAnimation()
+
+    const duration = 200 // ms
+    const startTime = performance.now()
+    const maxScale = 1.5
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime
+      const progress = Math.min(elapsed / duration, 1)
+
+      // Sine wave: scale up then back down
+      this._borderScale = 1 + Math.sin(progress * Math.PI) * (maxScale - 1)
+
+      if (this._currentRect && this._focusedElement) {
+        const name = this._getCurrentComponentName()
+        const info: OverlayInfo = this._focusedIsReact
+          ? { isReact: true }
+          : { isMarked: getComponentSourceInfo(this._focusedElement)?.isMarked ?? false }
+        this._drawOverlay(this._currentRect, name, info)
+      }
+
+      if (progress < 1) {
+        this._boundaryAnimationId = requestAnimationFrame(animate)
+      } else {
+        this._borderScale = 1
+        this._boundaryAnimationId = null
+        // Redraw with normal scale
+        if (this._currentRect && this._focusedElement) {
+          const name = this._getCurrentComponentName()
+          const info: OverlayInfo = this._focusedIsReact
+            ? { isReact: true }
+            : { isMarked: getComponentSourceInfo(this._focusedElement)?.isMarked ?? false }
+          this._drawOverlay(this._currentRect, name, info)
+        }
+      }
+    }
+
+    this._boundaryAnimationId = requestAnimationFrame(animate)
+  }
+
+  private _animateBoundarySolid(): void {
+    // Arrow Up at root - flash solid border then back to dashed
+    this._cancelBoundaryAnimation()
+
+    const duration = 200 // ms
+    const startTime = performance.now()
+
+    this._borderSolid = true
+
+    // Draw immediately with solid border
+    if (this._currentRect && this._focusedElement) {
+      const name = this._getCurrentComponentName()
+      const info: OverlayInfo = this._focusedIsReact
+        ? { isReact: true }
+        : { isMarked: getComponentSourceInfo(this._focusedElement)?.isMarked ?? false }
+      this._drawOverlay(this._currentRect, name, info)
+    }
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime
+
+      if (elapsed >= duration) {
+        this._borderSolid = false
+        this._boundaryAnimationId = null
+        // Redraw with dashed border
+        if (this._currentRect && this._focusedElement) {
+          const name = this._getCurrentComponentName()
+          const info: OverlayInfo = this._focusedIsReact
+            ? { isReact: true }
+            : { isMarked: getComponentSourceInfo(this._focusedElement)?.isMarked ?? false }
+          this._drawOverlay(this._currentRect, name, info)
+        }
+      } else {
+        this._boundaryAnimationId = requestAnimationFrame(animate)
+      }
+    }
+
+    this._boundaryAnimationId = requestAnimationFrame(animate)
   }
 
   private _createEventCatcher(): void {
@@ -299,13 +396,22 @@ export class FdComponentInspector extends LitElement {
       pillText = colors.inspectPillText
     }
 
-    // Draw rectangle
+    // Draw rectangle with boundary animation effects
+    const scale = this._borderScale
+    const expandAmount = (scale - 1) * 8 // Expand by up to 8px when scale is 2
+    const adjustedRect = {
+      left: rect.left - expandAmount,
+      top: rect.top - expandAmount,
+      width: rect.width + expandAmount * 2,
+      height: rect.height + expandAmount * 2,
+    }
+
     this._ctx.strokeStyle = strokeColor
     this._ctx.fillStyle = fillColor
-    this._ctx.lineWidth = 1
-    this._ctx.setLineDash([4])
-    this._ctx.fillRect(rect.left, rect.top, rect.width, rect.height)
-    this._ctx.strokeRect(rect.left, rect.top, rect.width, rect.height)
+    this._ctx.lineWidth = 1 + (scale - 1) * 2 // Thicker line when scaled
+    this._ctx.setLineDash(this._borderSolid ? [] : [4])
+    this._ctx.fillRect(adjustedRect.left, adjustedRect.top, adjustedRect.width, adjustedRect.height)
+    this._ctx.strokeRect(adjustedRect.left, adjustedRect.top, adjustedRect.width, adjustedRect.height)
 
     // Draw label pill
     if (componentName) {
@@ -654,6 +760,9 @@ export class FdComponentInspector extends LitElement {
             isReact: true,
           })
           this._focusComponent(parent.element, parent.name, { isReact: true })
+        } else {
+          // At root - flash solid border
+          this._animateBoundarySolid()
         }
       } else {
         const parent = this._getParentScalaComponent(this._focusedElement)
@@ -669,22 +778,30 @@ export class FdComponentInspector extends LitElement {
           this._focusComponent(parent.element, parent.name, {
             isMarked: sourceInfo?.isMarked ?? false,
           })
+        } else {
+          // At root - flash solid border
+          this._animateBoundarySolid()
         }
       }
       return
     }
 
-    if (e.key === 'ArrowDown' && this._focusHistory.length > 0) {
+    if (e.key === 'ArrowDown') {
       e.preventDefault()
 
-      const previous = this._focusHistory.pop()!
-      if (previous.isReact) {
-        this._focusComponent(previous.element, previous.name, { isReact: true })
+      if (this._focusHistory.length > 0) {
+        const previous = this._focusHistory.pop()!
+        if (previous.isReact) {
+          this._focusComponent(previous.element, previous.name, { isReact: true })
+        } else {
+          const sourceInfo = getComponentSourceInfo(previous.element)
+          this._focusComponent(previous.element, previous.name, {
+            isMarked: sourceInfo?.isMarked ?? false,
+          })
+        }
       } else {
-        const sourceInfo = getComponentSourceInfo(previous.element)
-        this._focusComponent(previous.element, previous.name, {
-          isMarked: sourceInfo?.isMarked ?? false,
-        })
+        // At end of history - pulse border bigger
+        this._animateBoundaryPulse()
       }
     }
   }
