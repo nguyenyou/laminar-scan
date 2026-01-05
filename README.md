@@ -150,15 +150,6 @@ The `FdLagRadar` component accepts these properties:
 | `frames` | 50 | Number of arc segments in the trail |
 | `speed` | 0.0017 | Rotation speed (radians per millisecond) |
 | `inset` | 3 | Padding from edge for the circle |
-| `show-legend` | true | Whether to display the FPS legend |
-
-### Legend
-
-The radar displays a legend with FPS thresholds:
-
-- 🟢 **50+ FPS**: Good performance (green)
-- 🟡 **30-50 FPS**: Warning zone (yellow)
-- 🔴 **<30 FPS**: Critical performance issues (red)
 
 ### Technical Implementation Details
 

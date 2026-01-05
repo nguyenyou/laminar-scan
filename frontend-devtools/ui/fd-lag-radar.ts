@@ -23,9 +23,6 @@ export class FdLagRadar extends LitElement {
   /** Inset from edge for the radar circle */
   @property({ type: Number }) inset = 3
 
-  /** Whether to show the legend */
-  @property({ type: Boolean, attribute: 'show-legend' }) showLegend = true
-
   @state() private _running = false
 
   private _animationId: number | null = null
@@ -166,26 +163,6 @@ export class FdLagRadar extends LitElement {
             r="${this._radius}"
           ></circle>
         </svg>
-        ${this.showLegend ? this._renderLegend() : null}
-      </div>
-    `
-  }
-
-  private _renderLegend() {
-    return html`
-      <div class="radar-legend">
-        <div class="radar-legend-item">
-          <span class="radar-legend-dot radar-legend-dot--good"></span>
-          <span>50+</span>
-        </div>
-        <div class="radar-legend-item">
-          <span class="radar-legend-dot radar-legend-dot--warning"></span>
-          <span>30-50</span>
-        </div>
-        <div class="radar-legend-item">
-          <span class="radar-legend-dot radar-legend-dot--critical"></span>
-          <span>&lt;30</span>
-        </div>
       </div>
     `
   }
@@ -225,38 +202,6 @@ export class FdLagRadar extends LitElement {
       stroke: rgba(255, 255, 255, 0.85);
       stroke-width: 4px;
       stroke-linecap: round;
-    }
-
-    .radar-legend {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      font-size: 10px;
-      color: rgba(255, 255, 255, 0.6);
-    }
-
-    .radar-legend-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .radar-legend-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 9999px;
-    }
-
-    .radar-legend-dot--good {
-      background: hsl(120, 80%, 40%);
-    }
-
-    .radar-legend-dot--warning {
-      background: hsl(60, 80%, 40%);
-    }
-
-    .radar-legend-dot--critical {
-      background: hsl(0, 80%, 40%);
     }
   `
 }
