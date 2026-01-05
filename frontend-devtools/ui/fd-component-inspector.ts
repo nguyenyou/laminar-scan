@@ -49,7 +49,7 @@ export class FdComponentInspector extends LitElement {
   // Boundary feedback animation state
   private _boundaryAnimationId: number | null = null
   private _borderScale: number = 1
-  private _borderSolid: boolean = false
+  private _pillShakeOffset: number = 0
 
   protected override updated(changedProperties: Map<string, unknown>): void {
     if (changedProperties.has('active')) {
@@ -192,7 +192,7 @@ export class FdComponentInspector extends LitElement {
       this._boundaryAnimationId = null
     }
     this._borderScale = 1
-    this._borderSolid = false
+    this._pillShakeOffset = 0
   }
 
   private _animateBoundaryPulse(): void {
@@ -237,31 +237,37 @@ export class FdComponentInspector extends LitElement {
     this._boundaryAnimationId = requestAnimationFrame(animate)
   }
 
-  private _animateBoundarySolid(): void {
-    // Arrow Up at root - flash solid border then back to dashed
+  private _animatePillShake(): void {
+    // Arrow Up at root - shake the label pill left/right
     this._cancelBoundaryAnimation()
 
-    const duration = 200 // ms
+    const duration = 300 // ms
     const startTime = performance.now()
-
-    this._borderSolid = true
-
-    // Draw immediately with solid border
-    if (this._currentRect && this._focusedElement) {
-      const name = this._getCurrentComponentName()
-      const info: OverlayInfo = this._focusedIsReact
-        ? { isReact: true }
-        : { isMarked: getComponentSourceInfo(this._focusedElement)?.isMarked ?? false }
-      this._drawOverlay(this._currentRect, name, info)
-    }
+    const shakeAmount = 6 // pixels
+    const shakeFrequency = 3 // number of oscillations
 
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime
+      const progress = Math.min(elapsed / duration, 1)
 
-      if (elapsed >= duration) {
-        this._borderSolid = false
+      // Damped sine wave for shake effect
+      const decay = 1 - progress
+      this._pillShakeOffset = Math.sin(progress * Math.PI * 2 * shakeFrequency) * shakeAmount * decay
+
+      if (this._currentRect && this._focusedElement) {
+        const name = this._getCurrentComponentName()
+        const info: OverlayInfo = this._focusedIsReact
+          ? { isReact: true }
+          : { isMarked: getComponentSourceInfo(this._focusedElement)?.isMarked ?? false }
+        this._drawOverlay(this._currentRect, name, info)
+      }
+
+      if (progress < 1) {
+        this._boundaryAnimationId = requestAnimationFrame(animate)
+      } else {
+        this._pillShakeOffset = 0
         this._boundaryAnimationId = null
-        // Redraw with dashed border
+        // Redraw without shake
         if (this._currentRect && this._focusedElement) {
           const name = this._getCurrentComponentName()
           const info: OverlayInfo = this._focusedIsReact
@@ -269,8 +275,6 @@ export class FdComponentInspector extends LitElement {
             : { isMarked: getComponentSourceInfo(this._focusedElement)?.isMarked ?? false }
           this._drawOverlay(this._currentRect, name, info)
         }
-      } else {
-        this._boundaryAnimationId = requestAnimationFrame(animate)
       }
     }
 
@@ -409,7 +413,7 @@ export class FdComponentInspector extends LitElement {
     this._ctx.strokeStyle = strokeColor
     this._ctx.fillStyle = fillColor
     this._ctx.lineWidth = 1 + (scale - 1) * 2 // Thicker line when scaled
-    this._ctx.setLineDash(this._borderSolid ? [] : [4])
+    this._ctx.setLineDash([4])
     this._ctx.fillRect(adjustedRect.left, adjustedRect.top, adjustedRect.width, adjustedRect.height)
     this._ctx.strokeRect(adjustedRect.left, adjustedRect.top, adjustedRect.width, adjustedRect.height)
 
@@ -455,7 +459,7 @@ export class FdComponentInspector extends LitElement {
       pillY = Math.max(pillGap, Math.min(rect.top + pillGap, viewportHeight - pillHeight - pillGap))
     }
 
-    let pillX = rect.left
+    let pillX = rect.left + this._pillShakeOffset
     if (pillX + pillWidth > viewportWidth - pillGap) {
       pillX = viewportWidth - pillWidth - pillGap
     }
@@ -761,8 +765,8 @@ export class FdComponentInspector extends LitElement {
           })
           this._focusComponent(parent.element, parent.name, { isReact: true })
         } else {
-          // At root - flash solid border
-          this._animateBoundarySolid()
+          // At root - shake the label
+          this._animatePillShake()
         }
       } else {
         const parent = this._getParentScalaComponent(this._focusedElement)
@@ -779,8 +783,8 @@ export class FdComponentInspector extends LitElement {
             isMarked: sourceInfo?.isMarked ?? false,
           })
         } else {
-          // At root - flash solid border
-          this._animateBoundarySolid()
+          // At root - shake the label
+          this._animatePillShake()
         }
       }
       return
