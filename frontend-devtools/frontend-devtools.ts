@@ -63,6 +63,8 @@ export class FrontendDevtools extends LitElement {
 
   override connectedCallback(): void {
     super.connectedCallback()
+    // Mark this element as a devtools element so clicks pass through during inspect mode
+    this.setAttribute('data-frontend-devtools', 'root')
     if (this._enabled) {
       document.addEventListener('keydown', this._boundHandleKeydown, { capture: true })
     }
@@ -158,13 +160,13 @@ export class FrontendDevtools extends LitElement {
             .active=${this._activeWidgets.includes('MEM_CHART')}
             @change=${this._handleMemChange}
           ></fd-mem>
-          <fd-toggle-button
+          <fd-toggle-icon-button
             tooltip="Show DOM Stats"
             .active=${this._activeWidgets.includes('DOM_STATS')}
             @change=${this._handleDomStatsChange}
           >
             <fd-icon name="domTree"></fd-icon>
-          </fd-toggle-button>
+          </fd-toggle-icon-button>
         </fd-toolbar>
         ${this._activeWidgets.map((widget) => this._renderWidget(widget))}
       </fd-panel>

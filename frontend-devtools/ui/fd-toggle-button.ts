@@ -1,8 +1,22 @@
-import { LitElement, css, html } from 'lit'
+import { LitElement, css, html, svg } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 
-@customElement('fd-toggle-button')
-export class FdToggleButton extends LitElement {
+const CLOSE_ICON = svg`
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    style="width: 16px; height: 16px;"
+  >
+    <path d="M18 6L6 18"/><path d="M6 6l12 12"/>
+  </svg>
+`
+
+@customElement('fd-toggle-icon-button')
+export class FdToggleIconButton extends LitElement {
   @property({ type: Boolean, reflect: true })
   disabled = false
 
@@ -42,7 +56,7 @@ export class FdToggleButton extends LitElement {
         title=${this.tooltip}
         @click=${this._handleClick}
       >
-        <slot></slot>
+        ${this.active ? CLOSE_ICON : html`<slot></slot>`}
       </button>
     `
   }
@@ -90,6 +104,6 @@ export class FdToggleButton extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'fd-toggle-button': FdToggleButton
+    'fd-toggle-icon-button': FdToggleIconButton
   }
 }

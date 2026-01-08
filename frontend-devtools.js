@@ -604,7 +604,20 @@
   }
 
   // frontend-devtools/ui/fd-toggle-button.ts
-  var FdToggleButton = class extends i4 {
+  var CLOSE_ICON = w`
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    style="width: 16px; height: 16px;"
+  >
+    <path d="M18 6L6 18"/><path d="M6 6l12 12"/>
+  </svg>
+`;
+  var FdToggleIconButton = class extends i4 {
     constructor() {
       super(...arguments);
       this.disabled = false;
@@ -636,12 +649,12 @@
         title=${this.tooltip}
         @click=${this._handleClick}
       >
-        <slot></slot>
+        ${this.active ? CLOSE_ICON : b2`<slot></slot>`}
       </button>
     `;
     }
   };
-  FdToggleButton.styles = i`
+  FdToggleIconButton.styles = i`
     :host([active]) .toggle-button {
       color: var(--fd-primary);
     }
@@ -682,19 +695,19 @@
   `;
   __decorateClass([
     n4({ type: Boolean, reflect: true })
-  ], FdToggleButton.prototype, "disabled", 2);
+  ], FdToggleIconButton.prototype, "disabled", 2);
   __decorateClass([
     n4({ type: Boolean, reflect: true })
-  ], FdToggleButton.prototype, "active", 2);
+  ], FdToggleIconButton.prototype, "active", 2);
   __decorateClass([
     n4({ type: String })
-  ], FdToggleButton.prototype, "label", 2);
+  ], FdToggleIconButton.prototype, "label", 2);
   __decorateClass([
     n4({ type: String })
-  ], FdToggleButton.prototype, "tooltip", 2);
-  FdToggleButton = __decorateClass([
-    t3("fd-toggle-button")
-  ], FdToggleButton);
+  ], FdToggleIconButton.prototype, "tooltip", 2);
+  FdToggleIconButton = __decorateClass([
+    t3("fd-toggle-icon-button")
+  ], FdToggleIconButton);
 
   // frontend-devtools/ui/fd-icon.ts
   var ICONS = {
@@ -786,13 +799,13 @@
     }
     render() {
       return b2`
-      <fd-toggle-button
+      <fd-toggle-icon-button
         tooltip="Inspect Component (Ctrl+Shift+C)"
         ?active=${this.active}
         @change=${this._handleChange}
       >
         <fd-icon name="inspect"></fd-icon>
-      </fd-toggle-button>
+      </fd-toggle-icon-button>
     `;
     }
   };
@@ -3409,6 +3422,7 @@
     }
     connectedCallback() {
       super.connectedCallback();
+      this.setAttribute("data-frontend-devtools", "root");
       if (this._enabled) {
         document.addEventListener("keydown", this._boundHandleKeydown, { capture: true });
       }
@@ -3489,13 +3503,13 @@
             .active=${this._activeWidgets.includes("MEM_CHART")}
             @change=${this._handleMemChange}
           ></fd-mem>
-          <fd-toggle-button
+          <fd-toggle-icon-button
             tooltip="Show DOM Stats"
             .active=${this._activeWidgets.includes("DOM_STATS")}
             @change=${this._handleDomStatsChange}
           >
             <fd-icon name="domTree"></fd-icon>
-          </fd-toggle-button>
+          </fd-toggle-icon-button>
         </fd-toolbar>
         ${this._activeWidgets.map((widget) => this._renderWidget(widget))}
       </fd-panel>
