@@ -3101,7 +3101,6 @@
       if (!this._ctx) return;
       this._clearCanvas();
       if (!rect) return;
-      const isMarked = info?.isMarked || false;
       const isReact = info?.isReact || false;
       const colors = CONFIG.colors;
       let strokeColor, fillColor, pillBg, pillText;
@@ -3110,11 +3109,6 @@
         fillColor = colors.inspectReactFill;
         pillBg = colors.inspectReactPillBg;
         pillText = colors.inspectReactPillText;
-      } else if (isMarked) {
-        strokeColor = colors.inspectMarkedStroke;
-        fillColor = colors.inspectMarkedFill;
-        pillBg = colors.inspectMarkedPillBg;
-        pillText = colors.inspectMarkedPillText;
       } else {
         strokeColor = colors.inspectStroke;
         fillColor = colors.inspectFill;
