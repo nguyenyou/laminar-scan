@@ -655,6 +655,14 @@
     }
   };
   FdToggleIconButton.styles = i`
+    :host {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+    }
+
     :host([active]) .toggle-button {
       color: var(--fd-primary);
     }
