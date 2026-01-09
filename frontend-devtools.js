@@ -603,7 +603,7 @@
     return n4({ ...r6, state: true, attribute: false });
   }
 
-  // frontend-devtools/ui/fd-toggle-button.ts
+  // frontend-devtools/ui/fd-toggle-icon-button.ts
   var CLOSE_ICON = w`
   <svg
     viewBox="0 0 24 24"
@@ -631,10 +631,9 @@
         e5.stopPropagation();
         return;
       }
-      this.active = !this.active;
       this.dispatchEvent(
         new CustomEvent("change", {
-          detail: { active: this.active },
+          detail: { active: !this.active },
           bubbles: true,
           composed: true
         })
@@ -1062,7 +1061,6 @@
   }
 
   // frontend-devtools/ui/fd-panel.ts
-  var COMPONENTS = ["FD-ICON", "FD-SWITCH", "FD-DOM-MUTATION", "FD-FPS", "FD-MEM", "FD-TOGGLE-BUTTON", "FD-INSPECT"];
   var FdPanel = class extends i4 {
     constructor() {
       super(...arguments);
@@ -1119,7 +1117,7 @@
     }
     _handlePointerDown(e5) {
       const target = e5.target;
-      if (COMPONENTS.includes(target.tagName)) {
+      if (target.closest("fd-toolbar")) {
         return;
       }
       e5.preventDefault();

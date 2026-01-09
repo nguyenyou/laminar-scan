@@ -3,8 +3,6 @@ import { customElement, property } from 'lit/decorators.js'
 import { DRAG_CONFIG } from '../core/config'
 import { calculatePositionForCorner, getBestCorner } from '../core/utils'
 
-const COMPONENTS = ['FD-ICON', 'FD-SWITCH', 'FD-DOM-MUTATION', 'FD-FPS', 'FD-MEM', 'FD-TOGGLE-BUTTON', 'FD-INSPECT']
-
 export type PanelPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 
 export interface Position {
@@ -75,10 +73,9 @@ export class FdPanel extends LitElement {
   }
 
   private _handlePointerDown(e: PointerEvent) {
-    // Ignore clicks on interactive elements
+    // Ignore clicks on interactive elements inside the toolbar
     const target = e.target as HTMLElement
-
-    if (COMPONENTS.includes(target.tagName)) {
+    if (target.closest('fd-toolbar')) {
       return
     }
 

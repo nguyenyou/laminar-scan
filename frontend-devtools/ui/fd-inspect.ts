@@ -1,6 +1,6 @@
 import { LitElement, css, html } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
-import './fd-toggle-button'
+import './fd-toggle-icon-button'
 import './fd-icon'
 
 @customElement('fd-inspect')

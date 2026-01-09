@@ -36,10 +36,11 @@ export class FdToggleIconButton extends LitElement {
       return
     }
 
-    this.active = !this.active
+    // Dispatch the desired state, but don't internally toggle.
+    // Let the parent control the actual `active` state.
     this.dispatchEvent(
       new CustomEvent('change', {
-        detail: { active: this.active },
+        detail: { active: !this.active },
         bubbles: true,
         composed: true,
       }),
