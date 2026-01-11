@@ -2,6 +2,7 @@ import { LitElement, css, html, nothing, svg } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 import { repeat } from 'lit/directives/repeat.js'
 import { CONFIG, getComponentSourceInfo, openInIDE } from '../core/utilities'
+import './fd-button'
 
 const CHEVRON_DOWN = svg`<path d="m6 9 6 6 6-6"/>`
 const CHEVRON_RIGHT = svg`<path d="m9 18 6-6-6-6"/>`
@@ -564,9 +565,9 @@ export class FdLaminarComponentTree extends LitElement {
         >
           <span class="title">Laminar Component Tree</span>
           <div class="actions">
-            <button class="action-btn" @click=${this._expandAll}>Expand All</button>
-            <button class="action-btn" @click=${this._collapseAll}>Collapse All</button>
-            <button class="close-btn" @click=${this._close}>✕</button>
+            <fd-button @click=${this._expandAll}>Expand All</fd-button>
+            <fd-button @click=${this._collapseAll}>Collapse All</fd-button>
+            <fd-button size="icon" @click=${this._close}>✕</fd-button>
           </div>
         </div>
         <div
@@ -646,37 +647,7 @@ export class FdLaminarComponentTree extends LitElement {
 
       .actions {
         display: flex;
-        gap: 8px;
-      }
-
-      .action-btn {
-        padding: 4px 8px;
-        font-size: 11px;
-        background: var(--fd-bg-hover, rgba(255, 255, 255, 0.1));
-        border: none;
-        border-radius: 4px;
-        color: var(--fd-text-secondary, #e0e0e0);
-        cursor: pointer;
-        font-family: inherit;
-      }
-
-      .action-btn:hover {
-        background: var(--fd-primary-20, rgba(142, 97, 227, 0.2));
-        color: var(--fd-text-primary, #fff);
-      }
-
-      .close-btn {
-        padding: 4px 8px;
-        font-size: 11px;
-        background: transparent;
-        border: none;
-        color: var(--fd-text-muted, #999);
-        cursor: pointer;
-        font-family: inherit;
-      }
-
-      .close-btn:hover {
-        color: var(--fd-text-primary, #fff);
+        gap: 4px;
       }
 
       .tree-container {
