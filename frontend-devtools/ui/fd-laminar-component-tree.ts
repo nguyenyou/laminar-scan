@@ -114,7 +114,8 @@ export class FdLaminarComponentTree extends LitElement {
   private _toggleAutoRefresh(): void {
     this._autoRefresh = !this._autoRefresh
     if (this._autoRefresh) {
-      this._startAutoRefresh()
+      this._refreshTree() // Refresh immediately
+      this._startAutoRefresh() // Then every 5 seconds
     } else {
       this._stopAutoRefresh()
     }
