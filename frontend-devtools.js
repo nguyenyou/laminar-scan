@@ -4225,6 +4225,8 @@
         padding: 0;
         margin: 0;
         overflow: visible;
+
+        opacity: 0.95;
       }
 
       :host::backdrop {
