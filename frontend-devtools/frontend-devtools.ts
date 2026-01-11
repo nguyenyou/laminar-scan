@@ -1,5 +1,5 @@
 import { LitElement, css, html } from 'lit'
-import { customElement, state } from 'lit/decorators.js'
+import { customElement, property, state } from 'lit/decorators.js'
 import type { PanelPosition } from './ui/fd-panel'
 import './ui/fd-inspect'
 import './ui/fd-dom-stats'
@@ -16,26 +16,18 @@ import './ui/fd-component-inspector'
 import { designTokens } from './design-tokens'
 import { persistenceStorage, StorageKeys } from './core/persistence-storage'
 
-const DevtoolsAPI = {
-  enable() {
-    persistenceStorage.setBoolean(StorageKeys.DEVTOOLS_ENABLED, true)
-    console.log('Devtools enabled. Refresh the page for changes to take effect.')
-  },
-  disable() {
-    persistenceStorage.remove(StorageKeys.DEVTOOLS_ENABLED)
-    console.log('Devtools disabled. Refresh the page for changes to take effect.')
-  },
-}
-
-;(window as any).Devtools = DevtoolsAPI
-
 type PanelWidget = 'LAG_RADAR' | 'DOM_STATS' | 'MEM_CHART'
 
 const DEFAULT_PANEL_POSITION: PanelPosition = 'bottom-right'
 
 @customElement('frontend-devtools')
 export class FrontendDevtools extends LitElement {
-  private _enabled: boolean
+  /**
+   * Whether the devtools are enabled. Accepts "true" or "false" as string values.
+   * Defaults to "true" when the attribute is present.
+   */
+  @property({ type: String, reflect: true })
+  enable: 'true' | 'false' = 'true'
 
   @state()
   private _inspectActive = false
@@ -53,7 +45,6 @@ export class FrontendDevtools extends LitElement {
 
   constructor() {
     super()
-    this._enabled = persistenceStorage.getBoolean(StorageKeys.DEVTOOLS_ENABLED)
     this._mutationScanActive = persistenceStorage.getBoolean(StorageKeys.MUTATION_SCAN_ACTIVE)
     this._activeWidgets = persistenceStorage.getArray<PanelWidget>(StorageKeys.ACTIVE_WIDGETS)
     this._panelPosition =
@@ -61,11 +52,15 @@ export class FrontendDevtools extends LitElement {
     this._boundHandleKeydown = this._handleKeydown.bind(this)
   }
 
+  private get _isEnabled(): boolean {
+    return this.enable === 'true'
+  }
+
   override connectedCallback(): void {
     super.connectedCallback()
     // Mark this element as a devtools element so clicks pass through during inspect mode
     this.setAttribute('data-frontend-devtools', 'root')
-    if (this._enabled) {
+    if (this._isEnabled) {
       document.addEventListener('keydown', this._boundHandleKeydown, { capture: true })
     }
   }
@@ -73,6 +68,8 @@ export class FrontendDevtools extends LitElement {
   override disconnectedCallback(): void {
     super.disconnectedCallback()
     document.removeEventListener('keydown', this._boundHandleKeydown, { capture: true })
+    // Reset inspect state (not persisted, so should be cleared)
+    this._inspectActive = false
   }
 
   private _handleKeydown(e: KeyboardEvent): void {
@@ -136,7 +133,7 @@ export class FrontendDevtools extends LitElement {
   }
 
   render() {
-    if (!this._enabled) {
+    if (!this._isEnabled) {
       return null
     }
 

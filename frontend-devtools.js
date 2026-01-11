@@ -3401,41 +3401,34 @@
   var persistenceStorage = new PersistenceStorage();
 
   // frontend-devtools/frontend-devtools.ts
-  var DevtoolsAPI = {
-    enable() {
-      persistenceStorage.setBoolean(StorageKeys.DEVTOOLS_ENABLED, true);
-      console.log("Devtools enabled. Refresh the page for changes to take effect.");
-    },
-    disable() {
-      persistenceStorage.remove(StorageKeys.DEVTOOLS_ENABLED);
-      console.log("Devtools disabled. Refresh the page for changes to take effect.");
-    }
-  };
-  window.Devtools = DevtoolsAPI;
   var DEFAULT_PANEL_POSITION = "bottom-right";
   var FrontendDevtools = class extends i4 {
     constructor() {
       super();
+      this.enable = "true";
       this._inspectActive = false;
       this._mutationScanActive = false;
       this._activeWidgets = [];
       this._panelPosition = DEFAULT_PANEL_POSITION;
-      this._enabled = persistenceStorage.getBoolean(StorageKeys.DEVTOOLS_ENABLED);
       this._mutationScanActive = persistenceStorage.getBoolean(StorageKeys.MUTATION_SCAN_ACTIVE);
       this._activeWidgets = persistenceStorage.getArray(StorageKeys.ACTIVE_WIDGETS);
       this._panelPosition = persistenceStorage.get(StorageKeys.PANEL_POSITION) || DEFAULT_PANEL_POSITION;
       this._boundHandleKeydown = this._handleKeydown.bind(this);
     }
+    get _isEnabled() {
+      return this.enable === "true";
+    }
     connectedCallback() {
       super.connectedCallback();
       this.setAttribute("data-frontend-devtools", "root");
-      if (this._enabled) {
+      if (this._isEnabled) {
         document.addEventListener("keydown", this._boundHandleKeydown, { capture: true });
       }
     }
     disconnectedCallback() {
       super.disconnectedCallback();
       document.removeEventListener("keydown", this._boundHandleKeydown, { capture: true });
+      this._inspectActive = false;
     }
     _handleKeydown(e5) {
       if (e5.ctrlKey && e5.shiftKey && e5.key.toLowerCase() === "c") {
@@ -3486,7 +3479,7 @@
       }
     }
     render() {
-      if (!this._enabled) {
+      if (!this._isEnabled) {
         return null;
       }
       return b2`
@@ -3553,6 +3546,9 @@
     `
   ];
   __decorateClass([
+    n4({ type: String, reflect: true })
+  ], FrontendDevtools.prototype, "enable", 2);
+  __decorateClass([
     r5()
   ], FrontendDevtools.prototype, "_inspectActive", 2);
   __decorateClass([
@@ -3569,15 +3565,54 @@
   ], FrontendDevtools);
 
   // frontend-devtools-bootstrap.ts
-  function appendDevtools() {
-    if (!document.querySelector("frontend-devtools") && document.body) {
-      document.body.appendChild(document.createElement("frontend-devtools"));
+  function getOrCreateDevtoolsElement() {
+    const existing = document.querySelector("frontend-devtools");
+    if (existing) {
+      return existing;
+    }
+    const element = document.createElement("frontend-devtools");
+    return element;
+  }
+  function appendDevtoolsElement(element) {
+    if (!element.parentNode && document.body) {
+      document.body.appendChild(element);
+    }
+  }
+  function removeDevtoolsElement() {
+    const element = document.querySelector("frontend-devtools");
+    if (element?.parentNode) {
+      element.parentNode.removeChild(element);
+    }
+  }
+  var DevtoolsAPI = {
+    enable() {
+      persistenceStorage.setBoolean(StorageKeys.DEVTOOLS_ENABLED, true);
+      const element = getOrCreateDevtoolsElement();
+      element.setAttribute("enable", "true");
+      appendDevtoolsElement(element);
+      console.log("Devtools enabled.");
+    },
+    disable() {
+      persistenceStorage.setBoolean(StorageKeys.DEVTOOLS_ENABLED, false);
+      removeDevtoolsElement();
+      console.log("Devtools disabled.");
+    },
+    isEnabled() {
+      return persistenceStorage.getBoolean(StorageKeys.DEVTOOLS_ENABLED);
+    }
+  };
+  window.Devtools = DevtoolsAPI;
+  function initializeDevtools() {
+    if (DevtoolsAPI.isEnabled()) {
+      const element = getOrCreateDevtoolsElement();
+      element.setAttribute("enable", "true");
+      appendDevtoolsElement(element);
     }
   }
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", appendDevtools, { once: true });
+    document.addEventListener("DOMContentLoaded", initializeDevtools, { once: true });
   } else {
-    appendDevtools();
+    initializeDevtools();
   }
 })();
 /*! Bundled license information:
