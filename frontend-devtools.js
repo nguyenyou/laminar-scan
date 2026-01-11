@@ -3685,6 +3685,7 @@
     _toggleAutoRefresh() {
       this._autoRefresh = !this._autoRefresh;
       if (this._autoRefresh) {
+        this._refreshTree();
         this._startAutoRefresh();
       } else {
         this._stopAutoRefresh();
@@ -3961,6 +3962,8 @@
       }, 500);
     }
     _close() {
+      this._stopAutoRefresh();
+      this._autoRefresh = false;
       this.open = false;
       this.dispatchEvent(
         new CustomEvent("close", {

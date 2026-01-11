@@ -493,6 +493,10 @@ export class FdLaminarComponentTree extends LitElement {
   }
 
   private _close(): void {
+    // Stop auto-refresh immediately when closing
+    this._stopAutoRefresh()
+    this._autoRefresh = false
+
     this.open = false
     this.dispatchEvent(
       new CustomEvent('close', {
