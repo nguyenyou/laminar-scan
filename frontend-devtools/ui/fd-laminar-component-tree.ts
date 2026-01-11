@@ -1,7 +1,10 @@
-import { LitElement, css, html, nothing } from 'lit'
+import { LitElement, css, html, nothing, svg } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 import { repeat } from 'lit/directives/repeat.js'
 import { CONFIG, getComponentSourceInfo, openInIDE } from '../core/utilities'
+
+const CHEVRON_DOWN = svg`<path d="m6 9 6 6 6-6"/>`
+const CHEVRON_RIGHT = svg`<path d="m9 18 6-6-6-6"/>`
 
 interface TreeNode {
   id: string
@@ -10,6 +13,13 @@ interface TreeNode {
   children: TreeNode[]
   expanded: boolean
   depth: number
+}
+
+interface FlattenedNode {
+  node: TreeNode
+  isLast: boolean
+  // For each depth level, true means ancestor has more siblings (draw │), false means no line
+  ancestorLines: boolean[]
 }
 
 const PANEL_WIDTH = 500
@@ -35,7 +45,7 @@ export class FdLaminarComponentTree extends LitElement {
   @state()
   private _isDragging = false
 
-  private _flattenedNodes: TreeNode[] = []
+  private _flattenedNodes: FlattenedNode[] = []
   private _nodeIdCounter = 0
   private _dragStartX = 0
   private _dragStartY = 0
@@ -194,18 +204,25 @@ export class FdLaminarComponentTree extends LitElement {
   }
 
   private _updateFlattenedNodes(): void {
-    const flattened: TreeNode[] = []
+    const flattened: FlattenedNode[] = []
 
-    const traverse = (nodes: TreeNode[]) => {
-      for (const node of nodes) {
-        flattened.push(node)
+    const traverse = (nodes: TreeNode[], ancestorLines: boolean[]) => {
+      const lastIndex = nodes.length - 1
+      nodes.forEach((node, idx) => {
+        const isLast = idx === lastIndex
+        flattened.push({
+          node,
+          isLast,
+          ancestorLines: [...ancestorLines],
+        })
         if (node.expanded && node.children.length > 0) {
-          traverse(node.children)
+          // Pass down ancestor line info: if not last, ancestors have more siblings
+          traverse(node.children, [...ancestorLines, !isLast])
         }
-      }
+      })
     }
 
-    traverse(this._treeData)
+    traverse(this._treeData, [])
     this._flattenedNodes = flattened
 
     // Clamp focus index
@@ -260,18 +277,19 @@ export class FdLaminarComponentTree extends LitElement {
   }
 
   private _toggleNode(index: number): void {
-    const node = this._flattenedNodes[index]
-    if (!node || node.children.length === 0) return
+    const item = this._flattenedNodes[index]
+    if (!item || item.node.children.length === 0) return
 
-    node.expanded = !node.expanded
+    item.node.expanded = !item.node.expanded
     this._updateFlattenedNodes()
     this.requestUpdate()
   }
 
   private _collapseOrNavigateUp(): void {
-    const node = this._flattenedNodes[this._focusedIndex]
-    if (!node) return
+    const item = this._flattenedNodes[this._focusedIndex]
+    if (!item) return
 
+    const node = item.node
     if (node.expanded && node.children.length > 0) {
       node.expanded = false
       this._updateFlattenedNodes()
@@ -286,9 +304,10 @@ export class FdLaminarComponentTree extends LitElement {
   }
 
   private _expandOrNavigateDown(): void {
-    const node = this._flattenedNodes[this._focusedIndex]
-    if (!node) return
+    const item = this._flattenedNodes[this._focusedIndex]
+    if (!item) return
 
+    const node = item.node
     if (node.children.length > 0) {
       if (!node.expanded) {
         node.expanded = true
@@ -302,11 +321,11 @@ export class FdLaminarComponentTree extends LitElement {
   }
 
   private _findParentIndex(index: number): number {
-    const node = this._flattenedNodes[index]
-    if (!node || node.depth === 0) return -1
+    const item = this._flattenedNodes[index]
+    if (!item || item.node.depth === 0) return -1
 
     for (let i = index - 1; i >= 0; i--) {
-      if (this._flattenedNodes[i]!.depth === node.depth - 1) {
+      if (this._flattenedNodes[i]!.node.depth === item.node.depth - 1) {
         return i
       }
     }
@@ -344,15 +363,15 @@ export class FdLaminarComponentTree extends LitElement {
   }
 
   private _openInIDE(index: number): void {
-    const node = this._flattenedNodes[index]
-    if (!node) return
+    const item = this._flattenedNodes[index]
+    if (!item) return
 
-    const info = getComponentSourceInfo(node.element)
+    const info = getComponentSourceInfo(item.node.element)
     if (info?.sourcePath) {
       openInIDE(info.sourcePath, info.sourceLine)
     }
 
-    this._highlightElement(node.element)
+    this._highlightElement(item.node.element)
   }
 
   private _highlightElement(element: Element): void {
@@ -406,7 +425,52 @@ export class FdLaminarComponentTree extends LitElement {
     this._openInIDE(index)
   }
 
-  private _renderTreeItem(node: TreeNode, index: number) {
+  private _renderGuideLines(item: FlattenedNode) {
+    const { node, isLast, ancestorLines } = item
+
+    // For root nodes (depth 0), no guide lines needed
+    if (node.depth === 0) {
+      return nothing
+    }
+
+    // Render ancestor continuation lines and the connector for this node
+    const guides = []
+
+    // Draw vertical lines for ancestors that have more siblings
+    for (let i = 0; i < ancestorLines.length; i++) {
+      const hasLine = ancestorLines[i]
+      guides.push(html`<span class="guide-line">${hasLine ? '│' : ' '}</span>`)
+    }
+
+    // Draw the connector for this node
+    const connector = isLast ? '└' : '├'
+    guides.push(html`<span class="guide-line connector">${connector}</span>`)
+
+    return guides
+  }
+
+  private _renderToggleIcon(hasChildren: boolean, expanded: boolean) {
+    if (!hasChildren) {
+      return html`<span class="toggle-placeholder">─</span>`
+    }
+
+    return html`
+      <svg
+        class="toggle-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        ${expanded ? CHEVRON_DOWN : CHEVRON_RIGHT}
+      </svg>
+    `
+  }
+
+  private _renderTreeItem(item: FlattenedNode, index: number) {
+    const { node } = item
     const isFocused = index === this._focusedIndex
     const hasChildren = node.children.length > 0
 
@@ -414,12 +478,20 @@ export class FdLaminarComponentTree extends LitElement {
       <div
         class="tree-item ${isFocused ? 'focused' : ''}"
         data-index=${index}
-        style="padding-left: ${16 + node.depth * 16}px"
         @click=${(e: MouseEvent) => this._handleItemClick(index, e)}
         @dblclick=${() => this._handleItemDblClick(index)}
       >
-        <span class="toggle ${hasChildren ? 'has-children' : ''}">
-          ${hasChildren ? (node.expanded ? '▼' : '▶') : '•'}
+        <span class="guides">${this._renderGuideLines(item)}</span>
+        <span
+          class="toggle ${hasChildren ? 'has-children' : ''}"
+          @click=${(e: MouseEvent) => {
+            if (hasChildren) {
+              e.stopPropagation()
+              this._toggleNode(index)
+            }
+          }}
+        >
+          ${this._renderToggleIcon(hasChildren, node.expanded)}
         </span>
         <span class="name">${node.name}</span>
       </div>
@@ -439,8 +511,8 @@ export class FdLaminarComponentTree extends LitElement {
     return html`
       ${repeat(
         this._flattenedNodes,
-        (node) => node.id,
-        (node, index) => this._renderTreeItem(node, index),
+        (item) => item.node.id,
+        (item, index) => this._renderTreeItem(item, index),
       )}
     `
   }
@@ -590,9 +662,10 @@ export class FdLaminarComponentTree extends LitElement {
       .tree-item {
         display: flex;
         align-items: center;
-        padding: 4px 16px;
+        padding: 2px 12px;
         cursor: pointer;
         border-left: 2px solid transparent;
+        min-height: 24px;
       }
 
       .tree-item:hover {
@@ -604,30 +677,69 @@ export class FdLaminarComponentTree extends LitElement {
         border-left-color: var(--fd-primary, rgb(142, 97, 227));
       }
 
+      .guides {
+        display: flex;
+        flex-shrink: 0;
+      }
+
+      .guide-line {
+        display: inline-block;
+        width: 16px;
+        font-family: var(--fd-font-mono, monospace);
+        font-size: 12px;
+        color: var(--fd-text-faint, rgba(255, 255, 255, 0.3));
+        text-align: center;
+        user-select: none;
+      }
+
+      .guide-line.connector {
+        color: var(--fd-text-muted, #999);
+      }
+
       .toggle {
         width: 16px;
-        font-size: 10px;
-        color: var(--fd-text-muted, #999);
+        height: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         user-select: none;
         flex-shrink: 0;
+        color: var(--fd-text-muted, #999);
       }
 
       .toggle.has-children {
         cursor: pointer;
+        color: var(--fd-text-secondary, #e0e0e0);
       }
 
       .toggle.has-children:hover {
-        color: var(--fd-text-primary, #fff);
+        color: var(--fd-primary, rgb(142, 97, 227));
+      }
+
+      .toggle-icon {
+        width: 14px;
+        height: 14px;
+      }
+
+      .toggle-placeholder {
+        font-family: var(--fd-font-mono, monospace);
+        font-size: 12px;
+        color: var(--fd-text-faint, rgba(255, 255, 255, 0.3));
       }
 
       .name {
         font-family: var(--fd-font-mono, monospace);
         font-size: 12px;
         color: var(--fd-text-secondary, #e0e0e0);
+        margin-left: 4px;
       }
 
       .tree-item.focused .name {
         color: var(--fd-primary, rgb(142, 97, 227));
+      }
+
+      .tree-item.focused .guide-line.connector {
+        color: var(--fd-primary-50, rgba(142, 97, 227, 0.5));
       }
 
       .empty-state {
