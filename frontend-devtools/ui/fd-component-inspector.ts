@@ -698,6 +698,19 @@ export class FdComponentInspector extends LitElement {
     )
   }
 
+  /**
+   * Public method to highlight an element from external code (e.g., laminar tree).
+   * Requires the inspector to be active.
+   */
+  public highlightElement(element: Element, name: string): void {
+    if (!this.active) return
+
+    const sourceInfo = getComponentSourceInfo(element)
+    this._focusComponent(element, name, {
+      isMarked: sourceInfo?.isMarked ?? false,
+    })
+  }
+
   private _selectCurrentComponent(): void {
     if (!this._focusedElement) return
 

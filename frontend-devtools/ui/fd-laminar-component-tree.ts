@@ -81,6 +81,7 @@ export class FdLaminarComponentTree extends LitElement {
     // Focus the tree container after render
     void this.updateComplete.then(() => {
       this._focusTreeContainer()
+      this._dispatchFocusChange()
     })
   }
 
@@ -92,6 +93,19 @@ export class FdLaminarComponentTree extends LitElement {
     }
     this._treeData = []
     this._flattenedNodes = []
+  }
+
+  private _dispatchFocusChange(): void {
+    const item = this._flattenedNodes[this._focusedIndex]
+    if (!item) return
+
+    this.dispatchEvent(
+      new CustomEvent('focus-change', {
+        detail: { element: item.node.element, name: item.node.name, index: this._focusedIndex },
+        bubbles: true,
+        composed: true,
+      }),
+    )
   }
 
   private _centerPanel(): void {
@@ -237,36 +251,47 @@ export class FdLaminarComponentTree extends LitElement {
     switch (e.key) {
       case 'Escape':
         e.preventDefault()
+        e.stopPropagation()
         this._close()
         break
 
       case 'ArrowUp':
         e.preventDefault()
+        e.stopPropagation()
         this._focusedIndex = Math.max(0, this._focusedIndex - 1)
-        this._scrollToFocused()
+        this._onFocusChange()
         break
 
       case 'ArrowDown':
         e.preventDefault()
+        e.stopPropagation()
         this._focusedIndex = Math.min(this._flattenedNodes.length - 1, this._focusedIndex + 1)
-        this._scrollToFocused()
+        this._onFocusChange()
         break
 
       case 'ArrowLeft':
         e.preventDefault()
+        e.stopPropagation()
         this._collapseOrNavigateUp()
         break
 
       case 'ArrowRight':
         e.preventDefault()
+        e.stopPropagation()
         this._expandOrNavigateDown()
         break
 
       case 'Enter':
         e.preventDefault()
+        e.stopPropagation()
         this._openInIDE(this._focusedIndex)
         break
     }
+  }
+
+  private _onFocusChange(): void {
+    this._scrollToFocused()
+    this._dispatchFocusChange()
   }
 
   private _scrollToFocused(): void {
@@ -298,7 +323,7 @@ export class FdLaminarComponentTree extends LitElement {
       const parentIndex = this._findParentIndex(this._focusedIndex)
       if (parentIndex !== -1) {
         this._focusedIndex = parentIndex
-        this._scrollToFocused()
+        this._onFocusChange()
       }
     }
   }
@@ -315,7 +340,7 @@ export class FdLaminarComponentTree extends LitElement {
         this.requestUpdate()
       } else {
         this._focusedIndex = Math.min(this._flattenedNodes.length - 1, this._focusedIndex + 1)
-        this._scrollToFocused()
+        this._onFocusChange()
       }
     }
   }
@@ -412,12 +437,18 @@ export class FdLaminarComponentTree extends LitElement {
   }
 
   private _handleItemClick(index: number, e: MouseEvent): void {
+    const prevIndex = this._focusedIndex
     this._focusedIndex = index
 
     // Check if clicked on toggle
     const target = e.target as HTMLElement
     if (target.classList.contains('toggle')) {
       this._toggleNode(index)
+    }
+
+    // Dispatch focus change if focus changed
+    if (prevIndex !== index) {
+      this._dispatchFocusChange()
     }
   }
 

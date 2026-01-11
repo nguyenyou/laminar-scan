@@ -1,6 +1,7 @@
 import { LitElement, css, html } from 'lit'
-import { customElement, property, state } from 'lit/decorators.js'
+import { customElement, property, state, query } from 'lit/decorators.js'
 import type { PanelPosition } from './ui/fd-panel'
+import type { FdComponentInspector } from './ui/fd-component-inspector'
 import './ui/fd-inspect'
 import './ui/fd-dom-stats'
 import './ui/fd-toolbar'
@@ -44,6 +45,9 @@ export class FrontendDevtools extends LitElement {
 
   @state()
   private _panelPosition: PanelPosition = DEFAULT_PANEL_POSITION
+
+  @query('fd-component-inspector')
+  private _inspector!: FdComponentInspector
 
   private _boundHandleKeydown: (e: KeyboardEvent) => void
 
@@ -105,6 +109,13 @@ export class FrontendDevtools extends LitElement {
 
   private _handleLaminarTreeClose() {
     this._laminarTreeActive = false
+  }
+
+  private _handleLaminarTreeFocusChange(e: CustomEvent<{ element: Element; name: string }>) {
+    // When tree focus changes and inspector is active, highlight the element
+    if (this._inspectActive && this._inspector) {
+      this._inspector.highlightElement(e.detail.element, e.detail.name)
+    }
   }
 
   private _toggleWidget(widget: PanelWidget, active: boolean) {
@@ -194,6 +205,7 @@ export class FrontendDevtools extends LitElement {
       <fd-laminar-component-tree
         .open=${this._laminarTreeActive}
         @close=${this._handleLaminarTreeClose}
+        @focus-change=${this._handleLaminarTreeFocusChange}
       ></fd-laminar-component-tree>
     `
   }
