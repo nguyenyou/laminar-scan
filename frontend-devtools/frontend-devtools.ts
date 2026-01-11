@@ -13,6 +13,7 @@ import './ui/fd-mem-chart'
 import './ui/fd-mutation-canvas'
 import './ui/fd-switch'
 import './ui/fd-component-inspector'
+import './ui/fd-laminar-component-tree'
 import { designTokens } from './design-tokens'
 import { persistenceStorage, StorageKeys } from './core/persistence-storage'
 
@@ -34,6 +35,9 @@ export class FrontendDevtools extends LitElement {
 
   @state()
   private _mutationScanActive = false
+
+  @state()
+  private _laminarTreeActive = false
 
   @state()
   private _activeWidgets: PanelWidget[] = []
@@ -93,6 +97,14 @@ export class FrontendDevtools extends LitElement {
   private _handleInspectorChange(e: CustomEvent<{ active: boolean }>) {
     // Sync inspector state back to button when ESC is pressed or component is clicked
     this._inspectActive = e.detail.active
+  }
+
+  private _handleLaminarTreeChange(e: CustomEvent<{ active: boolean }>) {
+    this._laminarTreeActive = e.detail.active
+  }
+
+  private _handleLaminarTreeClose() {
+    this._laminarTreeActive = false
   }
 
   private _toggleWidget(widget: PanelWidget, active: boolean) {
@@ -164,6 +176,13 @@ export class FrontendDevtools extends LitElement {
           >
             <fd-icon name="domTree"></fd-icon>
           </fd-toggle-icon-button>
+          <fd-toggle-icon-button
+            tooltip="Laminar Component Tree"
+            .active=${this._laminarTreeActive}
+            @change=${this._handleLaminarTreeChange}
+          >
+            <fd-icon name="laminarTree"></fd-icon>
+          </fd-toggle-icon-button>
         </fd-toolbar>
         ${this._activeWidgets.map((widget) => this._renderWidget(widget))}
       </fd-panel>
@@ -172,6 +191,10 @@ export class FrontendDevtools extends LitElement {
         .active=${this._inspectActive}
         @change=${this._handleInspectorChange}
       ></fd-component-inspector>
+      <fd-laminar-component-tree
+        .open=${this._laminarTreeActive}
+        @close=${this._handleLaminarTreeClose}
+      ></fd-laminar-component-tree>
     `
   }
 
