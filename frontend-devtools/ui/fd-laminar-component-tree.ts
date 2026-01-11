@@ -565,9 +565,9 @@ export class FdLaminarComponentTree extends LitElement {
         >
           <span class="title">Laminar Component Tree</span>
           <div class="actions">
-            <fd-button @click=${this._expandAll}>Expand All</fd-button>
-            <fd-button @click=${this._collapseAll}>Collapse All</fd-button>
-            <fd-button size="icon" @click=${this._close}>✕</fd-button>
+            <fd-button size="sm" @click=${this._expandAll}>Expand All</fd-button>
+            <fd-button size="sm" @click=${this._collapseAll}>Collapse All</fd-button>
+            <fd-button size="sm" @click=${this._close}>✕</fd-button>
           </div>
         </div>
         <div

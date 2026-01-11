@@ -4,7 +4,7 @@ import { customElement, property } from 'lit/decorators.js'
 @customElement('fd-button')
 export class FdButton extends LitElement {
   @property({ type: String, reflect: true })
-  size: 'default' | 'icon' = 'default'
+  size: 'default' | 'sm' | 'icon' = 'default'
 
   @property({ type: Boolean, reflect: true })
   disabled = false
@@ -61,13 +61,13 @@ export class FdButton extends LitElement {
       border: none;
       border-radius: 6px;
       font-family: system-ui, -apple-system, sans-serif;
-      font-weight: 600;
+      font-weight: 500;
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s, color 0.15s;
       white-space: nowrap;
-      padding: 6px 12px;
-      font-size: 13px;
-      height: 28px;
+      padding: 4px 10px;
+      font-size: 12px;
+      height: 26px;
     }
 
     /* ===== Base styles ===== */
@@ -90,12 +90,20 @@ export class FdButton extends LitElement {
       color: var(--fd-primary-hover);
     }
 
+    /* ===== Small size ===== */
+    :host([size='sm']) .devtools-btn {
+      padding: 2px 6px;
+      font-size: 11px;
+      height: 22px;
+      gap: 4px;
+    }
+
     /* ===== Icon size ===== */
     :host([size='icon']) .devtools-btn {
       padding: 0;
       border-radius: 4px;
-      width: 28px;
-      height: 28px;
+      width: 26px;
+      height: 26px;
     }
 
     /* ===== Focus states ===== */
