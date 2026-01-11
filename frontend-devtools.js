@@ -3458,6 +3458,45 @@
     }
   });
 
+  // frontend-devtools/core/persistence-storage.ts
+  var StorageKeys = {
+    DEVTOOLS_ENABLED: "FRONTEND_DEVTOOLS_ENABLED",
+    ACTIVE_WIDGETS: "FRONTEND_DEVTOOLS_ACTIVE_WIDGETS",
+    MUTATION_SCAN_ACTIVE: "FRONTEND_DEVTOOLS_MUTATION_SCAN_ACTIVE",
+    PANEL_POSITION: "FRONTEND_DEVTOOLS_PANEL_POSITION",
+    COMPONENT_TREE_SIZE: "FRONTEND_DEVTOOLS_COMPONENT_TREE_SIZE"
+  };
+  var PersistenceStorage = class {
+    get(key) {
+      return localStorage.getItem(key);
+    }
+    set(key, value) {
+      localStorage.setItem(key, value);
+    }
+    remove(key) {
+      localStorage.removeItem(key);
+    }
+    getBoolean(key) {
+      return this.get(key) === "true";
+    }
+    setBoolean(key, value) {
+      this.set(key, String(value));
+    }
+    getArray(key) {
+      const value = this.get(key);
+      if (!value) return [];
+      try {
+        return JSON.parse(value);
+      } catch {
+        return [];
+      }
+    }
+    setArray(key, value) {
+      this.set(key, JSON.stringify(value));
+    }
+  };
+  var persistenceStorage = new PersistenceStorage();
+
   // frontend-devtools/ui/fd-button.ts
   var FdButton = class extends i4 {
     constructor() {
@@ -3594,8 +3633,12 @@
   // frontend-devtools/ui/fd-laminar-component-tree.ts
   var CHEVRON_DOWN = w`<path d="m6 9 6 6 6-6"/>`;
   var CHEVRON_RIGHT = w`<path d="m9 18 6-6-6-6"/>`;
-  var PANEL_WIDTH = 500;
-  var PANEL_MAX_HEIGHT_RATIO = 0.7;
+  var DEFAULT_PANEL_WIDTH = 500;
+  var DEFAULT_PANEL_HEIGHT = 400;
+  var MIN_PANEL_WIDTH = 300;
+  var MIN_PANEL_HEIGHT = 200;
+  var MAX_PANEL_WIDTH_RATIO = 0.9;
+  var MAX_PANEL_HEIGHT_RATIO = 0.9;
   var FdLaminarComponentTree = class extends i4 {
     constructor() {
       super(...arguments);
@@ -3607,7 +3650,15 @@
       this._isDragging = false;
       this._autoRefresh = false;
       this._isRefreshing = false;
+      this._panelWidth = DEFAULT_PANEL_WIDTH;
+      this._panelHeight = DEFAULT_PANEL_HEIGHT;
+      this._isResizing = false;
       this._flattenedNodes = [];
+      this._resizeDirection = null;
+      this._resizeStartX = 0;
+      this._resizeStartY = 0;
+      this._resizeStartWidth = 0;
+      this._resizeStartHeight = 0;
       this._autoRefreshInterval = null;
       this._nodeIdCounter = 0;
       this._dragStartX = 0;
@@ -3641,10 +3692,63 @@
         document.removeEventListener("pointermove", this._handlePointerMove);
         document.removeEventListener("pointerup", this._handlePointerUp);
       };
+      this._handleResizePointerDown = (direction) => (e7) => {
+        if (e7.button !== 0) return;
+        e7.preventDefault();
+        e7.stopPropagation();
+        this._isResizing = true;
+        this._resizeDirection = direction;
+        this._resizeStartX = e7.clientX;
+        this._resizeStartY = e7.clientY;
+        this._resizeStartWidth = this._panelWidth;
+        this._resizeStartHeight = this._panelHeight;
+        document.addEventListener("pointermove", this._handleResizePointerMove);
+        document.addEventListener("pointerup", this._handleResizePointerUp);
+      };
+      this._handleResizePointerMove = (e7) => {
+        if (!this._isResizing || !this._resizeDirection) return;
+        const deltaX = e7.clientX - this._resizeStartX;
+        const deltaY = e7.clientY - this._resizeStartY;
+        const maxWidth = window.innerWidth * MAX_PANEL_WIDTH_RATIO;
+        const maxHeight = window.innerHeight * MAX_PANEL_HEIGHT_RATIO;
+        if (this._resizeDirection === "e" || this._resizeDirection === "se") {
+          const newWidth = this._resizeStartWidth + deltaX;
+          this._panelWidth = Math.max(MIN_PANEL_WIDTH, Math.min(newWidth, maxWidth));
+        }
+        if (this._resizeDirection === "s" || this._resizeDirection === "se") {
+          const newHeight = this._resizeStartHeight + deltaY;
+          this._panelHeight = Math.max(MIN_PANEL_HEIGHT, Math.min(newHeight, maxHeight));
+        }
+      };
+      this._handleResizePointerUp = () => {
+        this._isResizing = false;
+        this._resizeDirection = null;
+        this._savePanelSize();
+        document.removeEventListener("pointermove", this._handleResizePointerMove);
+        document.removeEventListener("pointerup", this._handleResizePointerUp);
+      };
     }
     connectedCallback() {
       super.connectedCallback();
       this.setAttribute("popover", "manual");
+      this._loadPanelSize();
+    }
+    _loadPanelSize() {
+      const stored = persistenceStorage.get(StorageKeys.COMPONENT_TREE_SIZE);
+      if (stored) {
+        try {
+          const { width, height } = JSON.parse(stored);
+          this._panelWidth = Math.max(MIN_PANEL_WIDTH, Math.min(width, window.innerWidth * MAX_PANEL_WIDTH_RATIO));
+          this._panelHeight = Math.max(MIN_PANEL_HEIGHT, Math.min(height, window.innerHeight * MAX_PANEL_HEIGHT_RATIO));
+        } catch {
+        }
+      }
+    }
+    _savePanelSize() {
+      persistenceStorage.set(
+        StorageKeys.COMPONENT_TREE_SIZE,
+        JSON.stringify({ width: this._panelWidth, height: this._panelHeight })
+      );
     }
     disconnectedCallback() {
       super.disconnectedCallback();
@@ -3732,13 +3836,12 @@
       );
     }
     _centerPanel() {
-      const panelHeight = Math.min(window.innerHeight * PANEL_MAX_HEIGHT_RATIO, 600);
-      this._posX = Math.round((window.innerWidth - PANEL_WIDTH) / 2);
-      this._posY = Math.round((window.innerHeight - panelHeight) / 2);
+      this._posX = Math.round((window.innerWidth - this._panelWidth) / 2);
+      this._posY = Math.round((window.innerHeight - this._panelHeight) / 2);
     }
     _clampPosition(x2, y3) {
-      const panelHeight = this.offsetHeight || 400;
-      const panelWidth = this.offsetWidth || PANEL_WIDTH;
+      const panelHeight = this.offsetHeight || this._panelHeight;
+      const panelWidth = this.offsetWidth || this._panelWidth;
       const margin = 8;
       const clampedX = Math.max(margin, Math.min(x2, window.innerWidth - panelWidth - margin));
       const clampedY = Math.max(margin, Math.min(y3, window.innerHeight - panelHeight - margin));
@@ -4068,8 +4171,8 @@
       }
       return b2`
       <div
-        class="panel ${this._isDragging ? "dragging" : ""}"
-        style="left: ${this._posX}px; top: ${this._posY}px;"
+        class="panel ${this._isDragging ? "dragging" : ""} ${this._isResizing ? "resizing" : ""}"
+        style="left: ${this._posX}px; top: ${this._posY}px; width: ${this._panelWidth}px; height: ${this._panelHeight}px;"
       >
         <div
           class="header"
@@ -4106,6 +4209,9 @@
           <span>Enter Open in IDE</span>
           <span>Esc Close</span>
         </div>
+        <div class="resize-handle resize-e" @pointerdown=${this._handleResizePointerDown("e")}></div>
+        <div class="resize-handle resize-s" @pointerdown=${this._handleResizePointerDown("s")}></div>
+        <div class="resize-handle resize-se" @pointerdown=${this._handleResizePointerDown("se")}></div>
       </div>
     `;
     }
@@ -4128,9 +4234,6 @@
 
       .panel {
         position: fixed;
-        max-width: 80vw;
-        max-height: 70vh;
-        width: 500px;
         background: var(--fd-bg-panel, #141414);
         border: 1px solid var(--fd-border-medium, rgba(255, 255, 255, 0.15));
         border-radius: 8px;
@@ -4144,7 +4247,8 @@
         z-index: 2147483647;
       }
 
-      .panel.dragging {
+      .panel.dragging,
+      .panel.resizing {
         user-select: none;
       }
 
@@ -4336,6 +4440,60 @@
         gap: 16px;
         user-select: none;
       }
+
+      /* Resize handles */
+      .resize-handle {
+        position: absolute;
+        z-index: 1;
+      }
+
+      .resize-e {
+        top: 0;
+        right: 0;
+        width: 6px;
+        height: 100%;
+        cursor: ew-resize;
+      }
+
+      .resize-s {
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 6px;
+        cursor: ns-resize;
+      }
+
+      .resize-se {
+        bottom: 0;
+        right: 0;
+        width: 16px;
+        height: 16px;
+        cursor: nwse-resize;
+      }
+
+      .resize-e:hover,
+      .resize-s:hover {
+        background: var(--fd-primary-15, rgba(142, 97, 227, 0.15));
+      }
+
+      .resize-se::after {
+        content: '';
+        position: absolute;
+        bottom: 3px;
+        right: 3px;
+        width: 10px;
+        height: 10px;
+        border: 2px solid var(--fd-text-muted, #999);
+        border-top: none;
+        border-left: none;
+        border-bottom-right-radius: 4px;
+        opacity: 0.5;
+      }
+
+      .resize-se:hover::after {
+        border-color: var(--fd-primary, rgb(142, 97, 227));
+        opacity: 1;
+      }
     `
   ];
   __decorateClass([
@@ -4362,6 +4520,15 @@
   __decorateClass([
     r5()
   ], FdLaminarComponentTree.prototype, "_isRefreshing", 2);
+  __decorateClass([
+    r5()
+  ], FdLaminarComponentTree.prototype, "_panelWidth", 2);
+  __decorateClass([
+    r5()
+  ], FdLaminarComponentTree.prototype, "_panelHeight", 2);
+  __decorateClass([
+    r5()
+  ], FdLaminarComponentTree.prototype, "_isResizing", 2);
   FdLaminarComponentTree = __decorateClass([
     t3("fd-laminar-component-tree")
   ], FdLaminarComponentTree);
@@ -4427,44 +4594,6 @@
     --fd-radar-stroke: rgba(255, 255, 255, 0.85);
   }
 `;
-
-  // frontend-devtools/core/persistence-storage.ts
-  var StorageKeys = {
-    DEVTOOLS_ENABLED: "FRONTEND_DEVTOOLS_ENABLED",
-    ACTIVE_WIDGETS: "FRONTEND_DEVTOOLS_ACTIVE_WIDGETS",
-    MUTATION_SCAN_ACTIVE: "FRONTEND_DEVTOOLS_MUTATION_SCAN_ACTIVE",
-    PANEL_POSITION: "FRONTEND_DEVTOOLS_PANEL_POSITION"
-  };
-  var PersistenceStorage = class {
-    get(key) {
-      return localStorage.getItem(key);
-    }
-    set(key, value) {
-      localStorage.setItem(key, value);
-    }
-    remove(key) {
-      localStorage.removeItem(key);
-    }
-    getBoolean(key) {
-      return this.get(key) === "true";
-    }
-    setBoolean(key, value) {
-      this.set(key, String(value));
-    }
-    getArray(key) {
-      const value = this.get(key);
-      if (!value) return [];
-      try {
-        return JSON.parse(value);
-      } catch {
-        return [];
-      }
-    }
-    setArray(key, value) {
-      this.set(key, JSON.stringify(value));
-    }
-  };
-  var persistenceStorage = new PersistenceStorage();
 
   // frontend-devtools/frontend-devtools.ts
   var DEFAULT_PANEL_POSITION = "bottom-right";

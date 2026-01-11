@@ -1,6 +1,7 @@
 import { LitElement, css, html, nothing, svg } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 import { repeat } from 'lit/directives/repeat.js'
+import { persistenceStorage, StorageKeys } from '../core/persistence-storage'
 import { CONFIG, getComponentSourceInfo, openInIDE } from '../core/utilities'
 import './fd-button'
 import './fd-icon'
@@ -24,8 +25,14 @@ interface FlattenedNode {
   ancestorLines: boolean[]
 }
 
-const PANEL_WIDTH = 500
-const PANEL_MAX_HEIGHT_RATIO = 0.7
+const DEFAULT_PANEL_WIDTH = 500
+const DEFAULT_PANEL_HEIGHT = 400
+const MIN_PANEL_WIDTH = 300
+const MIN_PANEL_HEIGHT = 200
+const MAX_PANEL_WIDTH_RATIO = 0.9
+const MAX_PANEL_HEIGHT_RATIO = 0.9
+
+type ResizeDirection = 'e' | 's' | 'se' | null
 
 @customElement('fd-laminar-component-tree')
 export class FdLaminarComponentTree extends LitElement {
@@ -53,7 +60,21 @@ export class FdLaminarComponentTree extends LitElement {
   @state()
   private _isRefreshing = false
 
+  @state()
+  private _panelWidth = DEFAULT_PANEL_WIDTH
+
+  @state()
+  private _panelHeight = DEFAULT_PANEL_HEIGHT
+
+  @state()
+  private _isResizing = false
+
   private _flattenedNodes: FlattenedNode[] = []
+  private _resizeDirection: ResizeDirection = null
+  private _resizeStartX = 0
+  private _resizeStartY = 0
+  private _resizeStartWidth = 0
+  private _resizeStartHeight = 0
   private _autoRefreshInterval: ReturnType<typeof setInterval> | null = null
   private _nodeIdCounter = 0
   private _dragStartX = 0
@@ -65,6 +86,27 @@ export class FdLaminarComponentTree extends LitElement {
     super.connectedCallback()
     // Set popover attribute for Popover API
     this.setAttribute('popover', 'manual')
+    this._loadPanelSize()
+  }
+
+  private _loadPanelSize(): void {
+    const stored = persistenceStorage.get(StorageKeys.COMPONENT_TREE_SIZE)
+    if (stored) {
+      try {
+        const { width, height } = JSON.parse(stored) as { width: number; height: number }
+        this._panelWidth = Math.max(MIN_PANEL_WIDTH, Math.min(width, window.innerWidth * MAX_PANEL_WIDTH_RATIO))
+        this._panelHeight = Math.max(MIN_PANEL_HEIGHT, Math.min(height, window.innerHeight * MAX_PANEL_HEIGHT_RATIO))
+      } catch {
+        // Use defaults
+      }
+    }
+  }
+
+  private _savePanelSize(): void {
+    persistenceStorage.set(
+      StorageKeys.COMPONENT_TREE_SIZE,
+      JSON.stringify({ width: this._panelWidth, height: this._panelHeight }),
+    )
   }
 
   override disconnectedCallback(): void {
@@ -175,14 +217,13 @@ export class FdLaminarComponentTree extends LitElement {
   }
 
   private _centerPanel(): void {
-    const panelHeight = Math.min(window.innerHeight * PANEL_MAX_HEIGHT_RATIO, 600)
-    this._posX = Math.round((window.innerWidth - PANEL_WIDTH) / 2)
-    this._posY = Math.round((window.innerHeight - panelHeight) / 2)
+    this._posX = Math.round((window.innerWidth - this._panelWidth) / 2)
+    this._posY = Math.round((window.innerHeight - this._panelHeight) / 2)
   }
 
   private _clampPosition(x: number, y: number): { x: number; y: number } {
-    const panelHeight = this.offsetHeight || 400
-    const panelWidth = this.offsetWidth || PANEL_WIDTH
+    const panelHeight = this.offsetHeight || this._panelHeight
+    const panelWidth = this.offsetWidth || this._panelWidth
     const margin = 8
 
     const clampedX = Math.max(margin, Math.min(x, window.innerWidth - panelWidth - margin))
@@ -226,6 +267,50 @@ export class FdLaminarComponentTree extends LitElement {
     this._isDragging = false
     document.removeEventListener('pointermove', this._handlePointerMove)
     document.removeEventListener('pointerup', this._handlePointerUp)
+  }
+
+  private _handleResizePointerDown = (direction: ResizeDirection) => (e: PointerEvent): void => {
+    if (e.button !== 0) return
+    e.preventDefault()
+    e.stopPropagation()
+
+    this._isResizing = true
+    this._resizeDirection = direction
+    this._resizeStartX = e.clientX
+    this._resizeStartY = e.clientY
+    this._resizeStartWidth = this._panelWidth
+    this._resizeStartHeight = this._panelHeight
+
+    document.addEventListener('pointermove', this._handleResizePointerMove)
+    document.addEventListener('pointerup', this._handleResizePointerUp)
+  }
+
+  private _handleResizePointerMove = (e: PointerEvent): void => {
+    if (!this._isResizing || !this._resizeDirection) return
+
+    const deltaX = e.clientX - this._resizeStartX
+    const deltaY = e.clientY - this._resizeStartY
+
+    const maxWidth = window.innerWidth * MAX_PANEL_WIDTH_RATIO
+    const maxHeight = window.innerHeight * MAX_PANEL_HEIGHT_RATIO
+
+    if (this._resizeDirection === 'e' || this._resizeDirection === 'se') {
+      const newWidth = this._resizeStartWidth + deltaX
+      this._panelWidth = Math.max(MIN_PANEL_WIDTH, Math.min(newWidth, maxWidth))
+    }
+
+    if (this._resizeDirection === 's' || this._resizeDirection === 'se') {
+      const newHeight = this._resizeStartHeight + deltaY
+      this._panelHeight = Math.max(MIN_PANEL_HEIGHT, Math.min(newHeight, maxHeight))
+    }
+  }
+
+  private _handleResizePointerUp = (): void => {
+    this._isResizing = false
+    this._resizeDirection = null
+    this._savePanelSize()
+    document.removeEventListener('pointermove', this._handleResizePointerMove)
+    document.removeEventListener('pointerup', this._handleResizePointerUp)
   }
 
   private _focusTreeContainer(): void {
@@ -625,8 +710,8 @@ export class FdLaminarComponentTree extends LitElement {
 
     return html`
       <div
-        class="panel ${this._isDragging ? 'dragging' : ''}"
-        style="left: ${this._posX}px; top: ${this._posY}px;"
+        class="panel ${this._isDragging ? 'dragging' : ''} ${this._isResizing ? 'resizing' : ''}"
+        style="left: ${this._posX}px; top: ${this._posY}px; width: ${this._panelWidth}px; height: ${this._panelHeight}px;"
       >
         <div
           class="header"
@@ -663,6 +748,9 @@ export class FdLaminarComponentTree extends LitElement {
           <span>Enter Open in IDE</span>
           <span>Esc Close</span>
         </div>
+        <div class="resize-handle resize-e" @pointerdown=${this._handleResizePointerDown('e')}></div>
+        <div class="resize-handle resize-s" @pointerdown=${this._handleResizePointerDown('s')}></div>
+        <div class="resize-handle resize-se" @pointerdown=${this._handleResizePointerDown('se')}></div>
       </div>
     `
   }
@@ -685,9 +773,6 @@ export class FdLaminarComponentTree extends LitElement {
 
       .panel {
         position: fixed;
-        max-width: 80vw;
-        max-height: 70vh;
-        width: 500px;
         background: var(--fd-bg-panel, #141414);
         border: 1px solid var(--fd-border-medium, rgba(255, 255, 255, 0.15));
         border-radius: 8px;
@@ -701,7 +786,8 @@ export class FdLaminarComponentTree extends LitElement {
         z-index: 2147483647;
       }
 
-      .panel.dragging {
+      .panel.dragging,
+      .panel.resizing {
         user-select: none;
       }
 
@@ -892,6 +978,60 @@ export class FdLaminarComponentTree extends LitElement {
         display: flex;
         gap: 16px;
         user-select: none;
+      }
+
+      /* Resize handles */
+      .resize-handle {
+        position: absolute;
+        z-index: 1;
+      }
+
+      .resize-e {
+        top: 0;
+        right: 0;
+        width: 6px;
+        height: 100%;
+        cursor: ew-resize;
+      }
+
+      .resize-s {
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 6px;
+        cursor: ns-resize;
+      }
+
+      .resize-se {
+        bottom: 0;
+        right: 0;
+        width: 16px;
+        height: 16px;
+        cursor: nwse-resize;
+      }
+
+      .resize-e:hover,
+      .resize-s:hover {
+        background: var(--fd-primary-15, rgba(142, 97, 227, 0.15));
+      }
+
+      .resize-se::after {
+        content: '';
+        position: absolute;
+        bottom: 3px;
+        right: 3px;
+        width: 10px;
+        height: 10px;
+        border: 2px solid var(--fd-text-muted, #999);
+        border-top: none;
+        border-left: none;
+        border-bottom-right-radius: 4px;
+        opacity: 0.5;
+      }
+
+      .resize-se:hover::after {
+        border-color: var(--fd-primary, rgb(142, 97, 227));
+        opacity: 1;
       }
     `,
   ]
