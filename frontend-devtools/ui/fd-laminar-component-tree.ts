@@ -1027,7 +1027,7 @@ export class FdLaminarComponentTree extends LitElement {
         border: 2px solid var(--fd-text-muted, #999);
         border-top: none;
         border-left: none;
-        border-bottom-right-radius: 8px;
+        border-bottom-right-radius: 6px;
         opacity: 0.5;
       }
 
