@@ -17,16 +17,16 @@
   var s = /* @__PURE__ */ Symbol();
   var o = /* @__PURE__ */ new WeakMap();
   var n = class {
-    constructor(t6, e6, o6) {
+    constructor(t6, e7, o6) {
       if (this._$cssResult$ = true, o6 !== s) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
-      this.cssText = t6, this.t = e6;
+      this.cssText = t6, this.t = e7;
     }
     get styleSheet() {
       let t6 = this.o;
       const s5 = this.t;
       if (e && void 0 === t6) {
-        const e6 = void 0 !== s5 && 1 === s5.length;
-        e6 && (t6 = o.get(s5)), void 0 === t6 && ((this.o = t6 = new CSSStyleSheet()).replaceSync(this.cssText), e6 && o.set(s5, t6));
+        const e7 = void 0 !== s5 && 1 === s5.length;
+        e7 && (t6 = o.get(s5)), void 0 === t6 && ((this.o = t6 = new CSSStyleSheet()).replaceSync(this.cssText), e7 && o.set(s5, t6));
       }
       return t6;
     }
@@ -35,8 +35,8 @@
     }
   };
   var r = (t6) => new n("string" == typeof t6 ? t6 : t6 + "", void 0, s);
-  var i = (t6, ...e6) => {
-    const o6 = 1 === t6.length ? t6[0] : e6.reduce((e7, s5, o7) => e7 + ((t7) => {
+  var i = (t6, ...e7) => {
+    const o6 = 1 === t6.length ? t6[0] : e7.reduce((e8, s5, o7) => e8 + ((t7) => {
       if (true === t7._$cssResult$) return t7.cssText;
       if ("number" == typeof t7) return t7;
       throw Error("Value passed to 'css' function must be a 'css' function result: " + t7 + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
@@ -45,15 +45,15 @@
   };
   var S = (s5, o6) => {
     if (e) s5.adoptedStyleSheets = o6.map((t6) => t6 instanceof CSSStyleSheet ? t6 : t6.styleSheet);
-    else for (const e6 of o6) {
+    else for (const e7 of o6) {
       const o7 = document.createElement("style"), n5 = t.litNonce;
-      void 0 !== n5 && o7.setAttribute("nonce", n5), o7.textContent = e6.cssText, s5.appendChild(o7);
+      void 0 !== n5 && o7.setAttribute("nonce", n5), o7.textContent = e7.cssText, s5.appendChild(o7);
     }
   };
   var c = e ? (t6) => t6 : (t6) => t6 instanceof CSSStyleSheet ? ((t7) => {
-    let e6 = "";
-    for (const s5 of t7.cssRules) e6 += s5.cssText;
-    return r(e6);
+    let e7 = "";
+    for (const s5 of t7.cssRules) e7 += s5.cssText;
+    return r(e7);
   })(t6) : t6;
 
   // node_modules/@lit/reactive-element/reactive-element.js
@@ -109,13 +109,13 @@
       }
     }
     static getPropertyDescriptor(t6, s5, i7) {
-      const { get: e6, set: r6 } = h(this.prototype, t6) ?? { get() {
+      const { get: e7, set: r6 } = h(this.prototype, t6) ?? { get() {
         return this[s5];
       }, set(t7) {
         this[s5] = t7;
       } };
-      return { get: e6, set(s6) {
-        const h4 = e6?.call(this);
+      return { get: e7, set(s6) {
+        const h4 = e7?.call(this);
         r6?.call(this, s6), this.requestUpdate(t6, h4, i7);
       }, configurable: true, enumerable: true };
     }
@@ -148,8 +148,8 @@
     static finalizeStyles(s5) {
       const i7 = [];
       if (Array.isArray(s5)) {
-        const e6 = new Set(s5.flat(1 / 0).reverse());
-        for (const s6 of e6) i7.unshift(c(s6));
+        const e7 = new Set(s5.flat(1 / 0).reverse());
+        for (const s6 of e7) i7.unshift(c(s6));
       } else void 0 !== s5 && i7.push(c(s5));
       return i7;
     }
@@ -190,31 +190,31 @@
       this._$AK(t6, i7);
     }
     _$ET(t6, s5) {
-      const i7 = this.constructor.elementProperties.get(t6), e6 = this.constructor._$Eu(t6, i7);
-      if (void 0 !== e6 && true === i7.reflect) {
+      const i7 = this.constructor.elementProperties.get(t6), e7 = this.constructor._$Eu(t6, i7);
+      if (void 0 !== e7 && true === i7.reflect) {
         const h4 = (void 0 !== i7.converter?.toAttribute ? i7.converter : u).toAttribute(s5, i7.type);
-        this._$Em = t6, null == h4 ? this.removeAttribute(e6) : this.setAttribute(e6, h4), this._$Em = null;
+        this._$Em = t6, null == h4 ? this.removeAttribute(e7) : this.setAttribute(e7, h4), this._$Em = null;
       }
     }
     _$AK(t6, s5) {
-      const i7 = this.constructor, e6 = i7._$Eh.get(t6);
-      if (void 0 !== e6 && this._$Em !== e6) {
-        const t7 = i7.getPropertyOptions(e6), h4 = "function" == typeof t7.converter ? { fromAttribute: t7.converter } : void 0 !== t7.converter?.fromAttribute ? t7.converter : u;
-        this._$Em = e6;
+      const i7 = this.constructor, e7 = i7._$Eh.get(t6);
+      if (void 0 !== e7 && this._$Em !== e7) {
+        const t7 = i7.getPropertyOptions(e7), h4 = "function" == typeof t7.converter ? { fromAttribute: t7.converter } : void 0 !== t7.converter?.fromAttribute ? t7.converter : u;
+        this._$Em = e7;
         const r6 = h4.fromAttribute(s5, t7.type);
-        this[e6] = r6 ?? this._$Ej?.get(e6) ?? r6, this._$Em = null;
+        this[e7] = r6 ?? this._$Ej?.get(e7) ?? r6, this._$Em = null;
       }
     }
-    requestUpdate(t6, s5, i7, e6 = false, h4) {
+    requestUpdate(t6, s5, i7, e7 = false, h4) {
       if (void 0 !== t6) {
         const r6 = this.constructor;
-        if (false === e6 && (h4 = this[t6]), i7 ??= r6.getPropertyOptions(t6), !((i7.hasChanged ?? f)(h4, s5) || i7.useDefault && i7.reflect && h4 === this._$Ej?.get(t6) && !this.hasAttribute(r6._$Eu(t6, i7)))) return;
+        if (false === e7 && (h4 = this[t6]), i7 ??= r6.getPropertyOptions(t6), !((i7.hasChanged ?? f)(h4, s5) || i7.useDefault && i7.reflect && h4 === this._$Ej?.get(t6) && !this.hasAttribute(r6._$Eu(t6, i7)))) return;
         this.C(t6, s5, i7);
       }
       false === this.isUpdatePending && (this._$ES = this._$EP());
     }
-    C(t6, s5, { useDefault: i7, reflect: e6, wrapped: h4 }, r6) {
-      i7 && !(this._$Ej ??= /* @__PURE__ */ new Map()).has(t6) && (this._$Ej.set(t6, r6 ?? s5 ?? this[t6]), true !== h4 || void 0 !== r6) || (this._$AL.has(t6) || (this.hasUpdated || i7 || (s5 = void 0), this._$AL.set(t6, s5)), true === e6 && this._$Em !== t6 && (this._$Eq ??= /* @__PURE__ */ new Set()).add(t6));
+    C(t6, s5, { useDefault: i7, reflect: e7, wrapped: h4 }, r6) {
+      i7 && !(this._$Ej ??= /* @__PURE__ */ new Map()).has(t6) && (this._$Ej.set(t6, r6 ?? s5 ?? this[t6]), true !== h4 || void 0 !== r6) || (this._$AL.has(t6) || (this.hasUpdated || i7 || (s5 = void 0), this._$AL.set(t6, s5)), true === e7 && this._$Em !== t6 && (this._$Eq ??= /* @__PURE__ */ new Set()).add(t6));
     }
     async _$EP() {
       this.isUpdatePending = true;
@@ -238,8 +238,8 @@
         }
         const t7 = this.constructor.elementProperties;
         if (t7.size > 0) for (const [s6, i7] of t7) {
-          const { wrapped: t8 } = i7, e6 = this[s6];
-          true !== t8 || this._$AL.has(s6) || void 0 === e6 || this.C(s6, void 0, i7, e6);
+          const { wrapped: t8 } = i7, e7 = this[s6];
+          true !== t8 || this._$AL.has(s6) || void 0 === e7 || this.C(s6, void 0, i7, e7);
         }
       }
       let t6 = false;
@@ -314,32 +314,32 @@
     return void 0 !== e3 ? e3.createHTML(i7) : i7;
   }
   var N = (t6, i7) => {
-    const s5 = t6.length - 1, e6 = [];
+    const s5 = t6.length - 1, e7 = [];
     let n5, l3 = 2 === i7 ? "<svg>" : 3 === i7 ? "<math>" : "", c5 = v;
     for (let i8 = 0; i8 < s5; i8++) {
       const s6 = t6[i8];
       let a3, u5, d3 = -1, f3 = 0;
       for (; f3 < s6.length && (c5.lastIndex = f3, u5 = c5.exec(s6), null !== u5); ) f3 = c5.lastIndex, c5 === v ? "!--" === u5[1] ? c5 = _ : void 0 !== u5[1] ? c5 = m : void 0 !== u5[2] ? (y2.test(u5[2]) && (n5 = RegExp("</" + u5[2], "g")), c5 = p2) : void 0 !== u5[3] && (c5 = p2) : c5 === p2 ? ">" === u5[0] ? (c5 = n5 ?? v, d3 = -1) : void 0 === u5[1] ? d3 = -2 : (d3 = c5.lastIndex - u5[2].length, a3 = u5[1], c5 = void 0 === u5[3] ? p2 : '"' === u5[3] ? $ : g) : c5 === $ || c5 === g ? c5 = p2 : c5 === _ || c5 === m ? c5 = v : (c5 = p2, n5 = void 0);
       const x2 = c5 === p2 && t6[i8 + 1].startsWith("/>") ? " " : "";
-      l3 += c5 === v ? s6 + r3 : d3 >= 0 ? (e6.push(a3), s6.slice(0, d3) + h2 + s6.slice(d3) + o3 + x2) : s6 + o3 + (-2 === d3 ? i8 : x2);
+      l3 += c5 === v ? s6 + r3 : d3 >= 0 ? (e7.push(a3), s6.slice(0, d3) + h2 + s6.slice(d3) + o3 + x2) : s6 + o3 + (-2 === d3 ? i8 : x2);
     }
-    return [V(t6, l3 + (t6[s5] || "<?>") + (2 === i7 ? "</svg>" : 3 === i7 ? "</math>" : "")), e6];
+    return [V(t6, l3 + (t6[s5] || "<?>") + (2 === i7 ? "</svg>" : 3 === i7 ? "</math>" : "")), e7];
   };
   var S2 = class _S {
-    constructor({ strings: t6, _$litType$: i7 }, e6) {
+    constructor({ strings: t6, _$litType$: i7 }, e7) {
       let r6;
       this.parts = [];
       let l3 = 0, a3 = 0;
       const u5 = t6.length - 1, d3 = this.parts, [f3, v3] = N(t6, i7);
-      if (this.el = _S.createElement(f3, e6), P.currentNode = this.el.content, 2 === i7 || 3 === i7) {
+      if (this.el = _S.createElement(f3, e7), P.currentNode = this.el.content, 2 === i7 || 3 === i7) {
         const t7 = this.el.content.firstChild;
         t7.replaceWith(...t7.childNodes);
       }
       for (; null !== (r6 = P.nextNode()) && d3.length < u5; ) {
         if (1 === r6.nodeType) {
           if (r6.hasAttributes()) for (const t7 of r6.getAttributeNames()) if (t7.endsWith(h2)) {
-            const i8 = v3[a3++], s5 = r6.getAttribute(t7).split(o3), e7 = /([.?@])?(.*)/.exec(i8);
-            d3.push({ type: 1, index: l3, name: e7[2], strings: s5, ctor: "." === e7[1] ? I : "?" === e7[1] ? L : "@" === e7[1] ? z : H }), r6.removeAttribute(t7);
+            const i8 = v3[a3++], s5 = r6.getAttribute(t7).split(o3), e8 = /([.?@])?(.*)/.exec(i8);
+            d3.push({ type: 1, index: l3, name: e8[2], strings: s5, ctor: "." === e8[1] ? I : "?" === e8[1] ? L : "@" === e8[1] ? z : H }), r6.removeAttribute(t7);
           } else t7.startsWith(o3) && (d3.push({ type: 6, index: l3 }), r6.removeAttribute(t7));
           if (y2.test(r6.tagName)) {
             const t7 = r6.textContent.split(o3), i8 = t7.length - 1;
@@ -362,11 +362,11 @@
       return s5.innerHTML = t6, s5;
     }
   };
-  function M(t6, i7, s5 = t6, e6) {
+  function M(t6, i7, s5 = t6, e7) {
     if (i7 === E) return i7;
-    let h4 = void 0 !== e6 ? s5._$Co?.[e6] : s5._$Cl;
+    let h4 = void 0 !== e7 ? s5._$Co?.[e7] : s5._$Cl;
     const o6 = a2(i7) ? void 0 : i7._$litDirective$;
-    return h4?.constructor !== o6 && (h4?._$AO?.(false), void 0 === o6 ? h4 = void 0 : (h4 = new o6(t6), h4._$AT(t6, s5, e6)), void 0 !== e6 ? (s5._$Co ??= [])[e6] = h4 : s5._$Cl = h4), void 0 !== h4 && (i7 = M(t6, h4._$AS(t6, i7.values), h4, e6)), i7;
+    return h4?.constructor !== o6 && (h4?._$AO?.(false), void 0 === o6 ? h4 = void 0 : (h4 = new o6(t6), h4._$AT(t6, s5, e7)), void 0 !== e7 ? (s5._$Co ??= [])[e7] = h4 : s5._$Cl = h4), void 0 !== h4 && (i7 = M(t6, h4._$AS(t6, i7.values), h4, e7)), i7;
   }
   var R = class {
     constructor(t6, i7) {
@@ -379,8 +379,8 @@
       return this._$AM._$AU;
     }
     u(t6) {
-      const { el: { content: i7 }, parts: s5 } = this._$AD, e6 = (t6?.creationScope ?? l2).importNode(i7, true);
-      P.currentNode = e6;
+      const { el: { content: i7 }, parts: s5 } = this._$AD, e7 = (t6?.creationScope ?? l2).importNode(i7, true);
+      P.currentNode = e7;
       let h4 = P.nextNode(), o6 = 0, n5 = 0, r6 = s5[0];
       for (; void 0 !== r6; ) {
         if (o6 === r6.index) {
@@ -389,7 +389,7 @@
         }
         o6 !== r6?.index && (h4 = P.nextNode(), o6++);
       }
-      return P.currentNode = l2, e6;
+      return P.currentNode = l2, e7;
     }
     p(t6) {
       let i7 = 0;
@@ -400,8 +400,8 @@
     get _$AU() {
       return this._$AM?._$AU ?? this._$Cv;
     }
-    constructor(t6, i7, s5, e6) {
-      this.type = 2, this._$AH = A, this._$AN = void 0, this._$AA = t6, this._$AB = i7, this._$AM = s5, this.options = e6, this._$Cv = e6?.isConnected ?? true;
+    constructor(t6, i7, s5, e7) {
+      this.type = 2, this._$AH = A, this._$AN = void 0, this._$AA = t6, this._$AB = i7, this._$AM = s5, this.options = e7, this._$Cv = e7?.isConnected ?? true;
     }
     get parentNode() {
       let t6 = this._$AA.parentNode;
@@ -427,10 +427,10 @@
       this._$AH !== A && a2(this._$AH) ? this._$AA.nextSibling.data = t6 : this.T(l2.createTextNode(t6)), this._$AH = t6;
     }
     $(t6) {
-      const { values: i7, _$litType$: s5 } = t6, e6 = "number" == typeof s5 ? this._$AC(t6) : (void 0 === s5.el && (s5.el = S2.createElement(V(s5.h, s5.h[0]), this.options)), s5);
-      if (this._$AH?._$AD === e6) this._$AH.p(i7);
+      const { values: i7, _$litType$: s5 } = t6, e7 = "number" == typeof s5 ? this._$AC(t6) : (void 0 === s5.el && (s5.el = S2.createElement(V(s5.h, s5.h[0]), this.options)), s5);
+      if (this._$AH?._$AD === e7) this._$AH.p(i7);
       else {
-        const t7 = new R(e6, this), s6 = t7.u(this.options);
+        const t7 = new R(e7, this), s6 = t7.u(this.options);
         t7.p(i7), this.T(s6), this._$AH = t7;
       }
     }
@@ -441,9 +441,9 @@
     k(t6) {
       u2(this._$AH) || (this._$AH = [], this._$AR());
       const i7 = this._$AH;
-      let s5, e6 = 0;
-      for (const h4 of t6) e6 === i7.length ? i7.push(s5 = new _k(this.O(c3()), this.O(c3()), this, this.options)) : s5 = i7[e6], s5._$AI(h4), e6++;
-      e6 < i7.length && (this._$AR(s5 && s5._$AB.nextSibling, e6), i7.length = e6);
+      let s5, e7 = 0;
+      for (const h4 of t6) e7 === i7.length ? i7.push(s5 = new _k(this.O(c3()), this.O(c3()), this, this.options)) : s5 = i7[e7], s5._$AI(h4), e7++;
+      e7 < i7.length && (this._$AR(s5 && s5._$AB.nextSibling, e7), i7.length = e7);
     }
     _$AR(t6 = this._$AA.nextSibling, s5) {
       for (this._$AP?.(false, true, s5); t6 !== this._$AB; ) {
@@ -462,19 +462,19 @@
     get _$AU() {
       return this._$AM._$AU;
     }
-    constructor(t6, i7, s5, e6, h4) {
-      this.type = 1, this._$AH = A, this._$AN = void 0, this.element = t6, this.name = i7, this._$AM = e6, this.options = h4, s5.length > 2 || "" !== s5[0] || "" !== s5[1] ? (this._$AH = Array(s5.length - 1).fill(new String()), this.strings = s5) : this._$AH = A;
+    constructor(t6, i7, s5, e7, h4) {
+      this.type = 1, this._$AH = A, this._$AN = void 0, this.element = t6, this.name = i7, this._$AM = e7, this.options = h4, s5.length > 2 || "" !== s5[0] || "" !== s5[1] ? (this._$AH = Array(s5.length - 1).fill(new String()), this.strings = s5) : this._$AH = A;
     }
-    _$AI(t6, i7 = this, s5, e6) {
+    _$AI(t6, i7 = this, s5, e7) {
       const h4 = this.strings;
       let o6 = false;
       if (void 0 === h4) t6 = M(this, t6, i7, 0), o6 = !a2(t6) || t6 !== this._$AH && t6 !== E, o6 && (this._$AH = t6);
       else {
-        const e7 = t6;
+        const e8 = t6;
         let n5, r6;
-        for (t6 = h4[0], n5 = 0; n5 < h4.length - 1; n5++) r6 = M(this, e7[s5 + n5], i7, n5), r6 === E && (r6 = this._$AH[n5]), o6 ||= !a2(r6) || r6 !== this._$AH[n5], r6 === A ? t6 = A : t6 !== A && (t6 += (r6 ?? "") + h4[n5 + 1]), this._$AH[n5] = r6;
+        for (t6 = h4[0], n5 = 0; n5 < h4.length - 1; n5++) r6 = M(this, e8[s5 + n5], i7, n5), r6 === E && (r6 = this._$AH[n5]), o6 ||= !a2(r6) || r6 !== this._$AH[n5], r6 === A ? t6 = A : t6 !== A && (t6 += (r6 ?? "") + h4[n5 + 1]), this._$AH[n5] = r6;
       }
-      o6 && !e6 && this.j(t6);
+      o6 && !e7 && this.j(t6);
     }
     j(t6) {
       t6 === A ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t6 ?? "");
@@ -497,13 +497,13 @@
     }
   };
   var z = class extends H {
-    constructor(t6, i7, s5, e6, h4) {
-      super(t6, i7, s5, e6, h4), this.type = 5;
+    constructor(t6, i7, s5, e7, h4) {
+      super(t6, i7, s5, e7, h4), this.type = 5;
     }
     _$AI(t6, i7 = this) {
       if ((t6 = M(this, t6, i7, 0) ?? A) === E) return;
-      const s5 = this._$AH, e6 = t6 === A && s5 !== A || t6.capture !== s5.capture || t6.once !== s5.once || t6.passive !== s5.passive, h4 = t6 !== A && (s5 === A || e6);
-      e6 && this.element.removeEventListener(this.name, this, s5), h4 && this.element.addEventListener(this.name, this, t6), this._$AH = t6;
+      const s5 = this._$AH, e7 = t6 === A && s5 !== A || t6.capture !== s5.capture || t6.once !== s5.once || t6.passive !== s5.passive, h4 = t6 !== A && (s5 === A || e7);
+      e7 && this.element.removeEventListener(this.name, this, s5), h4 && this.element.addEventListener(this.name, this, t6), this._$AH = t6;
     }
     handleEvent(t6) {
       "function" == typeof this._$AH ? this._$AH.call(this.options?.host ?? this.element, t6) : this._$AH.handleEvent(t6);
@@ -524,11 +524,11 @@
   var B = t2.litHtmlPolyfillSupport;
   B?.(S2, k), (t2.litHtmlVersions ??= []).push("3.3.2");
   var D = (t6, i7, s5) => {
-    const e6 = s5?.renderBefore ?? i7;
-    let h4 = e6._$litPart$;
+    const e7 = s5?.renderBefore ?? i7;
+    let h4 = e7._$litPart$;
     if (void 0 === h4) {
       const t7 = s5?.renderBefore ?? null;
-      e6._$litPart$ = h4 = new k(i7.insertBefore(c3(), t7), t7, void 0, s5 ?? {});
+      e7._$litPart$ = h4 = new k(i7.insertBefore(c3(), t7), t7, void 0, s5 ?? {});
     }
     return h4._$AI(t6), h4;
   };
@@ -563,45 +563,72 @@
   (s3.litElementVersions ??= []).push("4.2.2");
 
   // node_modules/@lit/reactive-element/decorators/custom-element.js
-  var t3 = (t6) => (e6, o6) => {
+  var t3 = (t6) => (e7, o6) => {
     void 0 !== o6 ? o6.addInitializer(() => {
-      customElements.define(t6, e6);
-    }) : customElements.define(t6, e6);
+      customElements.define(t6, e7);
+    }) : customElements.define(t6, e7);
   };
 
   // node_modules/@lit/reactive-element/decorators/property.js
   var o5 = { attribute: true, type: String, converter: u, reflect: false, hasChanged: f };
-  var r4 = (t6 = o5, e6, r6) => {
+  var r4 = (t6 = o5, e7, r6) => {
     const { kind: n5, metadata: i7 } = r6;
     let s5 = globalThis.litPropertyMetadata.get(i7);
     if (void 0 === s5 && globalThis.litPropertyMetadata.set(i7, s5 = /* @__PURE__ */ new Map()), "setter" === n5 && ((t6 = Object.create(t6)).wrapped = true), s5.set(r6.name, t6), "accessor" === n5) {
       const { name: o6 } = r6;
       return { set(r7) {
-        const n6 = e6.get.call(this);
-        e6.set.call(this, r7), this.requestUpdate(o6, n6, t6, true, r7);
-      }, init(e7) {
-        return void 0 !== e7 && this.C(o6, void 0, t6, e7), e7;
+        const n6 = e7.get.call(this);
+        e7.set.call(this, r7), this.requestUpdate(o6, n6, t6, true, r7);
+      }, init(e8) {
+        return void 0 !== e8 && this.C(o6, void 0, t6, e8), e8;
       } };
     }
     if ("setter" === n5) {
       const { name: o6 } = r6;
       return function(r7) {
         const n6 = this[o6];
-        e6.call(this, r7), this.requestUpdate(o6, n6, t6, true, r7);
+        e7.call(this, r7), this.requestUpdate(o6, n6, t6, true, r7);
       };
     }
     throw Error("Unsupported decorator location: " + n5);
   };
   function n4(t6) {
-    return (e6, o6) => "object" == typeof o6 ? r4(t6, e6, o6) : ((t7, e7, o7) => {
-      const r6 = e7.hasOwnProperty(o7);
-      return e7.constructor.createProperty(o7, t7), r6 ? Object.getOwnPropertyDescriptor(e7, o7) : void 0;
-    })(t6, e6, o6);
+    return (e7, o6) => "object" == typeof o6 ? r4(t6, e7, o6) : ((t7, e8, o7) => {
+      const r6 = e8.hasOwnProperty(o7);
+      return e8.constructor.createProperty(o7, t7), r6 ? Object.getOwnPropertyDescriptor(e8, o7) : void 0;
+    })(t6, e7, o6);
   }
 
   // node_modules/@lit/reactive-element/decorators/state.js
   function r5(r6) {
     return n4({ ...r6, state: true, attribute: false });
+  }
+
+  // node_modules/@lit/reactive-element/decorators/base.js
+  var e4 = (e7, t6, c5) => (c5.configurable = true, c5.enumerable = true, Reflect.decorate && "object" != typeof t6 && Object.defineProperty(e7, t6, c5), c5);
+
+  // node_modules/@lit/reactive-element/decorators/query.js
+  function e5(e7, r6) {
+    return (n5, s5, i7) => {
+      const o6 = (t6) => t6.renderRoot?.querySelector(e7) ?? null;
+      if (r6) {
+        const { get: e8, set: r7 } = "object" == typeof s5 ? n5 : i7 ?? /* @__PURE__ */ (() => {
+          const t6 = /* @__PURE__ */ Symbol();
+          return { get() {
+            return this[t6];
+          }, set(e9) {
+            this[t6] = e9;
+          } };
+        })();
+        return e4(n5, s5, { get() {
+          let t6 = e8.call(this);
+          return void 0 === t6 && (t6 = o6(this), (null !== t6 || this.hasUpdated) && r7.call(this, t6)), t6;
+        } });
+      }
+      return e4(n5, s5, { get() {
+        return o6(this);
+      } });
+    };
   }
 
   // frontend-devtools/ui/fd-toggle-icon-button.ts
@@ -626,10 +653,10 @@
       this.label = "";
       this.tooltip = "";
     }
-    _handleClick(e6) {
+    _handleClick(e7) {
       if (this.disabled) {
-        e6.preventDefault();
-        e6.stopPropagation();
+        e7.preventDefault();
+        e7.stopPropagation();
         return;
       }
       this.dispatchEvent(
@@ -744,6 +771,12 @@
     <path d="M13 19h8"/>
     <path d="M3 10a2 2 0 0 0 2 2h3"/>
     <path d="M3 5v12a2 2 0 0 0 2 2h3"/>
+  `,
+    refresh: w`
+    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+    <path d="M3 3v5h5"/>
+    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+    <path d="M16 16h5v5"/>
   `
   };
   var FdIcon = class extends i4 {
@@ -802,8 +835,8 @@
       super(...arguments);
       this.active = false;
     }
-    _handleChange(e6) {
-      this.active = e6.detail.active;
+    _handleChange(e7) {
+      this.active = e7.detail.active;
       this.dispatchEvent(
         new CustomEvent("change", {
           detail: { active: this.active },
@@ -1123,14 +1156,14 @@
       this._transformPos = calculatePositionForCorner(this.position, this._panelSize.width, this._panelSize.height);
       this._applyTransform(false);
     }
-    _handlePointerDown(e6) {
-      const target = e6.target;
+    _handlePointerDown(e7) {
+      const target = e7.target;
       if (target.closest("fd-toolbar")) {
         return;
       }
-      e6.preventDefault();
-      const initialMouseX = e6.clientX;
-      const initialMouseY = e6.clientY;
+      e7.preventDefault();
+      const initialMouseX = e7.clientX;
+      const initialMouseY = e7.clientY;
       const initialX = this._transformPos.x;
       const initialY = this._transformPos.y;
       let currentX = initialX;
@@ -1139,8 +1172,8 @@
       let lastMouseY = initialMouseY;
       let hasMoved = false;
       let rafId = null;
-      this.setPointerCapture(e6.pointerId);
-      const pointerId = e6.pointerId;
+      this.setPointerCapture(e7.pointerId);
+      const pointerId = e7.pointerId;
       const handlePointerMove = (moveEvent) => {
         lastMouseX = moveEvent.clientX;
         lastMouseY = moveEvent.clientY;
@@ -2599,8 +2632,8 @@
       this.checked = false;
       this.title = "";
     }
-    _handleChange(e6) {
-      const input = e6.target;
+    _handleChange(e7) {
+      const input = e7.target;
       this.checked = input.checked;
       this.dispatchEvent(
         new CustomEvent("change", {
@@ -2729,17 +2762,17 @@
       this._boundaryAnimationId = null;
       this._borderScale = 1;
       this._pillShakeOffset = 0;
-      this._handlePointerMove = (e6) => {
+      this._handlePointerMove = (e7) => {
         if (!this.active) return;
-        this._cursorX = e6.clientX;
-        this._cursorY = e6.clientY;
+        this._cursorX = e7.clientX;
+        this._cursorY = e7.clientY;
         if (this._lastHovered && !this._lastHovered.isConnected) {
           this._lastHovered = null;
           this._clearOverlay();
         }
         if (!this._eventCatcher) return;
         this._eventCatcher.style.pointerEvents = "none";
-        const element = document.elementFromPoint(e6.clientX, e6.clientY);
+        const element = document.elementFromPoint(e7.clientX, e7.clientY);
         this._eventCatcher.style.pointerEvents = "auto";
         if (!element) {
           this._clearCanvas();
@@ -2783,14 +2816,14 @@
           info ?? {}
         );
       };
-      this._handleClick = (e6) => {
+      this._handleClick = (e7) => {
         if (!this.active) return;
-        if (isDevtoolsElement(e6.target) && e6.target !== this._eventCatcher) return;
-        e6.preventDefault();
-        e6.stopPropagation();
+        if (isDevtoolsElement(e7.target) && e7.target !== this._eventCatcher) return;
+        e7.preventDefault();
+        e7.stopPropagation();
         if (!this._eventCatcher) return;
         this._eventCatcher.style.pointerEvents = "none";
-        const element = document.elementFromPoint(e6.clientX, e6.clientY);
+        const element = document.elementFromPoint(e7.clientX, e7.clientY);
         this._eventCatcher.style.pointerEvents = "auto";
         if (!element) return;
         const scalaComponent = getScalaComponent(element);
@@ -2814,19 +2847,19 @@
           return;
         }
       };
-      this._handleKeydown = (e6) => {
+      this._handleKeydown = (e7) => {
         if (!this.active) return;
-        if (e6.key === "Escape") {
+        if (e7.key === "Escape") {
           this.active = false;
           return;
         }
-        if (e6.key === "Enter") {
-          e6.preventDefault();
+        if (e7.key === "Enter") {
+          e7.preventDefault();
           this._selectCurrentComponent();
           return;
         }
-        if (e6.key === "ArrowUp" && this._focusedElement) {
-          e6.preventDefault();
+        if (e7.key === "ArrowUp" && this._focusedElement) {
+          e7.preventDefault();
           if (this._focusedIsReact) {
             const parent = this._getParentReactComponent(this._focusedElement);
             if (parent) {
@@ -2859,8 +2892,8 @@
           }
           return;
         }
-        if (e6.key === "ArrowDown") {
-          e6.preventDefault();
+        if (e7.key === "ArrowDown") {
+          e7.preventDefault();
           if (this._focusHistory.length > 0) {
             const previous = this._focusHistory.pop();
             if (previous.isReact) {
@@ -3267,6 +3300,17 @@
         info
       );
     }
+    /**
+     * Public method to highlight an element from external code (e.g., laminar tree).
+     * Requires the inspector to be active.
+     */
+    highlightElement(element, name) {
+      if (!this.active) return;
+      const sourceInfo = getComponentSourceInfo(element);
+      this._focusComponent(element, name, {
+        isMarked: sourceInfo?.isMarked ?? false
+      });
+    }
     _selectCurrentComponent() {
       if (!this._focusedElement) return;
       if (this._focusedIsReact) {
@@ -3310,21 +3354,21 @@
 
   // node_modules/lit-html/directive.js
   var t4 = { ATTRIBUTE: 1, CHILD: 2, PROPERTY: 3, BOOLEAN_ATTRIBUTE: 4, EVENT: 5, ELEMENT: 6 };
-  var e5 = (t6) => (...e6) => ({ _$litDirective$: t6, values: e6 });
+  var e6 = (t6) => (...e7) => ({ _$litDirective$: t6, values: e7 });
   var i5 = class {
     constructor(t6) {
     }
     get _$AU() {
       return this._$AM._$AU;
     }
-    _$AT(t6, e6, i7) {
-      this._$Ct = t6, this._$AM = e6, this._$Ci = i7;
+    _$AT(t6, e7, i7) {
+      this._$Ct = t6, this._$AM = e7, this._$Ci = i7;
     }
-    _$AS(t6, e6) {
-      return this.update(t6, e6);
+    _$AS(t6, e7) {
+      return this.update(t6, e7);
     }
-    update(t6, e6) {
-      return this.render(...e6);
+    update(t6, e7) {
+      return this.render(...e7);
     }
   };
 
@@ -3332,26 +3376,26 @@
   var { I: t5 } = j;
   var i6 = (o6) => o6;
   var s4 = () => document.createComment("");
-  var v2 = (o6, n5, e6) => {
+  var v2 = (o6, n5, e7) => {
     const l3 = o6._$AA.parentNode, d3 = void 0 === n5 ? o6._$AB : n5._$AA;
-    if (void 0 === e6) {
+    if (void 0 === e7) {
       const i7 = l3.insertBefore(s4(), d3), n6 = l3.insertBefore(s4(), d3);
-      e6 = new t5(i7, n6, o6, o6.options);
+      e7 = new t5(i7, n6, o6, o6.options);
     } else {
-      const t6 = e6._$AB.nextSibling, n6 = e6._$AM, c5 = n6 !== o6;
+      const t6 = e7._$AB.nextSibling, n6 = e7._$AM, c5 = n6 !== o6;
       if (c5) {
         let t7;
-        e6._$AQ?.(o6), e6._$AM = o6, void 0 !== e6._$AP && (t7 = o6._$AU) !== n6._$AU && e6._$AP(t7);
+        e7._$AQ?.(o6), e7._$AM = o6, void 0 !== e7._$AP && (t7 = o6._$AU) !== n6._$AU && e7._$AP(t7);
       }
       if (t6 !== d3 || c5) {
-        let o7 = e6._$AA;
+        let o7 = e7._$AA;
         for (; o7 !== t6; ) {
           const t7 = i6(o7).nextSibling;
           i6(l3).insertBefore(o7, d3), o7 = t7;
         }
       }
     }
-    return e6;
+    return e7;
   };
   var u3 = (o6, t6, i7 = o6) => (o6._$AI(t6, i7), o6);
   var m2 = {};
@@ -3362,25 +3406,25 @@
   };
 
   // node_modules/lit-html/directives/repeat.js
-  var u4 = (e6, s5, t6) => {
+  var u4 = (e7, s5, t6) => {
     const r6 = /* @__PURE__ */ new Map();
-    for (let l3 = s5; l3 <= t6; l3++) r6.set(e6[l3], l3);
+    for (let l3 = s5; l3 <= t6; l3++) r6.set(e7[l3], l3);
     return r6;
   };
-  var c4 = e5(class extends i5 {
-    constructor(e6) {
-      if (super(e6), e6.type !== t4.CHILD) throw Error("repeat() can only be used in text expressions");
+  var c4 = e6(class extends i5 {
+    constructor(e7) {
+      if (super(e7), e7.type !== t4.CHILD) throw Error("repeat() can only be used in text expressions");
     }
-    dt(e6, s5, t6) {
+    dt(e7, s5, t6) {
       let r6;
       void 0 === t6 ? t6 = s5 : void 0 !== s5 && (r6 = s5);
       const l3 = [], o6 = [];
       let i7 = 0;
-      for (const s6 of e6) l3[i7] = r6 ? r6(s6, i7) : i7, o6[i7] = t6(s6, i7), i7++;
+      for (const s6 of e7) l3[i7] = r6 ? r6(s6, i7) : i7, o6[i7] = t6(s6, i7), i7++;
       return { values: o6, keys: l3 };
     }
-    render(e6, s5, t6) {
-      return this.dt(e6, s5, t6).values;
+    render(e7, s5, t6) {
+      return this.dt(e7, s5, t6).values;
     }
     update(s5, [t6, r6, c5]) {
       const d3 = M2(s5), { values: p4, keys: a3 } = this.dt(t6, r6, c5);
@@ -3394,25 +3438,158 @@
       else if (h4[x2] === a3[w2]) v3[w2] = u3(d3[x2], p4[w2]), v2(s5, v3[w2 + 1], d3[x2]), x2++, w2--;
       else if (h4[j2] === a3[k2]) v3[k2] = u3(d3[j2], p4[k2]), v2(s5, d3[x2], d3[j2]), j2--, k2++;
       else if (void 0 === m3 && (m3 = u4(a3, k2, w2), y3 = u4(h4, x2, j2)), m3.has(h4[x2])) if (m3.has(h4[j2])) {
-        const e6 = y3.get(a3[k2]), t7 = void 0 !== e6 ? d3[e6] : null;
+        const e7 = y3.get(a3[k2]), t7 = void 0 !== e7 ? d3[e7] : null;
         if (null === t7) {
-          const e7 = v2(s5, d3[x2]);
-          u3(e7, p4[k2]), v3[k2] = e7;
-        } else v3[k2] = u3(t7, p4[k2]), v2(s5, d3[x2], t7), d3[e6] = null;
+          const e8 = v2(s5, d3[x2]);
+          u3(e8, p4[k2]), v3[k2] = e8;
+        } else v3[k2] = u3(t7, p4[k2]), v2(s5, d3[x2], t7), d3[e7] = null;
         k2++;
       } else h3(d3[j2]), j2--;
       else h3(d3[x2]), x2++;
       for (; k2 <= w2; ) {
-        const e6 = v2(s5, v3[w2 + 1]);
-        u3(e6, p4[k2]), v3[k2++] = e6;
+        const e7 = v2(s5, v3[w2 + 1]);
+        u3(e7, p4[k2]), v3[k2++] = e7;
       }
       for (; x2 <= j2; ) {
-        const e6 = d3[x2++];
-        null !== e6 && h3(e6);
+        const e7 = d3[x2++];
+        null !== e7 && h3(e7);
       }
       return this.ut = a3, p3(s5, v3), E;
     }
   });
+
+  // frontend-devtools/ui/fd-button.ts
+  var FdButton = class extends i4 {
+    constructor() {
+      super(...arguments);
+      this.size = "default";
+      this.disabled = false;
+      this.active = false;
+      this.label = "";
+      this.tooltip = "";
+    }
+    _handleClick(e7) {
+      if (this.disabled) {
+        e7.preventDefault();
+        e7.stopPropagation();
+        return;
+      }
+    }
+    render() {
+      const ariaLabel = this.label || this.tooltip || void 0;
+      return b2`
+      <button
+        class="devtools-btn"
+        ?disabled=${this.disabled}
+        aria-label=${ariaLabel ?? ""}
+        title=${this.tooltip}
+        @click=${this._handleClick}
+        part="button"
+      >
+        <slot></slot>
+      </button>
+    `;
+    }
+  };
+  FdButton.styles = i`
+    :host {
+      display: inline-flex;
+    }
+
+    :host([disabled]) {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .devtools-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: none;
+      border-radius: 6px;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      white-space: nowrap;
+      padding: 4px 10px;
+      font-size: 12px;
+      height: 26px;
+    }
+
+    /* ===== Base styles ===== */
+    .devtools-btn {
+      background: transparent;
+      color: var(--fd-text-muted);
+      box-shadow: none;
+    }
+
+    .devtools-btn:hover {
+      background: var(--fd-bg-hover);
+      color: var(--fd-text-primary);
+    }
+
+    :host([active]) .devtools-btn {
+      color: var(--fd-primary);
+    }
+
+    :host([active]) .devtools-btn:hover {
+      color: var(--fd-primary-hover);
+    }
+
+    /* ===== Small size ===== */
+    :host([size='sm']) .devtools-btn {
+      padding: 2px 6px;
+      font-size: 11px;
+      height: 22px;
+      gap: 4px;
+    }
+
+    /* ===== Icon size ===== */
+    :host([size='icon']) .devtools-btn {
+      padding: 0;
+      border-radius: 4px;
+      width: 26px;
+      height: 26px;
+    }
+
+    /* ===== Focus states ===== */
+    .devtools-btn:focus {
+      outline: none;
+    }
+
+    .devtools-btn:focus-visible {
+      outline: var(--fd-focus-ring);
+      outline-offset: 2px;
+    }
+
+    /* ===== Icon sizing ===== */
+    ::slotted(svg),
+    ::slotted(fd-icon) {
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+    }
+  `;
+  __decorateClass([
+    n4({ type: String, reflect: true })
+  ], FdButton.prototype, "size", 2);
+  __decorateClass([
+    n4({ type: Boolean, reflect: true })
+  ], FdButton.prototype, "disabled", 2);
+  __decorateClass([
+    n4({ type: Boolean, reflect: true })
+  ], FdButton.prototype, "active", 2);
+  __decorateClass([
+    n4({ type: String })
+  ], FdButton.prototype, "label", 2);
+  __decorateClass([
+    n4({ type: String })
+  ], FdButton.prototype, "tooltip", 2);
+  FdButton = __decorateClass([
+    t3("fd-button")
+  ], FdButton);
 
   // frontend-devtools/ui/fd-laminar-component-tree.ts
   var CHEVRON_DOWN = w`<path d="m6 9 6 6 6-6"/>`;
@@ -3428,28 +3605,31 @@
       this._posX = 0;
       this._posY = 0;
       this._isDragging = false;
+      this._autoRefresh = false;
+      this._isRefreshing = false;
       this._flattenedNodes = [];
+      this._autoRefreshInterval = null;
       this._nodeIdCounter = 0;
       this._dragStartX = 0;
       this._dragStartY = 0;
       this._dragStartPosX = 0;
       this._dragStartPosY = 0;
-      this._handleHeaderPointerDown = (e6) => {
-        if (e6.button !== 0) return;
-        if (e6.target.closest("button")) return;
-        e6.preventDefault();
+      this._handleHeaderPointerDown = (e7) => {
+        if (e7.button !== 0) return;
+        if (e7.target.closest("button")) return;
+        e7.preventDefault();
         this._isDragging = true;
-        this._dragStartX = e6.clientX;
-        this._dragStartY = e6.clientY;
+        this._dragStartX = e7.clientX;
+        this._dragStartY = e7.clientY;
         this._dragStartPosX = this._posX;
         this._dragStartPosY = this._posY;
         document.addEventListener("pointermove", this._handlePointerMove);
         document.addEventListener("pointerup", this._handlePointerUp);
       };
-      this._handlePointerMove = (e6) => {
+      this._handlePointerMove = (e7) => {
         if (!this._isDragging) return;
-        const deltaX = e6.clientX - this._dragStartX;
-        const deltaY = e6.clientY - this._dragStartY;
+        const deltaX = e7.clientX - this._dragStartX;
+        const deltaY = e7.clientY - this._dragStartY;
         const newX = this._dragStartPosX + deltaX;
         const newY = this._dragStartPosY + deltaY;
         const clamped = this._clampPosition(newX, newY);
@@ -3465,6 +3645,10 @@
     connectedCallback() {
       super.connectedCallback();
       this.setAttribute("popover", "manual");
+    }
+    disconnectedCallback() {
+      super.disconnectedCallback();
+      this._stopAutoRefresh();
     }
     updated(changedProperties) {
       if (changedProperties.has("open")) {
@@ -3485,6 +3669,7 @@
       }
       void this.updateComplete.then(() => {
         this._focusTreeContainer();
+        this._dispatchFocusChange();
       });
     }
     _hide() {
@@ -3492,8 +3677,58 @@
         this.hidePopover();
       } catch {
       }
+      this._stopAutoRefresh();
+      this._autoRefresh = false;
       this._treeData = [];
       this._flattenedNodes = [];
+    }
+    _toggleAutoRefresh() {
+      this._autoRefresh = !this._autoRefresh;
+      if (this._autoRefresh) {
+        this._startAutoRefresh();
+      } else {
+        this._stopAutoRefresh();
+      }
+    }
+    _startAutoRefresh() {
+      this._stopAutoRefresh();
+      this._autoRefreshInterval = setInterval(() => {
+        this._refreshTree();
+      }, 5e3);
+    }
+    _stopAutoRefresh() {
+      if (this._autoRefreshInterval) {
+        clearInterval(this._autoRefreshInterval);
+        this._autoRefreshInterval = null;
+      }
+    }
+    _refreshTree() {
+      this._isRefreshing = true;
+      const currentFocusedItem = this._flattenedNodes[this._focusedIndex];
+      const currentFocusedElement = currentFocusedItem?.node.element;
+      this._buildTree();
+      if (currentFocusedElement) {
+        const newIndex = this._flattenedNodes.findIndex(
+          (item) => item.node.element === currentFocusedElement
+        );
+        if (newIndex !== -1) {
+          this._focusedIndex = newIndex;
+        }
+      }
+      setTimeout(() => {
+        this._isRefreshing = false;
+      }, 500);
+    }
+    _dispatchFocusChange() {
+      const item = this._flattenedNodes[this._focusedIndex];
+      if (!item) return;
+      this.dispatchEvent(
+        new CustomEvent("focus-change", {
+          detail: { element: item.node.element, name: item.node.name, index: this._focusedIndex },
+          bubbles: true,
+          composed: true
+        })
+      );
     }
     _centerPanel() {
       const panelHeight = Math.min(window.innerHeight * PANEL_MAX_HEIGHT_RATIO, 600);
@@ -3572,36 +3807,46 @@
         this._focusedIndex = Math.max(0, this._flattenedNodes.length - 1);
       }
     }
-    _handleKeydown(e6) {
+    _handleKeydown(e7) {
       if (this._flattenedNodes.length === 0) return;
-      switch (e6.key) {
+      switch (e7.key) {
         case "Escape":
-          e6.preventDefault();
+          e7.preventDefault();
+          e7.stopPropagation();
           this._close();
           break;
         case "ArrowUp":
-          e6.preventDefault();
+          e7.preventDefault();
+          e7.stopPropagation();
           this._focusedIndex = Math.max(0, this._focusedIndex - 1);
-          this._scrollToFocused();
+          this._onFocusChange();
           break;
         case "ArrowDown":
-          e6.preventDefault();
+          e7.preventDefault();
+          e7.stopPropagation();
           this._focusedIndex = Math.min(this._flattenedNodes.length - 1, this._focusedIndex + 1);
-          this._scrollToFocused();
+          this._onFocusChange();
           break;
         case "ArrowLeft":
-          e6.preventDefault();
+          e7.preventDefault();
+          e7.stopPropagation();
           this._collapseOrNavigateUp();
           break;
         case "ArrowRight":
-          e6.preventDefault();
+          e7.preventDefault();
+          e7.stopPropagation();
           this._expandOrNavigateDown();
           break;
         case "Enter":
-          e6.preventDefault();
+          e7.preventDefault();
+          e7.stopPropagation();
           this._openInIDE(this._focusedIndex);
           break;
       }
+    }
+    _onFocusChange() {
+      this._scrollToFocused();
+      this._dispatchFocusChange();
     }
     _scrollToFocused() {
       void this.updateComplete.then(() => {
@@ -3628,7 +3873,7 @@
         const parentIndex = this._findParentIndex(this._focusedIndex);
         if (parentIndex !== -1) {
           this._focusedIndex = parentIndex;
-          this._scrollToFocused();
+          this._onFocusChange();
         }
       }
     }
@@ -3643,7 +3888,7 @@
           this.requestUpdate();
         } else {
           this._focusedIndex = Math.min(this._flattenedNodes.length - 1, this._focusedIndex + 1);
-          this._scrollToFocused();
+          this._onFocusChange();
         }
       }
     }
@@ -3724,11 +3969,15 @@
         })
       );
     }
-    _handleItemClick(index, e6) {
+    _handleItemClick(index, e7) {
+      const prevIndex = this._focusedIndex;
       this._focusedIndex = index;
-      const target = e6.target;
+      const target = e7.target;
       if (target.classList.contains("toggle")) {
         this._toggleNode(index);
+      }
+      if (prevIndex !== index) {
+        this._dispatchFocusChange();
       }
     }
     _handleItemDblClick(index) {
@@ -3774,15 +4023,15 @@
       <div
         class="tree-item ${isFocused ? "focused" : ""}"
         data-index=${index}
-        @click=${(e6) => this._handleItemClick(index, e6)}
+        @click=${(e7) => this._handleItemClick(index, e7)}
         @dblclick=${() => this._handleItemDblClick(index)}
       >
         <span class="guides">${this._renderGuideLines(item)}</span>
         <span
           class="toggle ${hasChildren ? "has-children" : ""}"
-          @click=${(e6) => {
+          @click=${(e7) => {
         if (hasChildren) {
-          e6.stopPropagation();
+          e7.stopPropagation();
           this._toggleNode(index);
         }
       }}
@@ -3825,9 +4074,20 @@
         >
           <span class="title">Laminar Component Tree</span>
           <div class="actions">
-            <button class="action-btn" @click=${this._expandAll}>Expand All</button>
-            <button class="action-btn" @click=${this._collapseAll}>Collapse All</button>
-            <button class="close-btn" @click=${this._close}>✕</button>
+            <button
+              class="auto-refresh-btn ${this._autoRefresh ? "active" : ""}"
+              title="Auto-refresh (5s)"
+              @click=${this._toggleAutoRefresh}
+            >
+              <fd-icon
+                name="refresh"
+                class="${this._isRefreshing ? "spinning" : ""}"
+                size=${14}
+              ></fd-icon>
+            </button>
+            <fd-button size="sm" @click=${this._expandAll}>Expand All</fd-button>
+            <fd-button size="sm" @click=${this._collapseAll}>Collapse All</fd-button>
+            <fd-button size="sm" @click=${this._close}>✕</fd-button>
           </div>
         </div>
         <div
@@ -3907,37 +4167,49 @@
 
       .actions {
         display: flex;
-        gap: 8px;
+        align-items: center;
+        gap: 4px;
       }
 
-      .action-btn {
-        padding: 4px 8px;
-        font-size: 11px;
-        background: var(--fd-bg-hover, rgba(255, 255, 255, 0.1));
+      .auto-refresh-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        padding: 0;
         border: none;
         border-radius: 4px;
-        color: var(--fd-text-secondary, #e0e0e0);
-        cursor: pointer;
-        font-family: inherit;
-      }
-
-      .action-btn:hover {
-        background: var(--fd-primary-20, rgba(142, 97, 227, 0.2));
-        color: var(--fd-text-primary, #fff);
-      }
-
-      .close-btn {
-        padding: 4px 8px;
-        font-size: 11px;
         background: transparent;
-        border: none;
         color: var(--fd-text-muted, #999);
         cursor: pointer;
-        font-family: inherit;
+        transition: background 0.15s, color 0.15s;
       }
 
-      .close-btn:hover {
+      .auto-refresh-btn:hover {
+        background: var(--fd-bg-hover, rgba(255, 255, 255, 0.1));
         color: var(--fd-text-primary, #fff);
+      }
+
+      .auto-refresh-btn.active {
+        color: var(--fd-primary, rgb(142, 97, 227));
+      }
+
+      .auto-refresh-btn.active:hover {
+        color: var(--fd-primary-hover, rgb(162, 117, 247));
+      }
+
+      .auto-refresh-btn fd-icon.spinning {
+        animation: spin 0.5s ease-in-out;
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(-360deg);
+        }
       }
 
       .tree-container {
@@ -4081,6 +4353,12 @@
   __decorateClass([
     r5()
   ], FdLaminarComponentTree.prototype, "_isDragging", 2);
+  __decorateClass([
+    r5()
+  ], FdLaminarComponentTree.prototype, "_autoRefresh", 2);
+  __decorateClass([
+    r5()
+  ], FdLaminarComponentTree.prototype, "_isRefreshing", 2);
   FdLaminarComponentTree = __decorateClass([
     t3("fd-laminar-component-tree")
   ], FdLaminarComponentTree);
@@ -4216,28 +4494,33 @@
       document.removeEventListener("keydown", this._boundHandleKeydown, { capture: true });
       this._inspectActive = false;
     }
-    _handleKeydown(e6) {
-      if (e6.ctrlKey && e6.shiftKey && e6.key.toLowerCase() === "c") {
-        e6.preventDefault();
-        e6.stopPropagation();
+    _handleKeydown(e7) {
+      if (e7.ctrlKey && e7.shiftKey && e7.key.toLowerCase() === "c") {
+        e7.preventDefault();
+        e7.stopPropagation();
         this._inspectActive = !this._inspectActive;
       }
     }
-    _handleDomMutationChange(e6) {
-      this._mutationScanActive = e6.detail.checked;
-      persistenceStorage.setBoolean(StorageKeys.MUTATION_SCAN_ACTIVE, e6.detail.checked);
+    _handleDomMutationChange(e7) {
+      this._mutationScanActive = e7.detail.checked;
+      persistenceStorage.setBoolean(StorageKeys.MUTATION_SCAN_ACTIVE, e7.detail.checked);
     }
-    _handleInspectChange(e6) {
-      this._inspectActive = e6.detail.active;
+    _handleInspectChange(e7) {
+      this._inspectActive = e7.detail.active;
     }
-    _handleInspectorChange(e6) {
-      this._inspectActive = e6.detail.active;
+    _handleInspectorChange(e7) {
+      this._inspectActive = e7.detail.active;
     }
-    _handleLaminarTreeChange(e6) {
-      this._laminarTreeActive = e6.detail.active;
+    _handleLaminarTreeChange(e7) {
+      this._laminarTreeActive = e7.detail.active;
     }
     _handleLaminarTreeClose() {
       this._laminarTreeActive = false;
+    }
+    _handleLaminarTreeFocusChange(e7) {
+      if (this._inspectActive && this._inspector) {
+        this._inspector.highlightElement(e7.detail.element, e7.detail.name);
+      }
     }
     _toggleWidget(widget, active) {
       if (active && !this._activeWidgets.includes(widget)) {
@@ -4247,18 +4530,18 @@
       }
       persistenceStorage.setArray(StorageKeys.ACTIVE_WIDGETS, this._activeWidgets);
     }
-    _handleFpsChange(e6) {
-      this._toggleWidget("LAG_RADAR", e6.detail.active);
+    _handleFpsChange(e7) {
+      this._toggleWidget("LAG_RADAR", e7.detail.active);
     }
-    _handleDomStatsChange(e6) {
-      this._toggleWidget("DOM_STATS", e6.detail.active);
+    _handleDomStatsChange(e7) {
+      this._toggleWidget("DOM_STATS", e7.detail.active);
     }
-    _handleMemChange(e6) {
-      this._toggleWidget("MEM_CHART", e6.detail.active);
+    _handleMemChange(e7) {
+      this._toggleWidget("MEM_CHART", e7.detail.active);
     }
-    _handlePositionChange(e6) {
-      this._panelPosition = e6.detail.position;
-      persistenceStorage.set(StorageKeys.PANEL_POSITION, e6.detail.position);
+    _handlePositionChange(e7) {
+      this._panelPosition = e7.detail.position;
+      persistenceStorage.set(StorageKeys.PANEL_POSITION, e7.detail.position);
     }
     _renderWidget(widget) {
       switch (widget) {
@@ -4319,6 +4602,7 @@
       <fd-laminar-component-tree
         .open=${this._laminarTreeActive}
         @close=${this._handleLaminarTreeClose}
+        @focus-change=${this._handleLaminarTreeFocusChange}
       ></fd-laminar-component-tree>
     `;
     }
@@ -4366,6 +4650,9 @@
   __decorateClass([
     r5()
   ], FrontendDevtools.prototype, "_panelPosition", 2);
+  __decorateClass([
+    e5("fd-component-inspector")
+  ], FrontendDevtools.prototype, "_inspector", 2);
   FrontendDevtools = __decorateClass([
     t3("frontend-devtools")
   ], FrontendDevtools);
