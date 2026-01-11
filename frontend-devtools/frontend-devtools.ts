@@ -2,6 +2,7 @@ import { LitElement, css, html } from 'lit'
 import { customElement, property, state, query } from 'lit/decorators.js'
 import type { PanelPosition } from './ui/fd-panel'
 import type { FdComponentInspector } from './ui/fd-component-inspector'
+import type { FdLaminarComponentTree } from './ui/fd-laminar-component-tree'
 import './ui/fd-inspect'
 import './ui/fd-dom-stats'
 import './ui/fd-toolbar'
@@ -48,6 +49,9 @@ export class FrontendDevtools extends LitElement {
 
   @query('fd-component-inspector')
   private _inspector!: FdComponentInspector
+
+  @query('fd-laminar-component-tree')
+  private _laminarTree!: FdLaminarComponentTree
 
   private _boundHandleKeydown: (e: KeyboardEvent) => void
 
@@ -115,6 +119,14 @@ export class FrontendDevtools extends LitElement {
     // When tree focus changes and inspector is active, highlight the element
     if (this._inspectActive && this._inspector) {
       this._inspector.highlightElement(e.detail.element, e.detail.name)
+    }
+  }
+
+  private _handleInspectorHoverChange(e: CustomEvent<{ element: Element; name: string; isReact: boolean }>) {
+    // When inspector hovers over a component and tree is open, focus on it in the tree
+    // Only for Laminar/Scala components (not React)
+    if (this._laminarTreeActive && this._laminarTree && !e.detail.isReact) {
+      this._laminarTree.focusOnElement(e.detail.element)
     }
   }
 
@@ -201,6 +213,7 @@ export class FrontendDevtools extends LitElement {
       <fd-component-inspector
         .active=${this._inspectActive}
         @change=${this._handleInspectorChange}
+        @hover-change=${this._handleInspectorHoverChange}
       ></fd-component-inspector>
       <fd-laminar-component-tree
         .open=${this._laminarTreeActive}

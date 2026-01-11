@@ -2815,6 +2815,17 @@
           component.name ?? "Unknown",
           info ?? {}
         );
+        this.dispatchEvent(
+          new CustomEvent("hover-change", {
+            detail: {
+              element: component.element,
+              name: component.name ?? "Unknown",
+              isReact: info?.isReact ?? false
+            },
+            bubbles: true,
+            composed: true
+          })
+        );
       };
       this._handleClick = (e7) => {
         if (!this.active) return;
@@ -4064,6 +4075,44 @@
         setTimeout(() => highlight.remove(), 300);
       }, 500);
     }
+    /**
+     * Public method to focus on a specific element in the tree.
+     * Called by the inspector when hovering over components.
+     */
+    focusOnElement(element) {
+      if (!this.open) return;
+      let index = this._flattenedNodes.findIndex((item) => item.node.element === element);
+      if (index === -1) {
+        const expanded = this._expandToElement(element);
+        if (expanded) {
+          this._updateFlattenedNodes();
+          this.requestUpdate();
+          index = this._flattenedNodes.findIndex((item) => item.node.element === element);
+        }
+      }
+      if (index !== -1 && index !== this._focusedIndex) {
+        this._focusedIndex = index;
+        this._scrollToFocused();
+      }
+    }
+    _expandToElement(element) {
+      const findAndExpand = (nodes) => {
+        for (const node of nodes) {
+          if (node.element === element) {
+            return true;
+          }
+          if (node.children.length > 0) {
+            const found = findAndExpand(node.children);
+            if (found) {
+              node.expanded = true;
+              return true;
+            }
+          }
+        }
+        return false;
+      };
+      return findAndExpand(this._treeData);
+    }
     _close() {
       this._stopAutoRefresh();
       this._autoRefresh = false;
@@ -4656,6 +4705,11 @@
         this._inspector.highlightElement(e7.detail.element, e7.detail.name);
       }
     }
+    _handleInspectorHoverChange(e7) {
+      if (this._laminarTreeActive && this._laminarTree && !e7.detail.isReact) {
+        this._laminarTree.focusOnElement(e7.detail.element);
+      }
+    }
     _toggleWidget(widget, active) {
       if (active && !this._activeWidgets.includes(widget)) {
         this._activeWidgets = [...this._activeWidgets, widget];
@@ -4732,6 +4786,7 @@
       <fd-component-inspector
         .active=${this._inspectActive}
         @change=${this._handleInspectorChange}
+        @hover-change=${this._handleInspectorHoverChange}
       ></fd-component-inspector>
       <fd-laminar-component-tree
         .open=${this._laminarTreeActive}
@@ -4787,6 +4842,9 @@
   __decorateClass([
     e5("fd-component-inspector")
   ], FrontendDevtools.prototype, "_inspector", 2);
+  __decorateClass([
+    e5("fd-laminar-component-tree")
+  ], FrontendDevtools.prototype, "_laminarTree", 2);
   FrontendDevtools = __decorateClass([
     t3("frontend-devtools")
   ], FrontendDevtools);

@@ -575,6 +575,19 @@ export class FdComponentInspector extends LitElement {
       component.name ?? 'Unknown',
       info ?? {},
     )
+
+    // Dispatch hover-change event for other components to react (e.g., laminar tree)
+    this.dispatchEvent(
+      new CustomEvent('hover-change', {
+        detail: {
+          element: component.element,
+          name: component.name ?? 'Unknown',
+          isReact: info?.isReact ?? false,
+        },
+        bubbles: true,
+        composed: true,
+      }),
+    )
   }
 
   private _handleClick = (e: MouseEvent) => {

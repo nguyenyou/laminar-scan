@@ -577,6 +577,57 @@ export class FdLaminarComponentTree extends LitElement {
     }, 500)
   }
 
+  /**
+   * Public method to focus on a specific element in the tree.
+   * Called by the inspector when hovering over components.
+   */
+  public focusOnElement(element: Element): void {
+    if (!this.open) return
+
+    // First, try to find the element in the current flattened nodes
+    let index = this._flattenedNodes.findIndex((item) => item.node.element === element)
+
+    // If not found, the node might be collapsed - need to expand ancestors
+    if (index === -1) {
+      const expanded = this._expandToElement(element)
+      if (expanded) {
+        this._updateFlattenedNodes()
+        this.requestUpdate()
+        // Now find it again
+        index = this._flattenedNodes.findIndex((item) => item.node.element === element)
+      }
+    }
+
+    if (index !== -1 && index !== this._focusedIndex) {
+      this._focusedIndex = index
+      this._scrollToFocused()
+      // Note: we don't dispatch focus-change here to avoid circular updates
+      // when the inspector is the one triggering this
+    }
+  }
+
+  private _expandToElement(element: Element): boolean {
+    // Find the node in the tree data (might be in a collapsed subtree)
+    const findAndExpand = (nodes: TreeNode[]): boolean => {
+      for (const node of nodes) {
+        if (node.element === element) {
+          return true
+        }
+        if (node.children.length > 0) {
+          const found = findAndExpand(node.children)
+          if (found) {
+            // Expand this node since the target is in its subtree
+            node.expanded = true
+            return true
+          }
+        }
+      }
+      return false
+    }
+
+    return findAndExpand(this._treeData)
+  }
+
   private _close(): void {
     // Stop auto-refresh immediately when closing
     this._stopAutoRefresh()
