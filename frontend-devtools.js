@@ -4488,7 +4488,7 @@
         border: 2px solid var(--fd-text-muted, #999);
         border-top: none;
         border-left: none;
-        border-bottom-right-radius: 4px;
+        border-bottom-right-radius: 8px;
         opacity: 0.5;
       }
 
