@@ -3,6 +3,7 @@ import { customElement, property, state } from 'lit/decorators.js'
 import { repeat } from 'lit/directives/repeat.js'
 import { CONFIG, getComponentSourceInfo, openInIDE } from '../core/utilities'
 import './fd-button'
+import './fd-icon'
 
 const CHEVRON_DOWN = svg`<path d="m6 9 6 6 6-6"/>`
 const CHEVRON_RIGHT = svg`<path d="m9 18 6-6-6-6"/>`
@@ -46,7 +47,14 @@ export class FdLaminarComponentTree extends LitElement {
   @state()
   private _isDragging = false
 
+  @state()
+  private _autoRefresh = false
+
+  @state()
+  private _isRefreshing = false
+
   private _flattenedNodes: FlattenedNode[] = []
+  private _autoRefreshInterval: ReturnType<typeof setInterval> | null = null
   private _nodeIdCounter = 0
   private _dragStartX = 0
   private _dragStartY = 0
@@ -57,6 +65,11 @@ export class FdLaminarComponentTree extends LitElement {
     super.connectedCallback()
     // Set popover attribute for Popover API
     this.setAttribute('popover', 'manual')
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback()
+    this._stopAutoRefresh()
   }
 
   override updated(changedProperties: Map<string, unknown>): void {
@@ -92,8 +105,59 @@ export class FdLaminarComponentTree extends LitElement {
     } catch {
       // Popover might already be hidden
     }
+    this._stopAutoRefresh()
+    this._autoRefresh = false
     this._treeData = []
     this._flattenedNodes = []
+  }
+
+  private _toggleAutoRefresh(): void {
+    this._autoRefresh = !this._autoRefresh
+    if (this._autoRefresh) {
+      this._startAutoRefresh()
+    } else {
+      this._stopAutoRefresh()
+    }
+  }
+
+  private _startAutoRefresh(): void {
+    this._stopAutoRefresh()
+    this._autoRefreshInterval = setInterval(() => {
+      this._refreshTree()
+    }, 5000)
+  }
+
+  private _stopAutoRefresh(): void {
+    if (this._autoRefreshInterval) {
+      clearInterval(this._autoRefreshInterval)
+      this._autoRefreshInterval = null
+    }
+  }
+
+  private _refreshTree(): void {
+    // Trigger spin animation
+    this._isRefreshing = true
+
+    // Store current focused node's element to try to re-focus after refresh
+    const currentFocusedItem = this._flattenedNodes[this._focusedIndex]
+    const currentFocusedElement = currentFocusedItem?.node.element
+
+    this._buildTree()
+
+    // Try to restore focus to the same element
+    if (currentFocusedElement) {
+      const newIndex = this._flattenedNodes.findIndex(
+        (item) => item.node.element === currentFocusedElement,
+      )
+      if (newIndex !== -1) {
+        this._focusedIndex = newIndex
+      }
+    }
+
+    // Stop animation after spin completes
+    setTimeout(() => {
+      this._isRefreshing = false
+    }, 500)
   }
 
   private _dispatchFocusChange(): void {
@@ -565,6 +629,17 @@ export class FdLaminarComponentTree extends LitElement {
         >
           <span class="title">Laminar Component Tree</span>
           <div class="actions">
+            <button
+              class="auto-refresh-btn ${this._autoRefresh ? 'active' : ''}"
+              title="Auto-refresh (5s)"
+              @click=${this._toggleAutoRefresh}
+            >
+              <fd-icon
+                name="refresh"
+                class="${this._isRefreshing ? 'spinning' : ''}"
+                size=${14}
+              ></fd-icon>
+            </button>
             <fd-button size="sm" @click=${this._expandAll}>Expand All</fd-button>
             <fd-button size="sm" @click=${this._collapseAll}>Collapse All</fd-button>
             <fd-button size="sm" @click=${this._close}>✕</fd-button>
@@ -647,7 +722,49 @@ export class FdLaminarComponentTree extends LitElement {
 
       .actions {
         display: flex;
+        align-items: center;
         gap: 4px;
+      }
+
+      .auto-refresh-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        padding: 0;
+        border: none;
+        border-radius: 4px;
+        background: transparent;
+        color: var(--fd-text-muted, #999);
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+      }
+
+      .auto-refresh-btn:hover {
+        background: var(--fd-bg-hover, rgba(255, 255, 255, 0.1));
+        color: var(--fd-text-primary, #fff);
+      }
+
+      .auto-refresh-btn.active {
+        color: var(--fd-primary, rgb(142, 97, 227));
+      }
+
+      .auto-refresh-btn.active:hover {
+        color: var(--fd-primary-hover, rgb(162, 117, 247));
+      }
+
+      .auto-refresh-btn fd-icon.spinning {
+        animation: spin 0.5s ease-in-out;
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(-360deg);
+        }
       }
 
       .tree-container {
