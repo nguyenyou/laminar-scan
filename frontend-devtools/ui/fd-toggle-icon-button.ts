@@ -88,7 +88,7 @@ export class FdToggleIconButton extends LitElement {
       box-shadow: none;
       cursor: pointer;
       color: var(--fd-text-muted);
-      border-radius: 6px;
+      border-radius: 8px;
       display: inline-flex;
       align-items: center;
       justify-content: center;

@@ -55,7 +55,7 @@ export class FdMem extends LitElement {
       gap: 4px;
       padding: 0 8px;
       height: 24px;
-      border-radius: 6px;
+      border-radius: 8px;
       white-space: nowrap;
       font-family: var(--fd-font-mono);
       background: var(--fd-bg-panel);

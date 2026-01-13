@@ -213,7 +213,7 @@ export class FdMemChart extends LitElement {
       align-items: center;
       padding: 8px;
       background: var(--fd-bg-panel);
-      border-radius: 6px;
+      border-radius: 8px;
       box-shadow: var(--fd-inset-border-subtle);
       width: 100%;
       box-sizing: border-box;

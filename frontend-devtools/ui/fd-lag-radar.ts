@@ -174,7 +174,7 @@ export class FdLagRadar extends LitElement {
       gap: 8px;
       padding: 26px 12px;
       background: var(--fd-bg-panel);
-      border-radius: 6px;
+      border-radius: 8px;
       box-shadow: var(--fd-inset-border-subtle);
     }
 

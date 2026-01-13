@@ -59,7 +59,7 @@ export class FdButton extends LitElement {
       justify-content: center;
       gap: 6px;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       font-family: system-ui, -apple-system, sans-serif;
       font-weight: 500;
       cursor: pointer;
