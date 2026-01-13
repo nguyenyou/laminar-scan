@@ -1651,6 +1651,7 @@
       this.frames = 50;
       this.speed = 17e-4;
       this.inset = 3;
+      // Not @state() since it's not used in render() - avoids "change in update" warning
       this._running = false;
       this._animationId = null;
       this._last = null;
@@ -1813,9 +1814,6 @@
   __decorateClass([
     n4({ type: Number })
   ], FdLagRadar.prototype, "inset", 2);
-  __decorateClass([
-    r5()
-  ], FdLagRadar.prototype, "_running", 2);
   FdLagRadar = __decorateClass([
     t3("fd-lag-radar")
   ], FdLagRadar);
@@ -3765,19 +3763,30 @@
       super.disconnectedCallback();
       this._stopAutoRefresh();
     }
-    updated(changedProperties) {
+    // Use willUpdate instead of updated to avoid "change in update" warning.
+    // willUpdate runs before render and state changes here don't trigger a new update cycle.
+    willUpdate(changedProperties) {
       if (changedProperties.has("open")) {
         if (this.open) {
-          this._show();
+          this._prepareShow();
         } else {
-          this._hide();
+          this._prepareHide();
         }
       }
     }
-    _show() {
+    updated(changedProperties) {
+      if (changedProperties.has("open") && this.open) {
+        this._afterShow();
+      }
+    }
+    // State changes that need to happen before render (no async, no DOM access)
+    _prepareShow() {
       this._buildTree();
       this._focusedIndex = 0;
       this._centerPanel();
+    }
+    // DOM operations that need to happen after render
+    _afterShow() {
       try {
         this.showPopover();
       } catch {
@@ -3787,7 +3796,8 @@
         this._dispatchFocusChange();
       });
     }
-    _hide() {
+    // State changes for hiding (run before render in willUpdate)
+    _prepareHide() {
       try {
         this.hidePopover();
       } catch {
@@ -4382,12 +4392,17 @@
       }
 
       .tree-item {
+        box-sizing: border-box;
         display: flex;
         align-items: center;
         padding: 2px 12px;
         cursor: pointer;
         border-left: 2px solid transparent;
-        min-height: 24px;
+        height: 28px;
+        white-space: nowrap;
+        /* Performance optimization: skip rendering off-screen items */
+        content-visibility: auto;
+        contain-intrinsic-size: auto 28px;
       }
 
       .tree-item:hover {
