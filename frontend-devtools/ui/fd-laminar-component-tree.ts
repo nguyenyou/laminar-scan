@@ -111,6 +111,35 @@ export class FdLaminarComponentTree extends LitElement {
     )
   }
 
+  private _loadPanelPosition(): boolean {
+    const stored = persistenceStorage.get(StorageKeys.COMPONENT_TREE_POSITION)
+    if (stored) {
+      try {
+        const { xPercent, yPercent } = JSON.parse(stored) as { xPercent: number; yPercent: number }
+        // Convert percentage to pixels
+        const x = Math.round(xPercent * window.innerWidth)
+        const y = Math.round(yPercent * window.innerHeight)
+        const clamped = this._clampPosition(x, y)
+        this._posX = clamped.x
+        this._posY = clamped.y
+        return true
+      } catch {
+        // Fall through to return false
+      }
+    }
+    return false
+  }
+
+  private _savePanelPosition(): void {
+    // Save as percentage of viewport
+    const xPercent = this._posX / window.innerWidth
+    const yPercent = this._posY / window.innerHeight
+    persistenceStorage.set(
+      StorageKeys.COMPONENT_TREE_POSITION,
+      JSON.stringify({ xPercent, yPercent }),
+    )
+  }
+
   override disconnectedCallback(): void {
     super.disconnectedCallback()
     this._unregisterKeyboardHandlers()
@@ -150,7 +179,10 @@ export class FdLaminarComponentTree extends LitElement {
   private _prepareShow(): void {
     this._buildTree()
     this._focusedIndex = 0
-    this._centerPanel()
+    // Try to load persisted position, fall back to centering
+    if (!this._loadPanelPosition()) {
+      this._centerPanel()
+    }
     this._registerKeyboardHandlers()
   }
 
@@ -310,6 +342,8 @@ export class FdLaminarComponentTree extends LitElement {
     this._isDragging = false
     document.removeEventListener('pointermove', this._handlePointerMove)
     document.removeEventListener('pointerup', this._handlePointerUp)
+    // Persist position as percentage
+    this._savePanelPosition()
   }
 
   private _handleResizePointerDown = (direction: ResizeDirection) => (e: PointerEvent): void => {

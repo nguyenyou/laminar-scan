@@ -3601,7 +3601,8 @@
     ACTIVE_WIDGETS: "FRONTEND_DEVTOOLS_ACTIVE_WIDGETS",
     MUTATION_SCAN_ACTIVE: "FRONTEND_DEVTOOLS_MUTATION_SCAN_ACTIVE",
     PANEL_POSITION: "FRONTEND_DEVTOOLS_PANEL_POSITION",
-    COMPONENT_TREE_SIZE: "FRONTEND_DEVTOOLS_COMPONENT_TREE_SIZE"
+    COMPONENT_TREE_SIZE: "FRONTEND_DEVTOOLS_COMPONENT_TREE_SIZE",
+    COMPONENT_TREE_POSITION: "FRONTEND_DEVTOOLS_COMPONENT_TREE_POSITION"
   };
   var PersistenceStorage = class {
     get(key) {
@@ -3829,6 +3830,7 @@
         this._isDragging = false;
         document.removeEventListener("pointermove", this._handlePointerMove);
         document.removeEventListener("pointerup", this._handlePointerUp);
+        this._savePanelPosition();
       };
       this._handleResizePointerDown = (direction) => (e7) => {
         if (e7.button !== 0) return;
@@ -3932,6 +3934,30 @@
         JSON.stringify({ width: this._panelWidth, height: this._panelHeight })
       );
     }
+    _loadPanelPosition() {
+      const stored = persistenceStorage.get(StorageKeys.COMPONENT_TREE_POSITION);
+      if (stored) {
+        try {
+          const { xPercent, yPercent } = JSON.parse(stored);
+          const x2 = Math.round(xPercent * window.innerWidth);
+          const y3 = Math.round(yPercent * window.innerHeight);
+          const clamped = this._clampPosition(x2, y3);
+          this._posX = clamped.x;
+          this._posY = clamped.y;
+          return true;
+        } catch {
+        }
+      }
+      return false;
+    }
+    _savePanelPosition() {
+      const xPercent = this._posX / window.innerWidth;
+      const yPercent = this._posY / window.innerHeight;
+      persistenceStorage.set(
+        StorageKeys.COMPONENT_TREE_POSITION,
+        JSON.stringify({ xPercent, yPercent })
+      );
+    }
     disconnectedCallback() {
       super.disconnectedCallback();
       this._unregisterKeyboardHandlers();
@@ -3966,7 +3992,9 @@
     _prepareShow() {
       this._buildTree();
       this._focusedIndex = 0;
-      this._centerPanel();
+      if (!this._loadPanelPosition()) {
+        this._centerPanel();
+      }
       this._registerKeyboardHandlers();
     }
     _registerKeyboardHandlers() {
