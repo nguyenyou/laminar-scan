@@ -2767,6 +2767,81 @@
     t3("fd-switch")
   ], FdSwitch);
 
+  // frontend-devtools/core/keyboard-manager.ts
+  var KeyboardPriority = {
+    /** Modal/dialog level - highest priority */
+    MODAL: 1e3,
+    /** Overlay panels like component tree */
+    PANEL: 500,
+    /** Active tools like component inspector */
+    TOOL: 100,
+    /** Global shortcuts like Ctrl+Shift+C */
+    GLOBAL: 0
+  };
+  var KeyboardManager = class {
+    constructor() {
+      this._handlers = [];
+      this._active = false;
+      /**
+       * Handle keydown events by calling handlers in priority order.
+       */
+      this._handleKeydown = (e7) => {
+        for (const { handler } of this._handlers) {
+          try {
+            const handled = handler(e7);
+            if (handled) {
+              return;
+            }
+          } catch (error) {
+            console.error("KeyboardManager: handler error", error);
+          }
+        }
+      };
+    }
+    /**
+     * Register a keyboard handler with a priority level.
+     * Higher priority handlers are called first.
+     * Returns an unregister function.
+     */
+    register(id, handler, priority) {
+      this._handlers = this._handlers.filter((h4) => h4.id !== id);
+      const registration = { id, handler, priority };
+      this._handlers.push(registration);
+      this._handlers.sort((a3, b3) => b3.priority - a3.priority);
+      return () => this.unregister(id);
+    }
+    /**
+     * Unregister a handler by id.
+     */
+    unregister(id) {
+      this._handlers = this._handlers.filter((h4) => h4.id !== id);
+    }
+    /**
+     * Start listening for keyboard events.
+     */
+    start() {
+      if (this._active) return;
+      this._active = true;
+      document.addEventListener("keydown", this._handleKeydown, { capture: true });
+    }
+    /**
+     * Stop listening for keyboard events.
+     */
+    stop() {
+      if (!this._active) return;
+      this._active = false;
+      document.removeEventListener("keydown", this._handleKeydown, { capture: true });
+    }
+    /**
+     * Cleanup all handlers.
+     */
+    destroy() {
+      this.stop();
+      this._handlers = [];
+    }
+  };
+  var keyboardManager = new KeyboardManager();
+
   // frontend-devtools/ui/fd-component-inspector.ts
   var FdComponentInspector = class extends i4 {
     constructor() {
@@ -2888,16 +2963,20 @@
           return;
         }
       };
-      this._handleKeydown = (e7) => {
-        if (!this.active) return;
+      /**
+       * Handle keyboard events for inspector navigation.
+       * Returns true if the event was handled.
+       */
+      this._handleKeyboardEvent = (e7) => {
+        if (!this.active) return false;
         if (e7.key === "Escape") {
           this.active = false;
-          return;
+          return true;
         }
         if (e7.key === "Enter") {
           e7.preventDefault();
           this._selectCurrentComponent();
-          return;
+          return true;
         }
         if (e7.key === "ArrowUp" && this._focusedElement) {
           e7.preventDefault();
@@ -2931,7 +3010,7 @@
               this._animatePillShake();
             }
           }
-          return;
+          return true;
         }
         if (e7.key === "ArrowDown") {
           e7.preventDefault();
@@ -2948,7 +3027,9 @@
           } else {
             this._animateBoundaryPulse();
           }
+          return true;
         }
+        return false;
       };
     }
     updated(changedProperties) {
@@ -3168,12 +3249,22 @@
         capture: true
       });
       document.addEventListener("click", this._handleClick, { capture: true });
-      document.addEventListener("keydown", this._handleKeydown);
+      this._registerKeyboardHandlers();
     }
     _removeEventListeners() {
       document.removeEventListener("pointermove", this._handlePointerMove, { capture: true });
       document.removeEventListener("click", this._handleClick, { capture: true });
-      document.removeEventListener("keydown", this._handleKeydown);
+      this._unregisterKeyboardHandlers();
+    }
+    _registerKeyboardHandlers() {
+      keyboardManager.register(
+        "inspector:navigation",
+        (e7) => this._handleKeyboardEvent(e7),
+        KeyboardPriority.TOOL
+      );
+    }
+    _unregisterKeyboardHandlers() {
+      keyboardManager.unregister("inspector:navigation");
     }
     _clearOverlay() {
       this._currentRect = null;
@@ -3774,6 +3865,50 @@
         document.removeEventListener("pointermove", this._handleResizePointerMove);
         document.removeEventListener("pointerup", this._handleResizePointerUp);
       };
+      /**
+       * Handle keyboard events for tree navigation.
+       * Returns true if the event was handled.
+       */
+      this._handleKeyboardEvent = (e7) => {
+        if (!this.open) return false;
+        if (this._flattenedNodes.length === 0) return false;
+        switch (e7.key) {
+          case "Escape":
+            e7.preventDefault();
+            e7.stopPropagation();
+            this._close();
+            return true;
+          case "ArrowUp":
+            e7.preventDefault();
+            e7.stopPropagation();
+            this._focusedIndex = Math.max(0, this._focusedIndex - 1);
+            this._onFocusChange();
+            return true;
+          case "ArrowDown":
+            e7.preventDefault();
+            e7.stopPropagation();
+            this._focusedIndex = Math.min(this._flattenedNodes.length - 1, this._focusedIndex + 1);
+            this._onFocusChange();
+            return true;
+          case "ArrowLeft":
+            e7.preventDefault();
+            e7.stopPropagation();
+            this._collapseOrNavigateUp();
+            return true;
+          case "ArrowRight":
+            e7.preventDefault();
+            e7.stopPropagation();
+            this._expandOrNavigateDown();
+            return true;
+          case "Enter":
+            e7.preventDefault();
+            e7.stopPropagation();
+            this._openInIDE(this._focusedIndex);
+            return true;
+          default:
+            return false;
+        }
+      };
     }
     connectedCallback() {
       super.connectedCallback();
@@ -3799,6 +3934,7 @@
     }
     disconnectedCallback() {
       super.disconnectedCallback();
+      this._unregisterKeyboardHandlers();
       this._stopAutoRefresh();
       this._cancelRefreshAnimation();
       this._treeData = [];
@@ -3831,6 +3967,17 @@
       this._buildTree();
       this._focusedIndex = 0;
       this._centerPanel();
+      this._registerKeyboardHandlers();
+    }
+    _registerKeyboardHandlers() {
+      keyboardManager.register(
+        "laminar-tree:navigation",
+        (e7) => this._handleKeyboardEvent(e7),
+        KeyboardPriority.PANEL
+      );
+    }
+    _unregisterKeyboardHandlers() {
+      keyboardManager.unregister("laminar-tree:navigation");
     }
     // DOM operations that need to happen after render
     _afterShow() {
@@ -3845,6 +3992,7 @@
     }
     // State changes for hiding (run before render in willUpdate)
     _prepareHide() {
+      this._unregisterKeyboardHandlers();
       try {
         this.hidePopover();
       } catch {
@@ -3979,43 +4127,6 @@
       this._flattenedNodes = flattened;
       if (this._focusedIndex >= this._flattenedNodes.length) {
         this._focusedIndex = Math.max(0, this._flattenedNodes.length - 1);
-      }
-    }
-    _handleKeydown(e7) {
-      if (this._flattenedNodes.length === 0) return;
-      switch (e7.key) {
-        case "Escape":
-          e7.preventDefault();
-          e7.stopPropagation();
-          this._close();
-          break;
-        case "ArrowUp":
-          e7.preventDefault();
-          e7.stopPropagation();
-          this._focusedIndex = Math.max(0, this._focusedIndex - 1);
-          this._onFocusChange();
-          break;
-        case "ArrowDown":
-          e7.preventDefault();
-          e7.stopPropagation();
-          this._focusedIndex = Math.min(this._flattenedNodes.length - 1, this._focusedIndex + 1);
-          this._onFocusChange();
-          break;
-        case "ArrowLeft":
-          e7.preventDefault();
-          e7.stopPropagation();
-          this._collapseOrNavigateUp();
-          break;
-        case "ArrowRight":
-          e7.preventDefault();
-          e7.stopPropagation();
-          this._expandOrNavigateDown();
-          break;
-        case "Enter":
-          e7.preventDefault();
-          e7.stopPropagation();
-          this._openInIDE(this._focusedIndex);
-          break;
       }
     }
     _onFocusChange() {
@@ -4307,7 +4418,6 @@
         <div
           class="tree-container"
           tabindex="0"
-          @keydown=${this._handleKeydown}
         >
           ${this._renderTree()}
         </div>
@@ -4724,7 +4834,6 @@
       this._mutationScanActive = persistenceStorage.getBoolean(StorageKeys.MUTATION_SCAN_ACTIVE);
       this._activeWidgets = persistenceStorage.getArray(StorageKeys.ACTIVE_WIDGETS);
       this._panelPosition = persistenceStorage.get(StorageKeys.PANEL_POSITION) || DEFAULT_PANEL_POSITION;
-      this._boundHandleKeydown = this._handleKeydown.bind(this);
     }
     get _isEnabled() {
       return this.enable === "true";
@@ -4733,20 +4842,32 @@
       super.connectedCallback();
       this.setAttribute("data-frontend-devtools", "root");
       if (this._isEnabled) {
-        document.addEventListener("keydown", this._boundHandleKeydown, { capture: true });
+        this._registerKeyboardHandlers();
+        keyboardManager.start();
       }
     }
     disconnectedCallback() {
       super.disconnectedCallback();
-      document.removeEventListener("keydown", this._boundHandleKeydown, { capture: true });
+      this._unregisterKeyboardHandlers();
       this._inspectActive = false;
     }
-    _handleKeydown(e7) {
-      if (e7.ctrlKey && e7.shiftKey && e7.key.toLowerCase() === "c") {
-        e7.preventDefault();
-        e7.stopPropagation();
-        this._inspectActive = !this._inspectActive;
-      }
+    _registerKeyboardHandlers() {
+      keyboardManager.register(
+        "global:toggle-inspect",
+        (e7) => {
+          if (e7.ctrlKey && e7.shiftKey && e7.key.toLowerCase() === "c") {
+            e7.preventDefault();
+            e7.stopPropagation();
+            this._inspectActive = !this._inspectActive;
+            return true;
+          }
+          return false;
+        },
+        KeyboardPriority.GLOBAL
+      );
+    }
+    _unregisterKeyboardHandlers() {
+      keyboardManager.unregister("global:toggle-inspect");
     }
     _handleDomMutationChange(e7) {
       this._mutationScanActive = e7.detail.checked;
