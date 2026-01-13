@@ -54,12 +54,37 @@ export class FrontendDevtools extends LitElement {
   @query('fd-laminar-component-tree')
   private _laminarTree!: FdLaminarComponentTree
 
+  @state()
+  private _hidden = false
+
   constructor() {
     super()
     this._mutationScanActive = persistenceStorage.getBoolean(StorageKeys.MUTATION_SCAN_ACTIVE)
     this._activeWidgets = persistenceStorage.getArray<PanelWidget>(StorageKeys.ACTIVE_WIDGETS)
     this._panelPosition =
       (persistenceStorage.get(StorageKeys.PANEL_POSITION) as PanelPosition) || DEFAULT_PANEL_POSITION
+    this._hidden = persistenceStorage.getBoolean(StorageKeys.DEVTOOLS_HIDDEN)
+  }
+
+  /**
+   * Show the devtools panel. Called from Devtools.show() API.
+   */
+  public show(): void {
+    this._hidden = false
+    persistenceStorage.setBoolean(StorageKeys.DEVTOOLS_HIDDEN, false)
+  }
+
+  /**
+   * Hide the devtools panel. Only hotkey for inspect mode remains active.
+   * Called from Devtools.hide() API.
+   */
+  public hide(): void {
+    this._hidden = true
+    // Disable active features when hiding
+    this._mutationScanActive = false
+    this._laminarTreeActive = false
+    this._activeWidgets = []
+    persistenceStorage.setBoolean(StorageKeys.DEVTOOLS_HIDDEN, true)
   }
 
   private get _isEnabled(): boolean {
@@ -181,6 +206,18 @@ export class FrontendDevtools extends LitElement {
   render() {
     if (!this._isEnabled) {
       return null
+    }
+
+    // When hidden, only render the component inspector (for hotkey-triggered inspect mode)
+    // Other features like FPS, mutation scan, memory monitor are disabled
+    if (this._hidden) {
+      return html`
+        <fd-component-inspector
+          .active=${this._inspectActive}
+          @change=${this._handleInspectorChange}
+          @hover-change=${this._handleInspectorHoverChange}
+        ></fd-component-inspector>
+      `
     }
 
     return html`

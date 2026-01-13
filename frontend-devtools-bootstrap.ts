@@ -27,14 +27,25 @@ function removeDevtoolsElement(): void {
   }
 }
 
+function enableDevtools(): void {
+  persistenceStorage.setBoolean(StorageKeys.DEVTOOLS_ENABLED, true)
+  persistenceStorage.setBoolean(StorageKeys.DEVTOOLS_HIDDEN, false)
+  const element = getOrCreateDevtoolsElement()
+  element.setAttribute('enable', 'true')
+  appendDevtoolsElement(element)
+  // Ensure panel is visible
+  if ((element as any).show) {
+    ;(element as any).show()
+  }
+  console.log('Devtools enabled.')
+}
+
 const DevtoolsAPI = {
-  enable(): void {
-    persistenceStorage.setBoolean(StorageKeys.DEVTOOLS_ENABLED, true)
-    const element = getOrCreateDevtoolsElement()
-    element.setAttribute('enable', 'true')
-    appendDevtoolsElement(element)
-    console.log('Devtools enabled.')
-  },
+  /** Enable and show devtools. */
+  enable: enableDevtools,
+
+  /** Alias for enable(). */
+  show: enableDevtools,
 
   disable(): void {
     persistenceStorage.setBoolean(StorageKeys.DEVTOOLS_ENABLED, false)
@@ -44,6 +55,27 @@ const DevtoolsAPI = {
 
   isEnabled(): boolean {
     return persistenceStorage.getBoolean(StorageKeys.DEVTOOLS_ENABLED)
+  },
+
+  /**
+   * Hide the devtools panel UI.
+   * Only hotkey (Ctrl+Shift+C) to toggle inspect mode remains active.
+   * Other features like FPS, mutation scan, memory monitor are disabled.
+   * Does nothing if devtools is not enabled.
+   */
+  hide(): void {
+    const element = document.querySelector('frontend-devtools') as any
+    if (element?.hide) {
+      element.hide()
+      console.log('Devtools hidden. Use Ctrl+Shift+C to inspect, or Devtools.show() to restore.')
+    }
+  },
+
+  /**
+   * Check if devtools is currently hidden.
+   */
+  isHidden(): boolean {
+    return persistenceStorage.getBoolean(StorageKeys.DEVTOOLS_HIDDEN)
   },
 }
 

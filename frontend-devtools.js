@@ -3604,6 +3604,7 @@
   // frontend-devtools/core/persistence-storage.ts
   var StorageKeys = {
     DEVTOOLS_ENABLED: "FRONTEND_DEVTOOLS_ENABLED",
+    DEVTOOLS_HIDDEN: "FRONTEND_DEVTOOLS_HIDDEN",
     ACTIVE_WIDGETS: "FRONTEND_DEVTOOLS_ACTIVE_WIDGETS",
     MUTATION_SCAN_ACTIVE: "FRONTEND_DEVTOOLS_MUTATION_SCAN_ACTIVE",
     PANEL_POSITION: "FRONTEND_DEVTOOLS_PANEL_POSITION",
@@ -4865,9 +4866,29 @@
       this._laminarTreeActive = false;
       this._activeWidgets = [];
       this._panelPosition = DEFAULT_PANEL_POSITION;
+      this._hidden = false;
       this._mutationScanActive = persistenceStorage.getBoolean(StorageKeys.MUTATION_SCAN_ACTIVE);
       this._activeWidgets = persistenceStorage.getArray(StorageKeys.ACTIVE_WIDGETS);
       this._panelPosition = persistenceStorage.get(StorageKeys.PANEL_POSITION) || DEFAULT_PANEL_POSITION;
+      this._hidden = persistenceStorage.getBoolean(StorageKeys.DEVTOOLS_HIDDEN);
+    }
+    /**
+     * Show the devtools panel. Called from Devtools.show() API.
+     */
+    show() {
+      this._hidden = false;
+      persistenceStorage.setBoolean(StorageKeys.DEVTOOLS_HIDDEN, false);
+    }
+    /**
+     * Hide the devtools panel. Only hotkey for inspect mode remains active.
+     * Called from Devtools.hide() API.
+     */
+    hide() {
+      this._hidden = true;
+      this._mutationScanActive = false;
+      this._laminarTreeActive = false;
+      this._activeWidgets = [];
+      persistenceStorage.setBoolean(StorageKeys.DEVTOOLS_HIDDEN, true);
     }
     get _isEnabled() {
       return this.enable === "true";
@@ -4963,6 +4984,15 @@
     render() {
       if (!this._isEnabled) {
         return null;
+      }
+      if (this._hidden) {
+        return b2`
+        <fd-component-inspector
+          .active=${this._inspectActive}
+          @change=${this._handleInspectorChange}
+          @hover-change=${this._handleInspectorHoverChange}
+        ></fd-component-inspector>
+      `;
       }
       return b2`
       <fd-panel position=${this._panelPosition} @position-change=${this._handlePositionChange}>
@@ -5064,6 +5094,9 @@
   __decorateClass([
     e5("fd-laminar-component-tree")
   ], FrontendDevtools.prototype, "_laminarTree", 2);
+  __decorateClass([
+    r5()
+  ], FrontendDevtools.prototype, "_hidden", 2);
   FrontendDevtools = __decorateClass([
     t3("frontend-devtools")
   ], FrontendDevtools);
@@ -5088,14 +5121,23 @@
       element.parentNode.removeChild(element);
     }
   }
+  function enableDevtools() {
+    persistenceStorage.setBoolean(StorageKeys.DEVTOOLS_ENABLED, true);
+    persistenceStorage.setBoolean(StorageKeys.DEVTOOLS_HIDDEN, false);
+    const element = getOrCreateDevtoolsElement();
+    element.setAttribute("enable", "true");
+    appendDevtoolsElement(element);
+    if (element.show) {
+      ;
+      element.show();
+    }
+    console.log("Devtools enabled.");
+  }
   var DevtoolsAPI = {
-    enable() {
-      persistenceStorage.setBoolean(StorageKeys.DEVTOOLS_ENABLED, true);
-      const element = getOrCreateDevtoolsElement();
-      element.setAttribute("enable", "true");
-      appendDevtoolsElement(element);
-      console.log("Devtools enabled.");
-    },
+    /** Enable and show devtools. */
+    enable: enableDevtools,
+    /** Alias for enable(). */
+    show: enableDevtools,
     disable() {
       persistenceStorage.setBoolean(StorageKeys.DEVTOOLS_ENABLED, false);
       removeDevtoolsElement();
@@ -5103,6 +5145,25 @@
     },
     isEnabled() {
       return persistenceStorage.getBoolean(StorageKeys.DEVTOOLS_ENABLED);
+    },
+    /**
+     * Hide the devtools panel UI.
+     * Only hotkey (Ctrl+Shift+C) to toggle inspect mode remains active.
+     * Other features like FPS, mutation scan, memory monitor are disabled.
+     * Does nothing if devtools is not enabled.
+     */
+    hide() {
+      const element = document.querySelector("frontend-devtools");
+      if (element?.hide) {
+        element.hide();
+        console.log("Devtools hidden. Use Ctrl+Shift+C to inspect, or Devtools.show() to restore.");
+      }
+    },
+    /**
+     * Check if devtools is currently hidden.
+     */
+    isHidden() {
+      return persistenceStorage.getBoolean(StorageKeys.DEVTOOLS_HIDDEN);
     }
   };
   window.Devtools = DevtoolsAPI;
