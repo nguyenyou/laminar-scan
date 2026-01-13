@@ -1114,6 +1114,11 @@
       this._transformPos = { x: 0, y: 0 };
       this._transitionTimeoutId = null;
       this._panelResizeObserver = null;
+      // Drag state tracking for cleanup
+      this._dragRafId = null;
+      this._dragPointerId = null;
+      this._dragMoveHandler = null;
+      this._dragEndHandler = null;
       this._handleWindowResize = () => {
         this._updateTransformFromCorner();
       };
@@ -1141,6 +1146,27 @@
         this._panelResizeObserver.disconnect();
         this._panelResizeObserver = null;
       }
+      this._cleanupDrag();
+    }
+    _cleanupDrag() {
+      if (this._dragRafId) {
+        cancelAnimationFrame(this._dragRafId);
+        this._dragRafId = null;
+      }
+      if (this._dragMoveHandler) {
+        document.removeEventListener("pointermove", this._dragMoveHandler);
+        this._dragMoveHandler = null;
+      }
+      if (this._dragEndHandler) {
+        document.removeEventListener("pointerup", this._dragEndHandler);
+        document.removeEventListener("pointercancel", this._dragEndHandler);
+        this._dragEndHandler = null;
+      }
+      if (this._dragPointerId !== null && this.hasPointerCapture(this._dragPointerId)) {
+        this.releasePointerCapture(this._dragPointerId);
+      }
+      this._dragPointerId = null;
+      this.removeAttribute("dragging");
     }
     _handlePanelResize(entry) {
       const borderBoxSize = entry.borderBoxSize[0];
@@ -1162,6 +1188,7 @@
         return;
       }
       e7.preventDefault();
+      this._cleanupDrag();
       const initialMouseX = e7.clientX;
       const initialMouseY = e7.clientY;
       const initialX = this._transformPos.x;
@@ -1171,14 +1198,13 @@
       let lastMouseX = initialMouseX;
       let lastMouseY = initialMouseY;
       let hasMoved = false;
-      let rafId = null;
       this.setPointerCapture(e7.pointerId);
-      const pointerId = e7.pointerId;
+      this._dragPointerId = e7.pointerId;
       const handlePointerMove = (moveEvent) => {
         lastMouseX = moveEvent.clientX;
         lastMouseY = moveEvent.clientY;
-        if (rafId) return;
-        rafId = requestAnimationFrame(() => {
+        if (this._dragRafId) return;
+        this._dragRafId = requestAnimationFrame(() => {
           const deltaX = lastMouseX - initialMouseX;
           const deltaY = lastMouseY - initialMouseY;
           if (!hasMoved && (Math.abs(deltaX) > DRAG_CONFIG.thresholds.dragStart || Math.abs(deltaY) > DRAG_CONFIG.thresholds.dragStart)) {
@@ -1191,19 +1217,22 @@
             currentY = initialY + deltaY;
             this.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
           }
-          rafId = null;
+          this._dragRafId = null;
         });
       };
       const handlePointerEnd = () => {
-        if (this.hasPointerCapture(pointerId)) {
-          this.releasePointerCapture(pointerId);
+        this._dragMoveHandler = null;
+        this._dragEndHandler = null;
+        if (this._dragPointerId !== null && this.hasPointerCapture(this._dragPointerId)) {
+          this.releasePointerCapture(this._dragPointerId);
         }
+        this._dragPointerId = null;
         document.removeEventListener("pointermove", handlePointerMove);
         document.removeEventListener("pointerup", handlePointerEnd);
         document.removeEventListener("pointercancel", handlePointerEnd);
-        if (rafId) {
-          cancelAnimationFrame(rafId);
-          rafId = null;
+        if (this._dragRafId) {
+          cancelAnimationFrame(this._dragRafId);
+          this._dragRafId = null;
         }
         this.removeAttribute("dragging");
         this.dispatchEvent(new CustomEvent("drag-end", { bubbles: true, composed: true }));
@@ -1231,6 +1260,8 @@
           );
         }
       };
+      this._dragMoveHandler = handlePointerMove;
+      this._dragEndHandler = handlePointerEnd;
       document.addEventListener("pointermove", handlePointerMove);
       document.addEventListener("pointerup", handlePointerEnd);
       document.addEventListener("pointercancel", handlePointerEnd);
@@ -2747,6 +2778,7 @@
       this._currentRect = null;
       this._animationId = null;
       this._removeTimeoutId = null;
+      this._startAnimationId = null;
       // Crosshair state
       this._cursorX = 0;
       this._cursorY = 0;
@@ -2936,7 +2968,8 @@
       this._createCanvas();
       this._createEventCatcher();
       this._addEventListeners();
-      requestAnimationFrame(() => {
+      this._startAnimationId = requestAnimationFrame(() => {
+        this._startAnimationId = null;
         this._showCanvas();
         if (this._eventCatcher) {
           this._eventCatcher.style.pointerEvents = "auto";
@@ -2950,6 +2983,10 @@
       this._focusedElement = null;
       this._focusedIsReact = false;
       this._focusHistory = [];
+      if (this._startAnimationId) {
+        cancelAnimationFrame(this._startAnimationId);
+        this._startAnimationId = null;
+      }
       this._cancelBoundaryAnimation();
       this._destroyCanvas();
       this._destroyEventCatcher();
@@ -3669,6 +3706,7 @@
       this._resizeStartWidth = 0;
       this._resizeStartHeight = 0;
       this._autoRefreshInterval = null;
+      this._refreshAnimationTimeoutId = null;
       this._nodeIdCounter = 0;
       this._dragStartX = 0;
       this._dragStartY = 0;
@@ -3762,6 +3800,15 @@
     disconnectedCallback() {
       super.disconnectedCallback();
       this._stopAutoRefresh();
+      this._cancelRefreshAnimation();
+      this._treeData = [];
+      this._flattenedNodes = [];
+    }
+    _cancelRefreshAnimation() {
+      if (this._refreshAnimationTimeoutId) {
+        clearTimeout(this._refreshAnimationTimeoutId);
+        this._refreshAnimationTimeoutId = null;
+      }
     }
     // Use willUpdate instead of updated to avoid "change in update" warning.
     // willUpdate runs before render and state changes here don't trigger a new update cycle.
@@ -3841,8 +3888,10 @@
           this._focusedIndex = newIndex;
         }
       }
-      setTimeout(() => {
+      this._cancelRefreshAnimation();
+      this._refreshAnimationTimeoutId = setTimeout(() => {
         this._isRefreshing = false;
+        this._refreshAnimationTimeoutId = null;
       }, 500);
     }
     _dispatchFocusChange() {

@@ -76,6 +76,7 @@ export class FdLaminarComponentTree extends LitElement {
   private _resizeStartWidth = 0
   private _resizeStartHeight = 0
   private _autoRefreshInterval: ReturnType<typeof setInterval> | null = null
+  private _refreshAnimationTimeoutId: ReturnType<typeof setTimeout> | null = null
   private _nodeIdCounter = 0
   private _dragStartX = 0
   private _dragStartY = 0
@@ -112,6 +113,17 @@ export class FdLaminarComponentTree extends LitElement {
   override disconnectedCallback(): void {
     super.disconnectedCallback()
     this._stopAutoRefresh()
+    this._cancelRefreshAnimation()
+    // Clear element references to prevent memory leaks
+    this._treeData = []
+    this._flattenedNodes = []
+  }
+
+  private _cancelRefreshAnimation(): void {
+    if (this._refreshAnimationTimeoutId) {
+      clearTimeout(this._refreshAnimationTimeoutId)
+      this._refreshAnimationTimeoutId = null
+    }
   }
 
   // Use willUpdate instead of updated to avoid "change in update" warning.
@@ -211,8 +223,10 @@ export class FdLaminarComponentTree extends LitElement {
     }
 
     // Stop animation after spin completes
-    setTimeout(() => {
+    this._cancelRefreshAnimation()
+    this._refreshAnimationTimeoutId = setTimeout(() => {
       this._isRefreshing = false
+      this._refreshAnimationTimeoutId = null
     }, 500)
   }
 

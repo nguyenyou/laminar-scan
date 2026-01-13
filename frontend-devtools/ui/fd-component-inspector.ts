@@ -34,6 +34,7 @@ export class FdComponentInspector extends LitElement {
   private _currentRect: RectType | null = null
   private _animationId: number | null = null
   private _removeTimeoutId: ReturnType<typeof setTimeout> | null = null
+  private _startAnimationId: number | null = null
 
   // Crosshair state
   private _cursorX: number = 0
@@ -71,8 +72,9 @@ export class FdComponentInspector extends LitElement {
     this._createEventCatcher()
     this._addEventListeners()
 
-    // Show with animation
-    requestAnimationFrame(() => {
+    // Show with animation - track the RAF for cleanup
+    this._startAnimationId = requestAnimationFrame(() => {
+      this._startAnimationId = null
       this._showCanvas()
       if (this._eventCatcher) {
         this._eventCatcher.style.pointerEvents = 'auto'
@@ -84,10 +86,16 @@ export class FdComponentInspector extends LitElement {
 
   private _stop(): void {
     this._removeEventListeners()
+    // Clear element references to prevent memory leaks
     this._lastHovered = null
     this._focusedElement = null
     this._focusedIsReact = false
     this._focusHistory = []
+    // Cancel any pending start animation
+    if (this._startAnimationId) {
+      cancelAnimationFrame(this._startAnimationId)
+      this._startAnimationId = null
+    }
     this._cancelBoundaryAnimation()
     this._destroyCanvas()
     this._destroyEventCatcher()

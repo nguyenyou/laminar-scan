@@ -25,6 +25,12 @@ export class FdPanel extends LitElement {
   private _transitionTimeoutId: ReturnType<typeof setTimeout> | null = null
   private _panelResizeObserver: ResizeObserver | null = null
 
+  // Drag state tracking for cleanup
+  private _dragRafId: number | null = null
+  private _dragPointerId: number | null = null
+  private _dragMoveHandler: ((e: PointerEvent) => void) | null = null
+  private _dragEndHandler: (() => void) | null = null
+
   connectedCallback() {
     super.connectedCallback()
     this.addEventListener('pointerdown', this._handlePointerDown)
@@ -50,6 +56,29 @@ export class FdPanel extends LitElement {
       this._panelResizeObserver.disconnect()
       this._panelResizeObserver = null
     }
+    // Clean up any active drag operation
+    this._cleanupDrag()
+  }
+
+  private _cleanupDrag(): void {
+    if (this._dragRafId) {
+      cancelAnimationFrame(this._dragRafId)
+      this._dragRafId = null
+    }
+    if (this._dragMoveHandler) {
+      document.removeEventListener('pointermove', this._dragMoveHandler)
+      this._dragMoveHandler = null
+    }
+    if (this._dragEndHandler) {
+      document.removeEventListener('pointerup', this._dragEndHandler)
+      document.removeEventListener('pointercancel', this._dragEndHandler)
+      this._dragEndHandler = null
+    }
+    if (this._dragPointerId !== null && this.hasPointerCapture(this._dragPointerId)) {
+      this.releasePointerCapture(this._dragPointerId)
+    }
+    this._dragPointerId = null
+    this.removeAttribute('dragging')
   }
 
   private _handleWindowResize = () => {
@@ -81,6 +110,9 @@ export class FdPanel extends LitElement {
 
     e.preventDefault()
 
+    // Clean up any previous drag operation
+    this._cleanupDrag()
+
     const initialMouseX = e.clientX
     const initialMouseY = e.clientY
     const initialX = this._transformPos.x
@@ -91,20 +123,19 @@ export class FdPanel extends LitElement {
     let lastMouseX = initialMouseX
     let lastMouseY = initialMouseY
     let hasMoved = false
-    let rafId: number | null = null
 
     // Capture pointer for reliable tracking
     this.setPointerCapture(e.pointerId)
-    const pointerId = e.pointerId
+    this._dragPointerId = e.pointerId
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
       lastMouseX = moveEvent.clientX
       lastMouseY = moveEvent.clientY
 
       // Throttle with RAF
-      if (rafId) return
+      if (this._dragRafId) return
 
-      rafId = requestAnimationFrame(() => {
+      this._dragRafId = requestAnimationFrame(() => {
         const deltaX = lastMouseX - initialMouseX
         const deltaY = lastMouseY - initialMouseY
 
@@ -124,22 +155,27 @@ export class FdPanel extends LitElement {
           this.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`
         }
 
-        rafId = null
+        this._dragRafId = null
       })
     }
 
     const handlePointerEnd = () => {
-      if (this.hasPointerCapture(pointerId)) {
-        this.releasePointerCapture(pointerId)
+      // Clear tracked handlers first
+      this._dragMoveHandler = null
+      this._dragEndHandler = null
+
+      if (this._dragPointerId !== null && this.hasPointerCapture(this._dragPointerId)) {
+        this.releasePointerCapture(this._dragPointerId)
       }
+      this._dragPointerId = null
 
       document.removeEventListener('pointermove', handlePointerMove)
       document.removeEventListener('pointerup', handlePointerEnd)
       document.removeEventListener('pointercancel', handlePointerEnd)
 
-      if (rafId) {
-        cancelAnimationFrame(rafId)
-        rafId = null
+      if (this._dragRafId) {
+        cancelAnimationFrame(this._dragRafId)
+        this._dragRafId = null
       }
 
       this.removeAttribute('dragging')
@@ -176,6 +212,10 @@ export class FdPanel extends LitElement {
         )
       }
     }
+
+    // Store handlers for cleanup
+    this._dragMoveHandler = handlePointerMove
+    this._dragEndHandler = handlePointerEnd
 
     document.addEventListener('pointermove', handlePointerMove)
     document.addEventListener('pointerup', handlePointerEnd)
