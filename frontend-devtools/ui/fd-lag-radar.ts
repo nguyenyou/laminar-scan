@@ -1,6 +1,6 @@
 import { LitElement, css, html } from 'lit'
 import type { PropertyValues } from 'lit'
-import { customElement, property, state } from 'lit/decorators.js'
+import { customElement, property } from 'lit/decorators.js'
 import { getColorFromFrameTime } from '../core/performance-color'
 
 interface RadarLastState {
@@ -24,7 +24,8 @@ export class FdLagRadar extends LitElement {
   /** Inset from edge for the radar circle */
   @property({ type: Number }) inset = 3
 
-  @state() private _running = false
+  // Not @state() since it's not used in render() - avoids "change in update" warning
+  private _running = false
 
   private _animationId: number | null = null
   private _last: RadarLastState | null = null

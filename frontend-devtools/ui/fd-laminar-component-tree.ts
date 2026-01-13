@@ -114,21 +114,33 @@ export class FdLaminarComponentTree extends LitElement {
     this._stopAutoRefresh()
   }
 
-  override updated(changedProperties: Map<string, unknown>): void {
+  // Use willUpdate instead of updated to avoid "change in update" warning.
+  // willUpdate runs before render and state changes here don't trigger a new update cycle.
+  override willUpdate(changedProperties: Map<string, unknown>): void {
     if (changedProperties.has('open')) {
       if (this.open) {
-        this._show()
+        this._prepareShow()
       } else {
-        this._hide()
+        this._prepareHide()
       }
     }
   }
 
-  private _show(): void {
+  override updated(changedProperties: Map<string, unknown>): void {
+    if (changedProperties.has('open') && this.open) {
+      this._afterShow()
+    }
+  }
+
+  // State changes that need to happen before render (no async, no DOM access)
+  private _prepareShow(): void {
     this._buildTree()
     this._focusedIndex = 0
-    // Center the panel initially
     this._centerPanel()
+  }
+
+  // DOM operations that need to happen after render
+  private _afterShow(): void {
     try {
       this.showPopover()
     } catch {
@@ -141,7 +153,8 @@ export class FdLaminarComponentTree extends LitElement {
     })
   }
 
-  private _hide(): void {
+  // State changes for hiding (run before render in willUpdate)
+  private _prepareHide(): void {
     try {
       this.hidePopover()
     } catch {
