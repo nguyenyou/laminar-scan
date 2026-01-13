@@ -707,7 +707,7 @@
       box-shadow: none;
       cursor: pointer;
       color: var(--fd-text-muted);
-      border-radius: 6px;
+      border-radius: 8px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -1431,7 +1431,7 @@
       gap: 4px;
       padding: 0 8px;
       height: 24px;
-      border-radius: 6px;
+      border-radius: 8px;
       white-space: nowrap;
       font-family: var(--fd-font-mono);
       background: var(--fd-bg-panel);
@@ -1611,7 +1611,7 @@
       gap: 4px;
       padding: 0 8px;
       height: 24px;
-      border-radius: 6px;
+      border-radius: 8px;
       white-space: nowrap;
       font-family: var(--fd-font-mono);
       background: var(--fd-bg-panel);
@@ -1809,7 +1809,7 @@
       gap: 8px;
       padding: 26px 12px;
       background: var(--fd-bg-panel);
-      border-radius: 6px;
+      border-radius: 8px;
       box-shadow: var(--fd-inset-border-subtle);
     }
 
@@ -2028,7 +2028,7 @@
       align-items: center;
       padding: 8px;
       background: var(--fd-bg-panel);
-      border-radius: 6px;
+      border-radius: 8px;
       box-shadow: var(--fd-inset-border-subtle);
       width: 100%;
       box-sizing: border-box;
@@ -3683,7 +3683,7 @@
       justify-content: center;
       gap: 6px;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       font-family: system-ui, -apple-system, sans-serif;
       font-weight: 500;
       cursor: pointer;
