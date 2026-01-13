@@ -102,9 +102,18 @@ export class FdPanel extends LitElement {
   }
 
   private _handlePointerDown(e: PointerEvent) {
-    // Ignore clicks on interactive elements inside the toolbar
-    const target = e.target as HTMLElement
-    if (target.closest('fd-toolbar')) {
+    // Ignore clicks on interactive elements
+    // Use composedPath() to correctly detect clicks inside shadow DOM
+    const path = e.composedPath()
+    const isInteractive = path.some((el) => {
+      if (!(el instanceof HTMLElement)) return false
+      // Check native interactive elements
+      if (el.tagName === 'BUTTON' || el.tagName === 'INPUT' || el.tagName === 'A') return true
+      // Check custom interactive components
+      const tag = el.tagName
+      return tag === 'FD-TOGGLE-ICON-BUTTON' || tag === 'FD-SWITCH' || tag === 'FD-INSPECT'
+    })
+    if (isInteractive) {
       return
     }
 

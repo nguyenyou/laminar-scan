@@ -1183,8 +1183,14 @@
       this._applyTransform(false);
     }
     _handlePointerDown(e7) {
-      const target = e7.target;
-      if (target.closest("fd-toolbar")) {
+      const path = e7.composedPath();
+      const isInteractive = path.some((el) => {
+        if (!(el instanceof HTMLElement)) return false;
+        if (el.tagName === "BUTTON" || el.tagName === "INPUT" || el.tagName === "A") return true;
+        const tag = el.tagName;
+        return tag === "FD-TOGGLE-ICON-BUTTON" || tag === "FD-SWITCH" || tag === "FD-INSPECT";
+      });
+      if (isInteractive) {
         return;
       }
       e7.preventDefault();
