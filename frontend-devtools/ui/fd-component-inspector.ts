@@ -1,5 +1,6 @@
 import { LitElement, css } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
+import { keyboardManager, KeyboardPriority } from '../core/keyboard-manager'
 import {
   CONFIG,
   lerp,
@@ -329,13 +330,25 @@ export class FdComponentInspector extends LitElement {
       capture: true,
     })
     document.addEventListener('click', this._handleClick, { capture: true })
-    document.addEventListener('keydown', this._handleKeydown)
+    this._registerKeyboardHandlers()
   }
 
   private _removeEventListeners(): void {
     document.removeEventListener('pointermove', this._handlePointerMove, { capture: true })
     document.removeEventListener('click', this._handleClick, { capture: true })
-    document.removeEventListener('keydown', this._handleKeydown)
+    this._unregisterKeyboardHandlers()
+  }
+
+  private _registerKeyboardHandlers(): void {
+    keyboardManager.register(
+      'inspector:navigation',
+      (e) => this._handleKeyboardEvent(e),
+      KeyboardPriority.TOOL,
+    )
+  }
+
+  private _unregisterKeyboardHandlers(): void {
+    keyboardManager.unregister('inspector:navigation')
   }
 
   private _clearOverlay(): void {
@@ -764,18 +777,22 @@ export class FdComponentInspector extends LitElement {
     }
   }
 
-  private _handleKeydown = (e: KeyboardEvent) => {
-    if (!this.active) return
+  /**
+   * Handle keyboard events for inspector navigation.
+   * Returns true if the event was handled.
+   */
+  private _handleKeyboardEvent = (e: KeyboardEvent): boolean => {
+    if (!this.active) return false
 
     if (e.key === 'Escape') {
       this.active = false
-      return
+      return true
     }
 
     if (e.key === 'Enter') {
       e.preventDefault()
       this._selectCurrentComponent()
-      return
+      return true
     }
 
     if (e.key === 'ArrowUp' && this._focusedElement) {
@@ -815,7 +832,7 @@ export class FdComponentInspector extends LitElement {
           this._animatePillShake()
         }
       }
-      return
+      return true
     }
 
     if (e.key === 'ArrowDown') {
@@ -835,7 +852,10 @@ export class FdComponentInspector extends LitElement {
         // At end of history - pulse border bigger
         this._animateBoundaryPulse()
       }
+      return true
     }
+
+    return false
   }
 
   static styles = css`

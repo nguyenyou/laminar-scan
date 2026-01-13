@@ -1,6 +1,7 @@
 import { LitElement, css, html, nothing, svg } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 import { repeat } from 'lit/directives/repeat.js'
+import { keyboardManager, KeyboardPriority } from '../core/keyboard-manager'
 import { persistenceStorage, StorageKeys } from '../core/persistence-storage'
 import { CONFIG, getComponentSourceInfo, openInIDE } from '../core/utilities'
 import './fd-button'
@@ -112,6 +113,7 @@ export class FdLaminarComponentTree extends LitElement {
 
   override disconnectedCallback(): void {
     super.disconnectedCallback()
+    this._unregisterKeyboardHandlers()
     this._stopAutoRefresh()
     this._cancelRefreshAnimation()
     // Clear element references to prevent memory leaks
@@ -149,6 +151,19 @@ export class FdLaminarComponentTree extends LitElement {
     this._buildTree()
     this._focusedIndex = 0
     this._centerPanel()
+    this._registerKeyboardHandlers()
+  }
+
+  private _registerKeyboardHandlers(): void {
+    keyboardManager.register(
+      'laminar-tree:navigation',
+      (e) => this._handleKeyboardEvent(e),
+      KeyboardPriority.PANEL,
+    )
+  }
+
+  private _unregisterKeyboardHandlers(): void {
+    keyboardManager.unregister('laminar-tree:navigation')
   }
 
   // DOM operations that need to happen after render
@@ -167,6 +182,7 @@ export class FdLaminarComponentTree extends LitElement {
 
   // State changes for hiding (run before render in willUpdate)
   private _prepareHide(): void {
+    this._unregisterKeyboardHandlers()
     try {
       this.hidePopover()
     } catch {
@@ -423,47 +439,56 @@ export class FdLaminarComponentTree extends LitElement {
     }
   }
 
-  private _handleKeydown(e: KeyboardEvent): void {
-    if (this._flattenedNodes.length === 0) return
+  /**
+   * Handle keyboard events for tree navigation.
+   * Returns true if the event was handled.
+   */
+  private _handleKeyboardEvent = (e: KeyboardEvent): boolean => {
+    // Only handle when panel is open
+    if (!this.open) return false
+    if (this._flattenedNodes.length === 0) return false
 
     switch (e.key) {
       case 'Escape':
         e.preventDefault()
         e.stopPropagation()
         this._close()
-        break
+        return true
 
       case 'ArrowUp':
         e.preventDefault()
         e.stopPropagation()
         this._focusedIndex = Math.max(0, this._focusedIndex - 1)
         this._onFocusChange()
-        break
+        return true
 
       case 'ArrowDown':
         e.preventDefault()
         e.stopPropagation()
         this._focusedIndex = Math.min(this._flattenedNodes.length - 1, this._focusedIndex + 1)
         this._onFocusChange()
-        break
+        return true
 
       case 'ArrowLeft':
         e.preventDefault()
         e.stopPropagation()
         this._collapseOrNavigateUp()
-        break
+        return true
 
       case 'ArrowRight':
         e.preventDefault()
         e.stopPropagation()
         this._expandOrNavigateDown()
-        break
+        return true
 
       case 'Enter':
         e.preventDefault()
         e.stopPropagation()
         this._openInIDE(this._focusedIndex)
-        break
+        return true
+
+      default:
+        return false
     }
   }
 
@@ -816,7 +841,6 @@ export class FdLaminarComponentTree extends LitElement {
         <div
           class="tree-container"
           tabindex="0"
-          @keydown=${this._handleKeydown}
         >
           ${this._renderTree()}
         </div>

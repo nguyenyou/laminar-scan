@@ -18,6 +18,7 @@ import './ui/fd-component-inspector'
 import './ui/fd-laminar-component-tree'
 import { designTokens } from './design-tokens'
 import { persistenceStorage, StorageKeys } from './core/persistence-storage'
+import { keyboardManager, KeyboardPriority } from './core/keyboard-manager'
 
 type PanelWidget = 'LAG_RADAR' | 'DOM_STATS' | 'MEM_CHART'
 
@@ -53,15 +54,12 @@ export class FrontendDevtools extends LitElement {
   @query('fd-laminar-component-tree')
   private _laminarTree!: FdLaminarComponentTree
 
-  private _boundHandleKeydown: (e: KeyboardEvent) => void
-
   constructor() {
     super()
     this._mutationScanActive = persistenceStorage.getBoolean(StorageKeys.MUTATION_SCAN_ACTIVE)
     this._activeWidgets = persistenceStorage.getArray<PanelWidget>(StorageKeys.ACTIVE_WIDGETS)
     this._panelPosition =
       (persistenceStorage.get(StorageKeys.PANEL_POSITION) as PanelPosition) || DEFAULT_PANEL_POSITION
-    this._boundHandleKeydown = this._handleKeydown.bind(this)
   }
 
   private get _isEnabled(): boolean {
@@ -73,24 +71,37 @@ export class FrontendDevtools extends LitElement {
     // Mark this element as a devtools element so clicks pass through during inspect mode
     this.setAttribute('data-frontend-devtools', 'root')
     if (this._isEnabled) {
-      document.addEventListener('keydown', this._boundHandleKeydown, { capture: true })
+      this._registerKeyboardHandlers()
+      keyboardManager.start()
     }
   }
 
   override disconnectedCallback(): void {
     super.disconnectedCallback()
-    document.removeEventListener('keydown', this._boundHandleKeydown, { capture: true })
+    this._unregisterKeyboardHandlers()
     // Reset inspect state (not persisted, so should be cleared)
     this._inspectActive = false
   }
 
-  private _handleKeydown(e: KeyboardEvent): void {
-    // Ctrl+Shift+C to toggle inspect mode
-    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'c') {
-      e.preventDefault()
-      e.stopPropagation()
-      this._inspectActive = !this._inspectActive
-    }
+  private _registerKeyboardHandlers(): void {
+    // Global shortcut: Ctrl+Shift+C to toggle inspect mode
+    keyboardManager.register(
+      'global:toggle-inspect',
+      (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'c') {
+          e.preventDefault()
+          e.stopPropagation()
+          this._inspectActive = !this._inspectActive
+          return true
+        }
+        return false
+      },
+      KeyboardPriority.GLOBAL,
+    )
+  }
+
+  private _unregisterKeyboardHandlers(): void {
+    keyboardManager.unregister('global:toggle-inspect')
   }
 
   private _handleDomMutationChange(e: CustomEvent<{ checked: boolean }>) {
