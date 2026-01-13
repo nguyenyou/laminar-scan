@@ -5,6 +5,7 @@
     "": {
       "name": "mill-vite",
       "dependencies": {
+        "@tanstack/lit-virtual": "3.13.19",
         "@types/bun": "1.3.5",
         "@typescript/native-preview": "7.0.0-dev.20260103.1",
         "lit": "3.3.2",
@@ -183,6 +184,10 @@
     "@rolldown/binding-win32-x64-msvc": ["@rolldown/binding-win32-x64-msvc@1.0.0-beta.57", "", { "os": "win32", "cpu": "x64" }, "sha512-OqIUyNid1M4xTj6VRXp/Lht/qIP8fo25QyAZlCP+p6D2ATCEhyW4ZIFLnC9zAGN/HMbXoCzvwfa8Jjg/8J4YEg=="],
 
     "@rolldown/pluginutils": ["@rolldown/pluginutils@1.0.0-beta.57", "", {}, "sha512-aQNelgx14tGA+n2tNSa9x6/jeoCL9fkDeCei7nOKnHx0fEFRRMu5ReiITo+zZD5TzWDGGRjbSYCs93IfRIyTuQ=="],
+
+    "@tanstack/lit-virtual": ["@tanstack/lit-virtual@3.13.19", "", { "dependencies": { "@tanstack/virtual-core": "3.13.18" }, "peerDependencies": { "lit": "^3.1.0" } }, "sha512-2R9nHSOmFEO/FP8QHF1+jN5SEPMs8GGQitzPE4i8hJST/7P3ucvjM6TJwmoevwOZMk1xAN0kqyEP/Oe8DydW2A=="],
+
+    "@tanstack/virtual-core": ["@tanstack/virtual-core@3.13.18", "", {}, "sha512-Mx86Hqu1k39icq2Zusq+Ey2J6dDWTjDvEv43PJtRCoEYTLyfaPnxIQ6iy7YAOK0NV/qOEmZQ/uCufrppZxTgcg=="],
 
     "@tybys/wasm-util": ["@tybys/wasm-util@0.10.1", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg=="],
 

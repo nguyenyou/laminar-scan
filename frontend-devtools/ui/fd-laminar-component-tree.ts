@@ -923,12 +923,17 @@ export class FdLaminarComponentTree extends LitElement {
       }
 
       .tree-item {
+        box-sizing: border-box;
         display: flex;
         align-items: center;
         padding: 2px 12px;
         cursor: pointer;
         border-left: 2px solid transparent;
-        min-height: 24px;
+        height: 28px;
+        white-space: nowrap;
+        /* Performance optimization: skip rendering off-screen items */
+        content-visibility: auto;
+        contain-intrinsic-size: auto 28px;
       }
 
       .tree-item:hover {
